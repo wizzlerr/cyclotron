@@ -72,7 +72,7 @@ cyclotron/                (pnpm monorepo, TypeScript everywhere)
 | ~~E3-5~~ | ✅ (2026-10-21) (SVG, not uPlot) Workout graph (profile chart with current position) | M |
 | ~~E3-6~~ | ✅ (2026-10-21) Audio/visual cues before step changes | S |
 | ~~E3-7~~ | ✅ (2026-10-21) Keep the system awake during a ride (`powerSaveBlocker`); `backgroundThrottling: false` and drift-corrected 1 Hz tick so a minimized window doesn't slow the player | S |
-| E3-8 | Simple workout editor/builder | L |
+| E3-8 | Workout builder: create and edit workouts (steps, ramps, repeats, free ride), live profile + stats, save to the library, export `.zwo`. **Scheduled before the server** (user request 2026-10-21) | L |
 
 ## E4 — Live metrics dashboard
 
@@ -115,6 +115,8 @@ cyclotron/                (pnpm monorepo, TypeScript everywhere)
 
 ## E8 — Server and sync
 
+**Moved to the end (2026-10-21, user decision):** the desktop does history, analytics, recommendations and Garmin on its own first (E9–E12). The server is then an optional add-on: backup, a second computer, always-on Garmin pulls. It reuses the same `core` code, so nothing is built twice.
+
 | ID | Task | Size |
 |---|---|---|
 | E8-1 | `apps/server`: Node API (Fastify) + SQLite (`better-sqlite3`, WAL mode) — no separate DB container | M |
@@ -128,19 +130,23 @@ cyclotron/                (pnpm monorepo, TypeScript everywhere)
 | E8-9 | Profile/FTP history sync (server is the source of truth, desktop keeps a cache) | M |
 | E8-10 | Server URL + connection status in Settings; app still works fully without a server | S |
 | E8-11 | Backup: data volume (SQLite file + FIT folder) covered by Synology Hyper Backup; safe SQLite snapshot via `VACUUM INTO` nightly | S |
+| E8-12 | Multi-device: download rides made on another computer (summary + FIT → local samples and aggregates); ride deletions as tombstones | M |
+| E8-13 | Sync imported workouts, routes and favourites (id + `updated_at`, last write wins, tombstones) | M |
+| E8-14 | Online/offline indicator in the sidebar; "Sync now"; sync on start, after each ride and every few minutes while online | S |
+| E8-15 | Always-on jobs on the server: daily load/recommendation recompute; Garmin pulls and upload retries move here from the desktop (E12) | M |
 
 ## E9 — History and analytics
 
-Runs on the server; needed as input for recommendations (E11). Reads only the precomputed aggregates from E8-5; charts that need per-second data (ride detail) parse that one FIT file on demand.
+Runs on the desktop (server comes last, see E8). Aggregates (power curve, zone times, TSS per day) are computed once when a ride finishes and stored in the desktop SQLite; charts that need per-second data (ride detail) read that ride's samples. Core pieces already written: `core/metrics/curve.ts` (power curve, zone times), `core/metrics/load.ts` (CTL/ATL/TSB).
 
 | ID | Task | Size |
 |---|---|---|
-| E9-1 | Ride history list and ride detail view | M |
-| E9-2 | Power-duration curve (best 5s, 1m, 5m, 20m, 60m), all-time and last 42/90 days | M |
-| E9-3 | Training load: CTL (fitness), ATL (fatigue), TSB (form) chart | M |
-| E9-4 | Time in zone per ride and per week | S |
-| E9-5 | Import existing FIT files (e.g. past rides) to bootstrap history | M |
-| E9-6 | Auto-detected FTP estimate from history (power curve based) | M |
+| E9-1 | ✅ done 2026-10-21. (History: click a ride for detail: stats, power/HR/elevation charts with a synced cursor, power curve, zones, laps, route outline, delete) Ride history list and ride detail view | M |
+| E9-2 | ✅ done 2026-10-21. (Progress screen: all time / 90 days / 6 weeks + best-of table with the ride it came from) Power-duration curve (best 5s, 1m, 5m, 20m, 60m), all-time and last 42/90 days | M |
+| E9-3 | ✅ done 2026-10-21. (Progress: fitness/fatigue/form chart with ranges, daily TSS bars) Training load: CTL (fitness), ATL (fatigue), TSB (form) chart | M |
+| E9-4 | ✅ done 2026-10-21. (per ride: Z1–Z7 bars; per week: easy/moderate/hard stacked bars, 12 weeks) Time in zone per ride and per week | S |
+| E9-5 | ✅ done 2026-10-21. (any cycling FIT; copies into <FIT folder>/imported, skips duplicates by start time and non-cycling files, FTP from the file or FTP history) Import existing FIT files (e.g. past rides) to bootstrap history | M |
+| E9-6 | ✅ done 2026-10-21. (95 % of best 20 min in 90 days, "Use X W") Auto-detected FTP estimate from history (power curve based) | M |
 
 ## E10 — Workout library
 
@@ -155,7 +161,7 @@ Library ships with the desktop app so it works offline.
 
 ## E11 — Recommended workouts ⭐
 
-Zwift-style "what should I ride today?". Logic lives in `core`; the server computes it on sync and the desktop caches the latest result, so it shows offline too. Rule-based first, then adaptive. No ML models: rules + simple scoring keep it fast enough to run in milliseconds on the NAS.
+Zwift-style "what should I ride today?". Logic lives in `core` and runs on the desktop from local rides (the server, when added in E8, can run the same engine). Rule-based first, then adaptive. No ML models: rules + simple scoring keep it fast enough to run in milliseconds on the NAS.
 
 | ID | Task | Size |
 |---|---|---|
@@ -173,7 +179,7 @@ Zwift-style "what should I ride today?". Logic lives in `core`; the server compu
 
 ## E12 — Garmin Connect integration (R&D, last)
 
-Runs on the server. Two directions: **upload** our rides to Garmin, and **read** Garmin's metrics into the recommendation engine. Garmin sees everything you do (outdoor rides, runs, sleep), so its load is more complete than our indoor-only CTL/ATL.
+Runs from the desktop app (scheduled pulls while it's open); moves to the server once E8 exists. Two directions: **upload** our rides to Garmin, and **read** Garmin's metrics into the recommendation engine. Garmin sees everything you do (outdoor rides, runs, sleep), so its load is more complete than our indoor-only CTL/ATL.
 
 | ID | Task | Size |
 |---|---|---|
@@ -183,6 +189,17 @@ Runs on the server. Two directions: **upload** our rides to Garmin, and **read**
 | E12-4 | Decide on an approach for upload; prototype it | M–L |
 | E12-5 | Prototype metrics import: scheduled pull (e.g. every few hours / after sync) into a small `external_metrics` table; must fit the NAS budget | M |
 | E12-6 | Feed Garmin metrics into recommendations (see E11-11) | M |
+
+## E14 — Cloud-folder sync (requested 2026-10-21, after E8)
+
+Sync without a server (DESIGN.md §8.6): the user picks a folder that Google Drive, Dropbox, OneDrive or iCloud Drive keeps in sync; the app writes there. No cloud APIs in the app.
+
+| ID | Task | Size |
+|---|---|---|
+| E14-1 | Journal format: one append-only file per device (rides, profile, FTP history, workouts, routes, favourites, tombstones) + FIT files | M |
+| E14-2 | Write own journal; read and apply other devices' journals with the same rules as the server sync (E8) | M |
+| E14-3 | Settings: choose the sync folder, status, "Sync now"; handle the folder being unavailable or half-synced | S |
+| E14-4 | Test with two machines on Google Drive and Dropbox (partial uploads, conflicted copies) | S |
 
 ## E13 — Virtual routes (requested 2026-10-21)
 
@@ -206,6 +223,7 @@ Ride a route with real grades sent to the trainer, exported as a Strava/Garmin "
 
 1. **E0 → E6, E7** — MVP: desktop app, ride in ERG mode, FIT export, FTP tests (no server)
 1b. **E13** — virtual routes (user request; after the MVP, before the server)
-2. **E8** — server in Docker + sync
-3. **E9 → E10 → E11** — history, library, recommendations
-4. **E12** — Garmin integration (upload + metrics import)
+2. **E9 → E3-8 → E10 → E11** — history, workout builder, library, recommendations, all on the desktop
+3. **E12** — Garmin integration (upload + metrics import), from the desktop
+4. **E8** — server in Docker + sync, last (user decision 2026-10-21): optional backup / multi-device / always-on Garmin (DESIGN.md §8.0)
+5. **E14** — cloud-folder sync (Drive/Dropbox/OneDrive/iCloud) for riders without a server

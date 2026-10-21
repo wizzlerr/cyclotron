@@ -10,6 +10,7 @@ import {
   type RideTotals,
   type StoredRide,
 } from '../shared/api'
+import { computeAggregates } from './analytics'
 import { getDb, getSetting, setSetting, transaction } from './db'
 
 // Ride recording storage (E5-1), FIT files (E5-3) and FTP history (E6-3). The renderer computes summaries and encodes
@@ -18,7 +19,7 @@ import { getDb, getSetting, setSetting, transaction } from './db'
 const FIT_FOLDER_KEY = 'fitFolder'
 const FEEDBACK = new Set<RideFeedback>(['easy', 'right', 'hard', 'failed'])
 
-interface RideRow {
+export interface RideRow {
   id: number
   started_at: number
   utc_offset_min: number
@@ -40,9 +41,10 @@ interface RideRow {
   distance_m: number | null
   feedback: RideFeedback | null
   fit_path: string | null
+  source: 'recorded' | 'import'
 }
 
-interface SampleRow {
+export interface SampleRow {
   t: number
   power: number | null
   cadence: number | null
@@ -153,6 +155,12 @@ export function registerRidesIpc(): void {
           fitPath,
           rideId,
         )
+      try {
+        computeAggregates(rideId)
+      } catch (e) {
+        // Not fatal: the backfill on next start tries again.
+        console.error('aggregates failed', e)
+      }
       return { fitPath, fitError }
     },
   )
@@ -239,11 +247,11 @@ export function registerRidesIpc(): void {
   })
 }
 
-function rideRow(id: number): RideRow | undefined {
+export function rideRow(id: number): RideRow | undefined {
   return getDb().prepare('select * from rides where id = ?').get(id) as RideRow | undefined
 }
 
-function toRide(r: RideRow): StoredRide {
+export function toRide(r: RideRow): StoredRide {
   return {
     id: r.id,
     startedAt: r.started_at,
@@ -256,6 +264,7 @@ function toRide(r: RideRow): StoredRide {
     endedAt: r.ended_at ?? undefined,
     feedback: r.feedback ?? undefined,
     fitPath: r.fit_path ?? undefined,
+    source: r.source,
     totals:
       r.status === 'finished'
         ? {
@@ -274,7 +283,7 @@ function toRide(r: RideRow): StoredRide {
   }
 }
 
-function toSample(r: SampleRow): RideSample {
+export function toSample(r: SampleRow): RideSample {
   return {
     t: r.t,
     powerW: r.power ?? undefined,
@@ -291,4 +300,5 @@ function toSample(r: SampleRow): RideSample {
   }
 }
 
-const int = (n: number | undefined): number | null => (n === undefined ? null : Math.round(n))
+export const int = (n: number | undefined): number | null =>
+  n === undefined ? null : Math.round(n)

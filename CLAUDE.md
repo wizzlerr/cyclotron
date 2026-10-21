@@ -24,7 +24,9 @@ Read both before starting work. Refer to tasks by ID (e.g. "E1-0").
 - **UX + open-source prep** (2026-10-21): workout profile has hover tooltips (step, watts, duration) and power/time axes on the Ride screen; live chart has axis titles and whole-second ticks. README.md (with screenshots in `docs/images/`) and LICENSE (AGPL-3.0-or-later). `.idea/` and `caputre/` untracked and gitignored.
 - **E13 done except the import check** (2026-10-21): routes in `core/route/` (GPX, route model, physics, `RouteRider`, built-in data), Routes screen, route panel on the Ride screen, workouts on routes, FIT `virtualActivity` with GPS. Decision D18. Built-in data regenerates with `node scripts/build-routes.mjs` (needs network). **Open:** E13-6 — import a real route ride into Garmin Connect/Strava.
 - **Responsive UI + 22 routes** (2026-10-21): Workouts/Routes grids and Home/Settings cards (`.cards` in app.css) use the full window; ride tiles and charts scale with window size; Settings → Display → Interface size (webFrame zoom, 80–200 %). Checked at 1080p, 4K @100/150 % and MacBook Retina sizes via CDP emulation. 5 flat routes added (Afsluitdijk, Belgian coast, Regent's Park via bike router, Strandvejen, Alcúdia).
-- Next step: E8 (server in Docker + sync), per the suggested order in BACKLOG.md.
+- **Order changed (2026-10-21, user):** server (E8) moves to the end; E9 → E10 → E11 → E12 run on the desktop first (D19). `core/metrics/curve.ts` and `load.ts` were written at the start of E8 and are kept for E9.
+- **E9 done** (2026-10-21): ride detail (History), Progress screen (fitness/fatigue/form, power curve, weekly zones, FTP estimate), FIT import; aggregates in desktop SQLite (migration 4, `main/analytics.ts`), `core/fit/decode.ts`. Server role + online/offline model + cloud-folder sync epic E14 written into DESIGN §8 (D20). Charts follow the dataviz rules (one y-axis per chart, validated `--series-1..3` colours).
+- Next step: **E3-8 workout builder** (user wants it before the server), then E10 → E11 → E12, then E8, E14.
 - Shell note: pnpm lives in `%APPDATA%\npm`; the Bash tool's PATH doesn't include Node, so run pnpm through PowerShell after refreshing `$env:Path` from the Machine+User values.
 
 ## Open questions to raise with the user
@@ -38,7 +40,7 @@ Resolved 2026-10-21: trainer is a **KICKR CORE 2** (D14, FTMS expected); UI is *
 - Electron desktop app for Windows + macOS. **No hosted web version**, no Firefox/bridge, no Tauri.
 - TypeScript everywhere, pnpm monorepo: `packages/core` (pure logic, no I/O, no `Date.now()`), `apps/desktop`, `apps/server`.
 - Desktop works fully offline; Bluetooth, workout player and recording never depend on the server.
-- Server comes **after the MVP** (MVP = E0–E7).
+- Server comes **last** (after E9–E12, which run on the desktop; D19).
 - Server runs in Docker on the user's **Synology DS920+** with ~1 GB RAM free: **performance is a hard requirement**. Budget < 150 MB RAM, ~0% CPU idle. SQLite (not Postgres), single container, compute-once at upload, per-second data stays in FIT files.
 - Recommendations: rules + scoring, explainable, no ML. External signals (Garmin) are optional inputs through a pluggable interface.
 - Garmin Connect is the **last epic and R&D**: upload rides + read metrics (VO2max, training load, readiness). **No** pushing planned workouts to Garmin.

@@ -1,4 +1,5 @@
-export type Screen = 'home' | 'ride' | 'workouts' | 'routes' | 'history' | 'settings' | 'spike'
+export type Screen =
+  'home' | 'ride' | 'workouts' | 'routes' | 'history' | 'progress' | 'settings' | 'spike'
 
 export const SCREENS: { id: Screen; label: string }[] = [
   { id: 'home', label: 'Home' },
@@ -6,6 +7,7 @@ export const SCREENS: { id: Screen; label: string }[] = [
   { id: 'workouts', label: 'Workouts' },
   { id: 'routes', label: 'Routes' },
   { id: 'history', label: 'History' },
+  { id: 'progress', label: 'Progress' },
   { id: 'settings', label: 'Settings' },
 ]
 

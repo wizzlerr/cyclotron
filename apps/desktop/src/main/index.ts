@@ -1,6 +1,7 @@
 import { join } from 'node:path'
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import { IPC } from '../shared/api'
+import { backfillAggregates, registerAnalyticsIpc } from './analytics'
 import { attachBluetooth, registerBluetoothIpc } from './bluetooth'
 import { closeDb } from './db'
 import { registerPrefsIpc } from './prefs'
@@ -69,9 +70,12 @@ registerRideIpc()
 registerWorkoutsIpc()
 registerRidesIpc()
 registerRoutesIpc()
+registerAnalyticsIpc()
 
 void app.whenReady().then(() => {
   createWindow()
+  // Rides saved before E9 get their power curve and zone times (cheap; runs once).
+  setTimeout(() => backfillAggregates(), 2000)
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })

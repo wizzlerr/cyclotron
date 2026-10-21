@@ -16,6 +16,11 @@
   --z6: #e0533d;
   --z7: #a35bd6;
   --z-none: #3a424d;
+  /* Chart series (validated for this panel colour with the dataviz validator, 2026-10-21) */
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --grid: #262d36;
   font-family: system-ui, sans-serif;
   background: var(--bg);
   color: var(--fg);

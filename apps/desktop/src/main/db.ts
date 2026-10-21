@@ -74,6 +74,25 @@ const MIGRATIONS = [
   alter table ride_samples add column alt real;
   alter table ride_samples add column dist real;
   `,
+  // E9: per-ride aggregates computed once when a ride is saved (DESIGN.md §4.4), imported rides.
+  `
+  create table ride_power_curve (
+    ride_id    integer not null references rides (id) on delete cascade,
+    duration_s integer not null,
+    watts      real    not null,
+    primary key (ride_id, duration_s)
+  ) without rowid;
+
+  create table ride_zone_time (
+    ride_id integer not null references rides (id) on delete cascade,
+    zone    integer not null,                 -- 1…7
+    seconds integer not null,
+    primary key (ride_id, zone)
+  ) without rowid;
+
+  alter table rides add column source text not null default 'recorded';
+  alter table rides add column aggregates_at integer;  -- when the rows above were computed
+  `,
 ]
 
 let db: DatabaseSync | undefined

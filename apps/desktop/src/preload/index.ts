@@ -41,6 +41,14 @@ const api: CyclotronApi = {
     showFit: (id) => ipcRenderer.invoke(IPC.ridesShowFit, id),
     fitFolder: () => ipcRenderer.invoke(IPC.ridesFitFolder),
     chooseFitFolder: () => ipcRenderer.invoke(IPC.ridesChooseFitFolder),
+    detail: (id) => ipcRenderer.invoke(IPC.ridesDetail, id),
+    importFit: () => ipcRenderer.invoke(IPC.ridesImportFit),
+  },
+  analytics: {
+    powerCurve: (days) => ipcRenderer.invoke(IPC.analyticsPowerCurve, days),
+    load: () => ipcRenderer.invoke(IPC.analyticsLoad),
+    zonesByWeek: (weeks) => ipcRenderer.invoke(IPC.analyticsZonesByWeek, weeks),
+    ftpEstimate: () => ipcRenderer.invoke(IPC.analyticsFtpEstimate),
   },
   ftp: {
     history: (limit) => ipcRenderer.invoke(IPC.ftpHistory, limit),

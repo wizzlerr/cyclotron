@@ -5,6 +5,7 @@
   import { nav, go, SCREENS } from './nav.svelte'
   import { recovery } from './ride/recovery.svelte'
   import History from './screens/History.svelte'
+  import Progress from './screens/Progress.svelte'
   import Home from './screens/Home.svelte'
   import Ride from './screens/Ride.svelte'
   import Routes from './screens/Routes.svelte'
@@ -41,6 +42,8 @@
       <Routes />
     {:else if nav.screen === 'history'}
       <History />
+    {:else if nav.screen === 'progress'}
+      <Progress />
     {:else if nav.screen === 'settings'}
       <Settings />
     {:else if nav.screen === 'spike'}

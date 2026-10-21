@@ -47,6 +47,8 @@ Task breakdown lives in [BACKLOG.md](BACKLOG.md). This document explains *how* t
 | D14 | **Trainer is a Wahoo KICKR CORE 2, controlled over FTMS** | Confirmed in spike E1-0 (2026-10-21, firmware 3.5.11): FTMS features include Power Target, Resistance Target and Indoor Bike Simulation; power range 0–2000 W in 1 W steps; Request Control, Start and Set Target Power all answered `success`. E2-7 (Wahoo proprietary control) dropped. Capture: `packages/core/test/fixtures/` | Wahoo proprietary control |
 | D16 | **Virtual routes** (requested 2026-10-21, E13): ride a route (imported GPX or built-in) where the trainer gets the grade via FTMS simulation and speed/distance come from a physics model (power, grade, rider+bike mass, CdA, Crr). Rides on a route are exported with GPS points and sub-sport `virtualActivity` (Strava "Virtual Ride"); rides without a route stay `indoorCycling` | Lets the user mark rides as virtual rides honestly, and adds outdoor-style riding without 3D graphics | 3D world (out of scope: "Zwift without the graphics"); always using `virtualActivity` without a route |
 | D18 | **Route data and grade (E13, 2026-10-21):** routes are resampled every 20 m, elevation smoothed over 100 m, grade felt over 100 m around the rider. Trainer gets road grade × difficulty (default 50 %, Settings) via FTMS simulation; speed always uses the real grade (physics: CdA 0.32, Crr 0.004, ρ 1.225, 97 % drivetrain, rider + bike mass, with momentum). Built-in routes: OSM roads routed by OSRM + EU-DEM 25 m elevation (`scripts/build-routes.mjs`), attribution shown on each route; the DEM turns hairpins into fake 20–27 % ramps, so built-ins carry a grade cap (12 %) that moves excess rise to neighbouring stretches, keeping total climbing and summit height | SRTM 30 m (noisier); heavier smoothing (flattens real ramps); hand-drawn profiles without GPS (no virtual ride in Strava) |
+| D19 | **Server last (2026-10-21, user decision):** history/analytics (E9), library (E10), recommendations (E11) and Garmin (E12) run on the desktop from its SQLite, using `core`; the server (E8) comes last as an optional add-on for backup, multi-device and always-on Garmin pulls. Supersedes the server-first parts of D5, §7.4 and E9/E11/E12 notes. When the server is built it will use `node:sqlite` too (no native module in the Alpine image) | Everything useful works for a single-PC rider without running a NAS container; no logic is written twice because it lives in `core` | Server before E9–E12 (original plan) |
+| D20 | **Online/offline model (2026-10-21):** local-first; the server URL is optional and the app switches between online (background sync) and offline (catch up later) automatically. Rides append-only and idempotent; other records last-write-wins with tombstones; derived numbers always recomputed locally. After the server, a **cloud-folder sync** (E14: Drive/Dropbox/OneDrive/iCloud folder, one journal per device) gives backup and multi-device without a server | Same features with or without a server; riders without a NAS can still sync | Server required for sync; cloud provider APIs/OAuth inside the app |
 | D17 | **Packaging (E7):** electron-builder, NSIS installer on Windows (per-user, choosable folder) and an unsigned `.dmg` on macOS. electron-vite bundles everything into `out/`, so all desktop deps are devDependencies and the package has no `node_modules` (asar ≈ 1.1 MB, nothing native: SQLite is `node:sqlite`). App name is fixed to "Cyclotron", data in `<appData>/Cyclotron` for dev and installed builds alike (pre-E7 `@cyclotron/desktop` folder is moved once). Renderer settings (profile, devices, tiles) are stored in SQLite via a sync `prefs` IPC, because dev (`http://localhost`) and installed (`file://`) builds have different localStorage origins. Single-instance lock | electron-forge (more moving parts for the same result); Squirrel.Windows (no install-folder choice, awkward uninstall); keeping settings in localStorage (lost when switching dev ↔ installed) |
 
 **Open decisions** (to settle at the start of implementation):
@@ -204,6 +206,8 @@ reco_cache       (id=1, computed_at, json)                                 -- la
 
 Per-second rows are fine on the desktop (one rider, plenty of disk). Migrations are numbered SQL strings in `main/db.ts`, tracked with `pragma user_version`.
 
+**E9 (2026-10-21):** migration 4 adds `ride_power_curve` and `ride_zone_time` (computed once in main with `core` when a ride is saved or imported; rides without them are backfilled at startup) and `rides.source` (`recorded` | `import`). Main now bundles `core` (all desktop deps are devDependencies, so nothing is externalized). Load (CTL/ATL/TSB) is computed on request from per-day TSS: cheap for years of rides.
+
 **Built so far (E5, 2026-10-21):** `rides`, `ride_samples` and `settings` only. Imported workouts are still in `workouts.json`. Since E7 the renderer's small settings (profile: FTP, weight, max HR; remembered devices; ride tiles) are JSON values in `settings` under `pref:<key>` (D17); proper `profile`/`devices` tables come when the server sync (E8) needs them. Main only stores rows and writes files; the renderer computes summaries and encodes FIT with `core` (main externalizes dependencies, so it can't import `core` at runtime). Samples are flushed every 5 s; values older than 3 s (sensor dropped) are recorded as missing, not repeated.
 
 ### 4.5 FIT export
@@ -331,7 +335,7 @@ Goal: open the app and see **one recommended workout for today, two alternatives
 
 ### 7.4 Where it runs
 
-The engine is pure code in `core`. The server runs it after every ride ingestion and on a daily schedule (new day = new TSB), and stores the result. The desktop fetches it on sync and caches it in `reco_cache`, so the Home card works offline. Without a server, the desktop can run the same engine on local data (reduced version: TSB from local rides).
+The engine is pure code in `core`. **The desktop runs it** (D19) after each ride and when the app opens on a new day, from its local rides. Once the server exists (E8, last), it can run the same engine after ingestion and the desktop caches the result.
 
 ### 7.5 Weekly plan (later, E11-9)
 
@@ -341,9 +345,23 @@ Given ride days and weekly hours: place 2–3 hard days with easy/rest days betw
 
 ## 8. Server
 
+### 8.0 Role (decided 2026-10-21, D19/D20)
+
+The desktop is **local-first and complete on its own**: every feature works offline (riding, history, analytics, recommendations, routes, workouts). The server is an optional hub, built last. The user enters a server URL; when it's reachable the app is **online** and syncs in the background, otherwise it stays **offline** and catches up later. Nothing in a ride ever waits for the network.
+
+What the server adds:
+
+1. **Backup.** History, FTP history, imported workouts/routes and profile live on the NAS too (Hyper Backup covers it). A fresh install pointed at the server gets everything back.
+2. **Multiple computers.** Each desktop syncs with the server, so history, load and recommendations are the same on every machine (e.g. a PC by the bike and a MacBook when travelling).
+3. **Always-on jobs.** Garmin pulls every few hours (outdoor rides, runs, sleep, HRV), daily recompute of load and today's recommendation, retried uploads to Garmin, even when no desktop is running.
+4. **A stable address for outside services.** Garmin/Strava push notifications and OAuth callbacks need a URL; the server behind Synology's reverse proxy provides it.
+5. **Optional later:** a small read-only page (history, fitness, today's workout) for a phone. Riding stays desktop-only (D1).
+
+Garmin (E12) is the one feature that works noticeably better with a server; until E8, E12 runs from the desktop while it's open.
+
 ### 8.1 Runtime and budget
 
-- Node 24 LTS + Fastify, `better-sqlite3` (WAL), single process, single container.
+- Node 24 LTS + Fastify, `node:sqlite` (WAL; D19: no native module in the Alpine image), single process, single container.
 - Docker image: multi-stage, `node:24-alpine`, production deps only. DS920+ is x86-64, so no ARM builds.
 - Limits: `mem_limit: 256m`, `NODE_OPTIONS=--max-old-space-size=128`. **Target < 150 MB RSS, ~0 % CPU idle.**
 - Volume: `/data` → `cyclotron.db` + `fit/` folder. Backed up by Synology Hyper Backup; nightly `VACUUM INTO` snapshot for a consistent copy.
@@ -393,10 +411,16 @@ Responses gzip-compressed; lists paginated.
 
 ### 8.5 Sync model
 
-- Rides are **append-only** and created on the desktop → uploaded through `sync_queue` with retry/backoff. `client_ride_id` makes uploads idempotent.
-- Profile and FTP history: server is the source of truth; desktop keeps a cache and sends changes with a `updated_at` (last write wins; one user, so conflicts are rare).
-- Recommendation and analytics: pulled after each successful upload and on app start.
-- No server configured → everything still works locally (FIT export, local history list, local reduced recommendation).
+- **Online/offline.** Status (online / offline / not configured) shows in the sidebar and Settings. Sync runs on start, after each ride, every few minutes while online, and on "Sync now".
+- **Rides** are created on a desktop and are **append-only**: uploaded with retry/backoff, idempotent on `client_ride_id` (install id + local ride id). Each desktop also **downloads rides it doesn't have** (made on another computer): summary and the FIT file, from which it rebuilds samples and aggregates locally. Deleting a ride sends a tombstone.
+- **Profile, FTP history, imported workouts and routes, favourites:** every record has an id and `updated_at`; last write wins, deletions are tombstones. One rider, so real conflicts are rare.
+- **Per-device settings** (FIT folder, interface size, ride tiles, remembered Bluetooth devices) are not synced.
+- **Derived data** (power curve, zone times, load, recommendation) is never synced as truth: each side computes it from rides with the same `core` code, so offline and online give the same numbers.
+- No server configured → everything works locally; the app never nags.
+
+### 8.6 Cloud-folder sync (E14, after the server)
+
+For riders who don't want to run a server: point the app at a folder synced by Google Drive, Dropbox, OneDrive or iCloud Drive (their desktop clients do the transfer; no cloud APIs or accounts in the app). Same records as §8.5, written as **one append-only journal file per device** plus FIT files, so two computers never write the same file and the sync client never has to merge. Each desktop reads the other devices' journals and applies them with the same last-write-wins rules. Covers backup and multiple computers, not always-on jobs (no Garmin pulls while every PC is off).
 
 ---
 

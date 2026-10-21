@@ -33,3 +33,8 @@ export function formatKm(metres: number): string {
   const km = Math.max(0, metres) / 1000
   return `${km < 1 ? km.toFixed(2) : km.toFixed(1)} km`
 }
+
+/** Power-curve durations: 5 → "5 s", 300 → "5 min", 3600 → "60 min". */
+export function durationLabel(seconds: number): string {
+  return seconds < 60 ? `${seconds} s` : `${Math.round(seconds / 60)} min`
+}
