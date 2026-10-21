@@ -1,12 +1,14 @@
 {
   "name": "cyclotron",
   "private": true,
+  "license": "AGPL-3.0-or-later",
   "packageManager": "pnpm@12.14.0",
   "engines": {
     "node": ">=24"
   },
   "scripts": {
     "dev": "pnpm --filter @cyclotron/desktop dev",
+    "dist": "pnpm --filter @cyclotron/desktop dist",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",

@@ -1,5 +1,7 @@
 // E4-5: which tiles the ride screen shows, in which order.
 
+import { loadPref, savePref } from '../lib/prefs'
+
 export type TileId =
   | 'power3s'
   | 'power'
@@ -53,15 +55,11 @@ const DEFAULT: TileId[] = [
 const KEY = 'cyclotron.rideTiles'
 
 function load(): TileId[] {
-  try {
-    const saved = JSON.parse(localStorage.getItem(KEY) ?? 'null') as string[] | null
-    const known = new Set<string>(TILES.map((t) => t.id))
-    // 'kj' became 'kcal' (2026-10-21).
-    const ids = saved?.map((id) => (id === 'kj' ? 'kcal' : id))
-    return (ids?.filter((id) => known.has(id)) as TileId[] | undefined) ?? DEFAULT
-  } catch {
-    return DEFAULT
-  }
+  const saved = loadPref<string[]>(KEY)
+  if (!Array.isArray(saved)) return DEFAULT
+  const known = new Set<string>(TILES.map((t) => t.id))
+  // 'kj' became 'kcal' (2026-10-21).
+  return saved.map((id) => (id === 'kj' ? 'kcal' : id)).filter((id) => known.has(id)) as TileId[]
 }
 
 class RideTiles {
@@ -81,11 +79,7 @@ class RideTiles {
 
   private set(ids: TileId[]): void {
     this.shown = ids
-    try {
-      localStorage.setItem(KEY, JSON.stringify(ids))
-    } catch {
-      // Keeps working for this session.
-    }
+    savePref(KEY, ids)
   }
 }
 

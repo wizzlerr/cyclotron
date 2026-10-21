@@ -4,6 +4,11 @@ import { IPC, type BluetoothDeviceInfo, type CyclotronApi } from '../shared/api'
 const api: CyclotronApi = {
   app: {
     getVersion: () => ipcRenderer.invoke(IPC.appGetVersion),
+    showDataFolder: () => ipcRenderer.invoke(IPC.appShowDataFolder),
+  },
+  prefs: {
+    get: (key) => ipcRenderer.sendSync(IPC.prefsGet, key) as string | null,
+    set: (key, value) => ipcRenderer.send(IPC.prefsSet, key, value),
   },
   bluetooth: {
     onDeviceList: (listener) => {

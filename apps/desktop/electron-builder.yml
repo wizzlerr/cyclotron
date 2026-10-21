@@ -1,0 +1,37 @@
+# E7: installers. `pnpm dist` (Windows NSIS) / `pnpm dist:mac` (dmg, must run on a Mac).
+# Everything the app needs is bundled by electron-vite into out/, so the package has no
+# node_modules (all deps are devDependencies) and nothing native to rebuild.
+appId: io.github.wizzlerr.cyclotron
+productName: Cyclotron
+copyright: Copyright © 2026 adam.sabel
+directories:
+  output: dist
+  buildResources: build
+files:
+  - out/**
+  - package.json
+npmRebuild: false
+asar: true
+
+win:
+  target: nsis
+  icon: build/icon.png
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  # Rides and settings stay in %APPDATA%\Cyclotron when uninstalling.
+  deleteAppDataOnUninstall: false
+  artifactName: Cyclotron-Setup-${version}.${ext}
+
+mac:
+  target: dmg
+  icon: build/icon.png
+  category: public.app-category.healthcare-fitness
+  # Unsigned for personal use (DESIGN.md risks); first launch needs right-click → Open.
+  identity: null
+  extendInfo:
+    NSBluetoothAlwaysUsageDescription: Cyclotron connects to your smart trainer and heart rate strap over Bluetooth.
+dmg:
+  artifactName: Cyclotron-${version}.${ext}

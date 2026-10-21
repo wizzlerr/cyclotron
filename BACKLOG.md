@@ -105,9 +105,9 @@ cyclotron/                (pnpm monorepo, TypeScript everywhere)
 
 | ID | Task | Size |
 |---|---|---|
-| E7-1 | `electron-builder`: Windows installer (NSIS) and macOS `.dmg` | M |
-| E7-2 | macOS: Bluetooth usage description (`NSBluetoothAlwaysUsageDescription`), test permission prompt | S |
-| E7-3 | App icon, name, version shown in Settings | S |
+| E7-1 | ✅ Windows done 2026-10-21 (`pnpm dist` → `apps/desktop/dist/Cyclotron-Setup-<v>.exe`, packaged app driven end to end); macOS `.dmg` configured (`pnpm dist:mac`), must be built and tried on a Mac. `electron-builder`: Windows installer (NSIS) and macOS `.dmg` | M |
+| E7-2 | 🔧 usage description set in `electron-builder.yml`; permission prompt untested (needs a Mac). macOS: Bluetooth usage description (`NSBluetoothAlwaysUsageDescription`), test permission prompt | S |
+| E7-3 | ✅ done 2026-10-21 (icon `apps/desktop/build/icon.png`, name "Cyclotron", v0.1.0, Settings → About with "Show data folder"; also: settings moved to SQLite, single instance, D17). App icon, name, version shown in Settings | S |
 | E7-4 | Optional: macOS signing + notarization (needs Apple Developer account, $99/yr), Windows code signing | M |
 | E7-5 | Optional: auto-update (`electron-updater`, GitHub Releases) | M |
 

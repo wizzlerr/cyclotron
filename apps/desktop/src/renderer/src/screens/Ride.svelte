@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { caloriesKcal, heartRateZone, powerZone, type Segment } from '@cyclotron/core'
+  import { caloriesKcal, heartRateZone, powerZone } from '@cyclotron/core'
   import LiveChart from '../components/LiveChart.svelte'
   import RideSummary from '../components/RideSummary.svelte'
   import Tile from '../components/Tile.svelte'
   import WorkoutProfile from '../components/WorkoutProfile.svelte'
   import { devices } from '../devices/devices.svelte'
-  import { formatDuration, formatPct } from '../lib/format'
+  import { describeSegment as describe, formatDuration, formatPct } from '../lib/format'
   import { go } from '../nav.svelte'
   import { profile } from '../profile.svelte'
   import { ride } from '../ride/session.svelte'
@@ -119,22 +119,6 @@
       return !(ride.isFreeRide && (id === 'intervalLeft' || id === 'intervalAvg'))
     }),
   )
-
-  function describe(seg: Segment | undefined): string {
-    if (!seg) return ''
-    const rep = seg.repeat ? ` · ${seg.repeat.index}/${seg.repeat.count}` : ''
-    const cad = seg.cadence ? ` · ${seg.cadence} rpm` : ''
-    switch (seg.kind) {
-      case 'steady':
-        return `Steady ${formatPct(seg.toPct)}${cad}${rep}`
-      case 'ramp':
-        return `Ramp ${formatPct(seg.fromPct)} → ${formatPct(seg.toPct)}${cad}${rep}`
-      case 'freeride':
-        return `Free ride${rep}`
-      case 'maxeffort':
-        return seg.effort ? 'Test effort: as hard as you can hold evenly' : `Max effort${rep}`
-    }
-  }
 </script>
 
 {#snippet ergControls()}
@@ -233,7 +217,13 @@
 
     {#if !ride.isFreeRide}
       <div class="profile card">
-        <WorkoutProfile timeline={ride.player.timeline} positionS={s.positionS} height={100} />
+        <WorkoutProfile
+          timeline={ride.player.timeline}
+          positionS={s.positionS}
+          ftpW={ride.player.ftpW * s.intensity}
+          height={100}
+          axes
+        />
         {#if s.next}
           <p class="muted next">
             Next in {formatDuration(remaining)}: {describe(s.next)}{s.nextTargetW

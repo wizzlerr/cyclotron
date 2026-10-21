@@ -28,9 +28,22 @@
           W: { range: (_u, _min, max) => [0, Math.max(100, max * 1.1)] },
         },
         axes: [
-          { ...axis, values: (_u, splits) => splits.map((s) => formatDuration(s)) },
-          { ...axis, scale: 'W', label: 'W', size: 50 },
-          { ...axis, scale: 'bpm', side: 1, label: 'bpm · rpm', size: 50, grid: { show: false } },
+          {
+            ...axis,
+            label: 'Time',
+            // Whole seconds and round minutes, so early in a ride labels don't repeat (0:01 0:01 …).
+            incrs: [1, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600],
+            values: (_u, splits) => splits.map((s) => formatDuration(s)),
+          },
+          { ...axis, scale: 'W', label: 'Power (W)', size: 50 },
+          {
+            ...axis,
+            scale: 'bpm',
+            side: 1,
+            label: 'HR (bpm) · rpm',
+            size: 50,
+            grid: { show: false },
+          },
         ],
         series: [
           { label: 'Time', value: (_u, v) => (v == null ? '–' : formatDuration(v)) },

@@ -3,10 +3,22 @@ import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import { IPC } from '../shared/api'
 import { attachBluetooth, registerBluetoothIpc } from './bluetooth'
 import { closeDb } from './db'
+import { registerPrefsIpc } from './prefs'
 import { registerRideIpc } from './ride'
 import { registerRidesIpc } from './rides'
 import { registerSpikeIpc } from './spike'
 import { registerWorkoutsIpc } from './workouts'
+import { setupUserData } from './user-data'
+
+setupUserData()
+
+// One instance only: two would fight over the trainer and the database.
+if (!app.requestSingleInstanceLock()) app.exit(0)
+app.on('second-instance', () => {
+  const win = BrowserWindow.getAllWindows()[0]
+  if (win?.isMinimized()) win.restore()
+  win?.focus()
+})
 
 function createWindow(): void {
   const win = new BrowserWindow({
@@ -46,6 +58,10 @@ function createWindow(): void {
 }
 
 ipcMain.handle(IPC.appGetVersion, () => app.getVersion())
+ipcMain.handle(IPC.appShowDataFolder, async () => {
+  await shell.openPath(app.getPath('userData'))
+})
+registerPrefsIpc()
 registerBluetoothIpc()
 registerSpikeIpc()
 registerRideIpc()

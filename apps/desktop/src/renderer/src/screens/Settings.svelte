@@ -17,6 +17,10 @@
     '20min': '20-min test',
     estimate: 'estimate',
   }
+  let version = $state('')
+  $effect(() => {
+    void window.cyclotron.app.getVersion().then((v) => (version = v))
+  })
   $effect(() => {
     void window.cyclotron.rides.fitFolder().then((f) => (fitFolder = f))
   })
@@ -191,6 +195,13 @@
   <p>Each finished ride is saved as a FIT file in <code>{fitFolder}</code></p>
   <button onclick={chooseFitFolder}>Change folder…</button>
   <p class="muted">Upload these to Garmin Connect or Strava. Automatic upload comes later.</p>
+</section>
+
+<section class="card">
+  <h2>About</h2>
+  <p>Cyclotron {version}</p>
+  <button onclick={() => window.cyclotron.app.showDataFolder()}>Show data folder…</button>
+  <p class="muted">Rides, workouts and settings live here. Copy the folder to back them up.</p>
 </section>
 
 <section class="card">

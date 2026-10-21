@@ -53,7 +53,7 @@
       <h2>{workout.name}</h2>
       {#if workout.type}<span class="tag">{workout.type}</span>{/if}
     </div>
-    <WorkoutProfile {timeline} height={60} />
+    <WorkoutProfile {timeline} ftpW={profile.ftpW} height={60} />
     {#if workout.ftpTest === 'ramp'}
       <p class="stats">About 20–30 min · ends when you can't hold the target</p>
     {:else}

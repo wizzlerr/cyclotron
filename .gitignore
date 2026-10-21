@@ -6,3 +6,12 @@ coverage/
 .env
 .env.*
 .DS_Store
+
+# Local only: IDE settings, Claude Code local state, raw BLE captures (the committed copy
+# lives in packages/core/test/fixtures)
+.idea/
+.vscode/
+*.iml
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+caputre/

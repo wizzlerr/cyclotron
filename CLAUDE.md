@@ -20,12 +20,14 @@ Read both before starting work. Refer to tasks by ID (e.g. "E1-0").
 - **E4 done** (2026-10-21): 3 s/10 s power, power + HR zones on tiles, live avg/NP/IF/TSS/kJ/W/kg (`core/metrics/live.ts`), uPlot live chart (`components/LiveChart.svelte`), tile choice in Settings → Ride screen. Profile now has weight and max HR (localStorage).
 - **Virtual routes requested** (2026-10-21): new epic E13 + decision D16 (GPX routes, physics speed, FTMS grade, FIT `virtualActivity` with GPS). Planned after the MVP.
 - **E6 done** (2026-10-21): ramp + 20-min FTP tests (`core/workout/ftp-tests.ts`), result card with "Use X W" in the ride summary, FTP history (SQLite `ftp_history`, listed in Settings). Simulated rider now caps at 325 W so ramp tests fail realistically. Rides auto-pause after a > 5 s tick gap (sleep/freeze). Calories (kcal) replace kJ everywhere in the UI.
-- Next step: E7 (packaging) to finish the MVP; then E13 (virtual routes, with a local GPX library + bundled popular climbs).
+- **E7 mostly done** (2026-10-21): `pnpm dist` (in `apps/desktop`) builds `dist/Cyclotron-Setup-0.1.0.exe` (NSIS, unsigned); the packaged app was driven end to end. App data now in `%APPDATA%\Cyclotron` (old `@cyclotron\desktop` folder moved on first start); profile/devices/tiles moved from localStorage to SQLite (D17). Open: build/try the `.dmg` on a Mac (E7-1/E7-2), real-KICKR Bluetooth in the installed app; E7-4/E7-5 optional.
+- **UX + open-source prep** (2026-10-21): workout profile has hover tooltips (step, watts, duration) and power/time axes on the Ride screen; live chart has axis titles and whole-second ticks. README.md (with screenshots in `docs/images/`) and LICENSE (AGPL-3.0-or-later). `.idea/` and `caputre/` untracked and gitignored.
+- Next step: E13 (virtual routes, with a local GPX library + bundled popular climbs).
 - Shell note: pnpm lives in `%APPDATA%\npm`; the Bash tool's PATH doesn't include Node, so run pnpm through PowerShell after refreshing `$env:Path` from the Machine+User values.
 
 ## Open questions to raise with the user
 
-1. **Auuki license** (E0-6): believed AGPL-3.0, unverified. Until checked: reuse formulas only, don't copy code.
+1. **Auuki license** (E0-6): believed AGPL-3.0, unverified. Cyclotron is now AGPL-3.0-or-later (chosen 2026-10-21), so copying Auuki code would be license-compatible once verified; until then reuse formulas only and credit the source.
 
 Resolved 2026-10-21: trainer is a **KICKR CORE 2** (D14, FTMS expected); UI is **Svelte 5 + uPlot** (D12, D13); GitHub remote exists.
 

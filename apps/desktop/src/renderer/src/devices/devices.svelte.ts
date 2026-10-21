@@ -1,4 +1,5 @@
 import { TimeWindowAverage } from '@cyclotron/core'
+import { loadPref, savePref } from '../lib/prefs'
 import { BleHeartRate, HEART_RATE_SERVICES } from './ble-heart-rate'
 import { FtmsTrainer, TRAINER_SERVICES } from './ftms-trainer'
 import { SimulatedTrainer } from './simulated'
@@ -11,11 +12,7 @@ const REMEMBERED_KEY = 'cyclotron.devices'
 /** Device names to auto-pick on the next connect (E1-5). Names, not ids: Electron's scan ids and
  * Web Bluetooth's `device.id` differ, and "KICKR CORE 8E84" is unique enough. */
 function loadRemembered(): Partial<Record<Role, string>> {
-  try {
-    return JSON.parse(localStorage.getItem(REMEMBERED_KEY) ?? '{}') as Partial<Record<Role, string>>
-  } catch {
-    return {}
-  }
+  return loadPref<Partial<Record<Role, string>>>(REMEMBERED_KEY) ?? {}
 }
 
 /** App-wide device state: the connected trainer and HR source, and their latest values. */
@@ -200,11 +197,7 @@ class Devices {
 
   private remember(value: Partial<Record<Role, string>>): void {
     this.remembered = value
-    try {
-      localStorage.setItem(REMEMBERED_KEY, JSON.stringify(value))
-    } catch {
-      // Not critical: the user picks from the list again.
-    }
+    savePref(REMEMBERED_KEY, value)
   }
 }
 

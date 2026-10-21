@@ -1,28 +1,32 @@
 {
   "name": "@cyclotron/desktop",
-  "version": "0.0.0",
+  "productName": "Cyclotron",
+  "version": "0.1.0",
   "private": true,
-  "description": "Cyclotron indoor cycling trainer",
+  "license": "AGPL-3.0-or-later",
+  "description": "Indoor cycling trainer",
+  "author": "adam.sabel",
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
-    "typecheck": "tsc -p tsconfig.node.json && svelte-check --tsconfig ./tsconfig.web.json --fail-on-warnings"
+    "typecheck": "tsc -p tsconfig.node.json && svelte-check --tsconfig ./tsconfig.web.json --fail-on-warnings",
+    "dist": "electron-vite build && electron-builder --win",
+    "dist:mac": "electron-vite build && electron-builder --mac"
   },
   "devDependencies": {
+    "@cyclotron/core": "workspace:*",
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "@types/node": "^26.6.5",
     "@types/web-bluetooth": "^0.0.21",
     "electron": "^44.9.3",
+    "electron-builder": "26.15.3",
     "electron-vite": "^6.0.0",
     "svelte": "^5.57.2",
     "svelte-check": "^4.7.7",
     "typescript": "~6.0.3",
+    "uplot": "1.6.32",
     "vite": "^8.3.4"
-  },
-  "dependencies": {
-    "@cyclotron/core": "workspace:*",
-    "uplot": "1.6.32"
   }
 }

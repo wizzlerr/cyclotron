@@ -61,6 +61,15 @@ export interface BluetoothDeviceInfo {
 export interface CyclotronApi {
   app: {
     getVersion(): Promise<string>
+    /** Opens the folder holding the database and settings (for backups). */
+    showDataFolder(): Promise<void>
+  }
+  /** Small settings (profile, devices, tiles) kept in SQLite so they survive dev vs installed
+   * builds, which have different localStorage origins. */
+  prefs: {
+    /** Synchronous so stores can load their initial state at import time. */
+    get(key: string): string | null
+    set(key: string, value: string): void
   }
   bluetooth: {
     /** Scan results while `navigator.bluetooth.requestDevice()` is pending. Returns an unsubscribe function. */
@@ -119,6 +128,9 @@ export interface CyclotronApi {
 /** IPC channel names shared by main and preload. */
 export const IPC = {
   appGetVersion: 'app:getVersion',
+  appShowDataFolder: 'app:showDataFolder',
+  prefsGet: 'prefs:get',
+  prefsSet: 'prefs:set',
   btDeviceList: 'bt:deviceList',
   btSelect: 'bt:select',
   btCancel: 'bt:cancel',

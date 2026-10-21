@@ -1,4 +1,5 @@
 import type { FtpSource } from '../../shared/api'
+import { loadPref, savePref } from './lib/prefs'
 
 const KEY = 'cyclotron.profile'
 const DEFAULT_FTP_W = 200
@@ -9,17 +10,9 @@ interface Stored {
   maxHr?: number
 }
 
-function load(): Stored {
-  try {
-    return JSON.parse(localStorage.getItem(KEY) ?? '{}') as Stored
-  } catch {
-    return {}
-  }
-}
+const stored = loadPref<Stored>(KEY) ?? {}
 
-const stored = load()
-
-/** Rider profile. Kept in localStorage until desktop SQLite holds the profile (E8). */
+/** Rider profile. */
 class Profile {
   ftpW = $state(stored.ftpW ?? DEFAULT_FTP_W)
   /** For W/kg (E4-3) and, later, route physics (E13). */
@@ -56,11 +49,7 @@ class Profile {
 
   private save(): void {
     const value: Stored = { ftpW: this.ftpW, weightKg: this.weightKg, maxHr: this.maxHr }
-    try {
-      localStorage.setItem(KEY, JSON.stringify(value))
-    } catch {
-      // Keeps working for this session.
-    }
+    savePref(KEY, value)
   }
 }
 
