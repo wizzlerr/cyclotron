@@ -25,6 +25,24 @@ export function registerWorkoutsIpc(): void {
     await rename(tmp, libraryPath())
   })
 
+  ipcMain.handle(
+    IPC.workoutsExportZwo,
+    async (event, fileName: string, xml: string): Promise<string | null> => {
+      const win = BrowserWindow.fromWebContents(event.sender)
+      const options: Electron.SaveDialogOptions = {
+        title: 'Export workout',
+        defaultPath: join(app.getPath('documents'), basename(fileName)),
+        filters: [{ name: 'Zwift workouts', extensions: ['zwo'] }],
+      }
+      const result = win
+        ? await dialog.showSaveDialog(win, options)
+        : await dialog.showSaveDialog(options)
+      if (result.canceled || !result.filePath) return null
+      await writeFile(result.filePath, xml, 'utf8')
+      return result.filePath
+    },
+  )
+
   ipcMain.handle(IPC.workoutsPickZwo, async (event): Promise<PickedFile[]> => {
     const win = BrowserWindow.fromWebContents(event.sender)
     const options: Electron.OpenDialogOptions = {

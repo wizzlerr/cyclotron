@@ -29,6 +29,7 @@ const api: CyclotronApi = {
     load: () => ipcRenderer.invoke(IPC.workoutsLoad),
     save: (json) => ipcRenderer.invoke(IPC.workoutsSave, json),
     pickZwo: () => ipcRenderer.invoke(IPC.workoutsPickZwo),
+    exportZwo: (fileName, xml) => ipcRenderer.invoke(IPC.workoutsExportZwo, fileName, xml),
   },
   rides: {
     start: (info) => ipcRenderer.invoke(IPC.ridesStart, info),

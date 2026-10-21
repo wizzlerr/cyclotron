@@ -145,6 +145,8 @@ export interface CyclotronApi {
     save(json: string): Promise<void>
     /** Asks for .zwo files and returns their contents; empty if cancelled. */
     pickZwo(): Promise<PickedFile[]>
+    /** Asks where to save a .zwo file (E3-8); returns the path, or null if cancelled. */
+    exportZwo(fileName: string, xml: string): Promise<string | null>
   }
   rides: {
     /** Creates the ride row; returns its id. */
@@ -213,6 +215,7 @@ export const IPC = {
   workoutsLoad: 'workouts:load',
   workoutsSave: 'workouts:save',
   workoutsPickZwo: 'workouts:pickZwo',
+  workoutsExportZwo: 'workouts:exportZwo',
   ridesStart: 'rides:start',
   ridesAppend: 'rides:append',
   ridesFinish: 'rides:finish',

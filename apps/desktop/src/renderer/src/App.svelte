@@ -4,6 +4,7 @@
   import { devices } from './devices/devices.svelte'
   import { nav, go, SCREENS } from './nav.svelte'
   import { recovery } from './ride/recovery.svelte'
+  import Builder from './screens/Builder.svelte'
   import History from './screens/History.svelte'
   import Progress from './screens/Progress.svelte'
   import Home from './screens/Home.svelte'
@@ -24,7 +25,10 @@
   <nav>
     <div class="brand">Cyclotron</div>
     {#each SCREENS as s (s.id)}
-      <button class:active={nav.screen === s.id} onclick={() => go(s.id)}>{s.label}</button>
+      <button
+        class:active={nav.screen === s.id || (s.id === 'workouts' && nav.screen === 'builder')}
+        onclick={() => go(s.id)}>{s.label}</button
+      >
     {/each}
     <div class="spacer"></div>
     <DeviceStatus />
@@ -38,6 +42,8 @@
       <Ride />
     {:else if nav.screen === 'workouts'}
       <Workouts />
+    {:else if nav.screen === 'builder'}
+      <Builder />
     {:else if nav.screen === 'routes'}
       <Routes />
     {:else if nav.screen === 'history'}

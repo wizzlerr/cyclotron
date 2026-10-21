@@ -5,6 +5,7 @@
   import { go } from '../nav.svelte'
   import { profile } from '../profile.svelte'
   import { ride } from '../ride/session.svelte'
+  import { builder } from '../workouts/builder.svelte'
   import { library } from '../workouts/library.svelte'
 
   let error = $state<string | undefined>()
@@ -38,7 +39,10 @@
 
 <div class="head">
   <h1>Workouts</h1>
-  <button onclick={importZwo}>Import .zwo…</button>
+  <div class="head-buttons">
+    <button onclick={importZwo}>Import .zwo…</button>
+    <button class="primary" onclick={() => (builder.create(), go('builder'))}>New workout</button>
+  </div>
 </div>
 <p class="muted">
   Targets use your FTP of {profile.ftpW} W (change it in Settings).
@@ -67,6 +71,10 @@
     <div class="actions">
       <button onclick={() => choose(workout)}>Ride</button>
       {#if workout.source !== 'builtin'}
+        <button onclick={() => (builder.edit(workout), go('builder'))}>Edit</button>
+      {/if}
+      <button onclick={() => (builder.duplicate(workout), go('builder'))}>Duplicate</button>
+      {#if workout.source !== 'builtin'}
         <button class="quiet" onclick={() => library.remove(workout.id)}>Delete</button>
       {/if}
     </div>
@@ -91,6 +99,10 @@
   }
   .head h1 {
     margin: 0;
+  }
+  .head-buttons {
+    display: flex;
+    gap: 0.5rem;
   }
   .list {
     display: grid;

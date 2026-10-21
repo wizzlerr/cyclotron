@@ -281,6 +281,8 @@ Step kinds: `steady`, `ramp`, `repeat` (nested), `freeride` (no ERG, optional gr
 
 Derived per workout (computed, stored with it): duration, TSS, IF, time in each zone, **primary type**, **difficulty level 1–10** (see 7.3).
 
+**Builder (E3-8, 2026-10-21):** workouts made in the app are stored in `workouts.json` with `source: 'custom'` (ids `custom.<uuid>`), next to imported `.zwo` ones. Built-ins can't be edited in place, only duplicated; a duplicated FTP test loses `ftpTest` (it becomes an ordinary workout). Export writes `.zwo` (`workoutToZwo`): a repeat of exactly two steady steps becomes `IntervalsT`, any other repeat is written out step by step, a rising first ramp is `Warmup` and a falling last ramp `Cooldown`. Tested to round-trip through `parseZwo` to the same plan.
+
 ### 6.2 Zwift `.zwo` import
 
 `.zwo` is XML: `<Warmup>`, `<Cooldown>`, `<Ramp>`, `<SteadyState>`, `<IntervalsT>` (repeat on/off), `<FreeRide>`, `<MaxEffort>`, with `Duration` in seconds and `Power*` as FTP fractions. These map 1:1 onto the JSON step kinds. Text events and unknown elements are ignored. Parsed with a small tag scanner (no DOM in `core`). Cooldowns always ramp down, whichever way round `PowerLow`/`PowerHigh` are written, as Zwift does.

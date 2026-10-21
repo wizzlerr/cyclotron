@@ -26,7 +26,8 @@ Read both before starting work. Refer to tasks by ID (e.g. "E1-0").
 - **Responsive UI + 22 routes** (2026-10-21): Workouts/Routes grids and Home/Settings cards (`.cards` in app.css) use the full window; ride tiles and charts scale with window size; Settings → Display → Interface size (webFrame zoom, 80–200 %). Checked at 1080p, 4K @100/150 % and MacBook Retina sizes via CDP emulation. 5 flat routes added (Afsluitdijk, Belgian coast, Regent's Park via bike router, Strandvejen, Alcúdia).
 - **Order changed (2026-10-21, user):** server (E8) moves to the end; E9 → E10 → E11 → E12 run on the desktop first (D19). `core/metrics/curve.ts` and `load.ts` were written at the start of E8 and are kept for E9.
 - **E9 done** (2026-10-21): ride detail (History), Progress screen (fitness/fatigue/form, power curve, weekly zones, FTP estimate), FIT import; aggregates in desktop SQLite (migration 4, `main/analytics.ts`), `core/fit/decode.ts`. Server role + online/offline model + cloud-folder sync epic E14 written into DESIGN §8 (D20). Charts follow the dataviz rules (one y-axis per chart, validated `--series-1..3` colours).
-- Next step: **E3-8 workout builder** (user wants it before the server), then E10 → E11 → E12, then E8, E14.
+- **E3-8 workout builder done** (2026-10-21): `screens/Builder.svelte`, `components/StepRow.svelte`, `workouts/builder.svelte.ts`, `core/workout/builder.ts` (validation, `parseDuration`, `workoutToZwo`). Driven end to end.
+- Next step: E10 (workout library), then E11 → E12, then E8 (server), E14 (folder sync).
 - Shell note: pnpm lives in `%APPDATA%\npm`; the Bash tool's PATH doesn't include Node, so run pnpm through PowerShell after refreshing `$env:Path` from the Machine+User values.
 
 ## Open questions to raise with the user

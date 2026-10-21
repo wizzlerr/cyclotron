@@ -43,6 +43,20 @@ class Library {
     this.messages = messages
   }
 
+  find(id: string): Workout | undefined {
+    return this.all.find((w) => w.id === id)
+  }
+
+  /** Adds a workout from the builder, or replaces the one with the same id (E3-8). */
+  async upsert(workout: Workout): Promise<void> {
+    await this.load()
+    const i = this.imported.findIndex((w) => w.id === workout.id)
+    const next = [...this.imported]
+    if (i >= 0) next[i] = workout
+    else next.push(workout)
+    await this.save(next)
+  }
+
   async remove(id: string): Promise<void> {
     await this.save(this.imported.filter((w) => w.id !== id))
   }

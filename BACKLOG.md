@@ -72,7 +72,7 @@ cyclotron/                (pnpm monorepo, TypeScript everywhere)
 | ~~E3-5~~ | ✅ (2026-10-21) (SVG, not uPlot) Workout graph (profile chart with current position) | M |
 | ~~E3-6~~ | ✅ (2026-10-21) Audio/visual cues before step changes | S |
 | ~~E3-7~~ | ✅ (2026-10-21) Keep the system awake during a ride (`powerSaveBlocker`); `backgroundThrottling: false` and drift-corrected 1 Hz tick so a minimized window doesn't slow the player | S |
-| E3-8 | Workout builder: create and edit workouts (steps, ramps, repeats, free ride), live profile + stats, save to the library, export `.zwo`. **Scheduled before the server** (user request 2026-10-21) | L |
+| E3-8 | ✅ done 2026-10-21 (Workouts → New workout / Edit / Duplicate; step rows with type, duration, % FTP + watts, cadence, repeats, reorder; live profile and stats; Save, Save and ride, Export .zwo; `core/workout/builder.ts`). Workout builder: create and edit workouts (steps, ramps, repeats, free ride), live profile + stats, save to the library, export `.zwo`. **Scheduled before the server** (user request 2026-10-21) | L |
 
 ## E4 — Live metrics dashboard
 

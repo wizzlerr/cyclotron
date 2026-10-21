@@ -1,5 +1,13 @@
 export type Screen =
-  'home' | 'ride' | 'workouts' | 'routes' | 'history' | 'progress' | 'settings' | 'spike'
+  | 'home'
+  | 'ride'
+  | 'workouts'
+  | 'routes'
+  | 'history'
+  | 'progress'
+  | 'settings'
+  | 'builder'
+  | 'spike'
 
 export const SCREENS: { id: Screen; label: string }[] = [
   { id: 'home', label: 'Home' },
