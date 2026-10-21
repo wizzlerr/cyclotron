@@ -78,28 +78,28 @@ cyclotron/                (pnpm monorepo, TypeScript everywhere)
 
 | ID | Task | Size |
 |---|---|---|
-| E4-1 | Big-number tiles: power (3s/10s avg), HR, cadence, target, elapsed/remaining | M |
-| E4-2 | Power zones (Coggan 7-zone) and HR zones with colored current zone | S |
-| E4-3 | Live NP, IF, TSS, kJ, W/kg, average power (math in `core`) | M |
-| E4-4 | Live chart: power/HR/cadence over time | M |
-| E4-5 | Layout settings: which tiles are shown | S |
+| ~~E4-1~~ | ✅ (2026-10-21) Big-number tiles: power (3s/10s avg), HR, cadence, target, elapsed/remaining | M |
+| ~~E4-2~~ | ✅ (2026-10-21) (HR zones need max HR in Settings) Power zones (Coggan 7-zone) and HR zones with colored current zone | S |
+| ~~E4-3~~ | ✅ (2026-10-21) (`LiveRideMetrics`, equal to the saved summary) Live NP, IF, TSS, kJ, W/kg, average power (math in `core`) | M |
+| ~~E4-4~~ | ✅ (2026-10-21) (uPlot; cadence hidden by default, click the legend) Live chart: power/HR/cadence over time | M |
+| ~~E4-5~~ | ✅ (2026-10-21) Layout settings: which tiles are shown | S |
 
 ## E5 — Ride recording and export
 
 | ID | Task | Size |
 |---|---|---|
-| E5-1 | Record 1 Hz samples to SQLite during a ride; resume after a crash or app restart | M |
-| E5-2 | Encode `.FIT` activity with `@garmin/fitsdk` (laps per workout step) | M |
-| E5-3 | Auto-save FIT to a chosen folder + "Show in folder"; validate import into Garmin Connect and Strava | S |
-| E5-4 | Ride summary screen after finishing | M |
+| ~~E5-1~~ | ✅ (2026-10-21) crash recovery saves or discards the partial ride; resuming the workout itself isn't supported. Record 1 Hz samples to SQLite during a ride; resume after a crash or app restart | M |
+| ~~E5-2~~ | ✅ (2026-10-21) Encode `.FIT` activity with `@garmin/fitsdk` (laps per workout step) | M |
+| E5-3 | ✅ done 2026-10-21 (a real ride imported cleanly into Garmin Connect; Strava not checked separately). Auto-save FIT to a chosen folder + "Show in folder"; validate import into Garmin Connect and Strava | S |
+| ~~E5-4~~ | ✅ (2026-10-21) with laps and feedback (Too easy … Couldn't finish); plus a local ride list on History. Ride summary screen after finishing | M |
 
 ## E6 — FTP testing
 
 | ID | Task | Size |
 |---|---|---|
-| E6-1 | Ramp test workout + FTP = 75% of best 1-min power | M |
-| E6-2 | 20-min test workout + FTP = 95% of 20-min average | S |
-| E6-3 | "Accept new FTP?" prompt, store in FTP history | S |
+| ~~E6-1~~ | ✅ (2026-10-21) 1-min steps +6 % FTP from 50 %; auto-ends (to cooldown) when power < 80 % of target for 10 s or cadence < 40 rpm for 5 s. Ramp test workout + FTP = 75% of best 1-min power | M |
+| ~~E6-2~~ | ✅ (2026-10-21) warm-up with openers + 5-min effort, then 20 min ERG off. 20-min test workout + FTP = 95% of 20-min average | S |
+| ~~E6-3~~ | ✅ (2026-10-21) FTP history in SQLite, shown in Settings; manual changes logged too. "Accept new FTP?" prompt, store in FTP history | S |
 
 ## E7 — Desktop packaging
 
@@ -184,11 +184,28 @@ Runs on the server. Two directions: **upload** our rides to Garmin, and **read**
 | E12-5 | Prototype metrics import: scheduled pull (e.g. every few hours / after sync) into a small `external_metrics` table; must fit the NAS budget | M |
 | E12-6 | Feed Garmin metrics into recommendations (see E11-11) | M |
 
+## E13 — Virtual routes (requested 2026-10-21)
+
+Ride a route with real grades sent to the trainer, exported as a Strava/Garmin "Virtual Ride" (DESIGN.md D16).
+
+| ID | Task | Size |
+|---|---|---|
+| E13-1 | Bike weight in the profile (rider weight added with E4, 2026-10-21) | S |
+| E13-2 | Route model in `core`: points (lat, lon, elevation, distance), smoothed grade; GPX import | M |
+| E13-3 | Physics in `core`: speed from power, grade, mass, CdA, Crr, wind; unit-tested against known values | M |
+| E13-4 | Route ride: position by distance, send grade via FTMS Indoor Bike Simulation, trainer difficulty % (scales grade like Zwift) | M |
+| E13-5 | Ride screen for routes: elevation profile with position, grade, distance done/left, route outline (offline, no map tiles) | M |
+| E13-6 | FIT: lat/long/altitude in records, physics speed/distance, sub-sport `virtualActivity`; re-check Garmin/Strava import | S |
+| E13-7 | Route library in local SQLite (requested 2026-10-21): import a GPX once and it stays; ship a starter set of popular climbs/loops (e.g. Alpe d'Huez, Mont Ventoux, Stelvio, Tourmalet) so nothing needs importing. Built-in routes must come from openly licensed data (e.g. OpenStreetMap geometry + open elevation data, with attribution) | M |
+| E13-9 | Route browser: filter by distance, elevation gain, average/max grade; favourites | S |
+| E13-8 | ERG workout on a route (move along the route while the workout controls power; grade not applied) | S |
+
 ---
 
 ## Suggested order
 
 1. **E0 → E6, E7** — MVP: desktop app, ride in ERG mode, FIT export, FTP tests (no server)
+1b. **E13** — virtual routes (user request; after the MVP, before the server)
 2. **E8** — server in Docker + sync
 3. **E9 → E10 → E11** — history, library, recommendations
 4. **E12** — Garmin integration (upload + metrics import)

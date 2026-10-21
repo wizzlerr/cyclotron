@@ -36,7 +36,7 @@ Task breakdown lives in [BACKLOG.md](BACKLOG.md). This document explains *how* t
 | D4 | **Desktop works fully offline; server is optional** | A ride must never depend on the network. Bluetooth can't run in a container on Windows/macOS anyway | Server-driven ride loop |
 | D5 | **Server added after the MVP** | Riding sooner; server designed around real ride data | Server from day one |
 | D6 | **Server on Synology DS920+ in Docker, < 150 MB RAM** | That's the hardware available (~1 GB RAM free, 2 cores) | — |
-| D7 | **SQLite on both sides** (`better-sqlite3`) | In-process, near-zero idle RAM, one file to back up | Postgres (100 MB+, second container) |
+| D7 | **SQLite on both sides**. Desktop uses Node's built-in `node:sqlite` (works in Electron 44 / Node 24.22, verified 2026-10-21), so there is no native module to rebuild for Electron; the server may still use `better-sqlite3` | In-process, near-zero idle RAM, one file to back up | Postgres (100 MB+, second container); `better-sqlite3` on the desktop (native rebuild per Electron version) |
 | D8 | **Compute once at upload** on the server; per-second data stays in FIT files, not DB rows | Keeps the NAS idle and queries cheap | Storing 1 Hz samples as rows (millions of rows/year) |
 | D9 | **Recommendations: rules + scoring, no ML** | Explainable ("why this workout"), fast on the NAS, works with little data | ML model |
 | D10 | **Reuse Auuki's math, not its code** (pending license check, E0-6) | Auuki is believed to be AGPL-3.0; formulas aren't copyrightable | Forking Auuki |
@@ -45,6 +45,7 @@ Task breakdown lives in [BACKLOG.md](BACKLOG.md). This document explains *how* t
 | D13 | **uPlot** for charts | Tiny and very fast for live time series | Chart.js, ECharts (heavier) |
 | D15 | **Toolchain:** Node 24 LTS, pnpm 12, electron-vite 6 (Vite 8), Electron 44, Vitest 5, ESLint 10 flat config + Prettier. **TypeScript pinned to 6.0** | TS 7 (native Go compiler) isn't supported by typescript-eslint or svelte-check yet; revisit when they support it. Electron 45 was too fresh (pnpm resolved a beta), so we stay on the stable 44 line | TS 7 now; Electron 45 |
 | D14 | **Trainer is a Wahoo KICKR CORE 2, controlled over FTMS** | Confirmed in spike E1-0 (2026-10-21, firmware 3.5.11): FTMS features include Power Target, Resistance Target and Indoor Bike Simulation; power range 0–2000 W in 1 W steps; Request Control, Start and Set Target Power all answered `success`. E2-7 (Wahoo proprietary control) dropped. Capture: `packages/core/test/fixtures/` | Wahoo proprietary control |
+| D16 | **Virtual routes** (requested 2026-10-21, E13): ride a route (imported GPX or built-in) where the trainer gets the grade via FTMS simulation and speed/distance come from a physics model (power, grade, rider+bike mass, CdA, Crr). Rides on a route are exported with GPS points and sub-sport `virtualActivity` (Strava "Virtual Ride"); rides without a route stay `indoorCycling` | Lets the user mark rides as virtual rides honestly, and adds outdoor-style riding without 3D graphics | 3D world (out of scope: "Zwift without the graphics"); always using `virtualActivity` without a route |
 
 **Open decisions** (to settle at the start of implementation):
 
@@ -178,6 +179,8 @@ BLE notifications (≈1–4 Hz) ─► latest values (power, cadence, speed, HR)
 
 - **Player** is a pure state machine in `core` (`WorkoutPlayer`): `ready → running ⇄ paused → finished`, with `advance(dtS)`, `pause()`, `resume()`, `skip()`, `finish()`, `setIntensity(0.5–1.5)`. `state()` returns the current segment, target watts (FTP × % × intensity), time left in the segment, the next segment and the `TrainerControl` to apply (ERG, simulation for free ride with a grade, otherwise free; free while paused). The renderer's `ride` store ticks it on fixed 1 s boundaries and only sends a control when it changes.
 - **Paused time** doesn't count toward workout progress; the sample stream keeps going, but samples are flagged as paused.
+- **Sleep/freeze guard:** a gap of more than 5 s between ticks pauses the ride (and the rider resumes) instead of advancing the workout by the gap. Found in testing when a 1 h system sleep jumped a ramp test to its end.
+- **FTP tests** (E6): test workouts carry `ftpTest: 'ramp' | '20min'` and mark the measured steps with `effort`; `analyzeFtpTest` uses only those samples. The ramp test jumps to its cooldown when `RampFailureDetector` fires. The summary offers the result; accepting it sets the FTP and logs it in `ftp_history`.
 - **Crash recovery:** an unfinished ride row plus its samples are already in SQLite. On startup, the app offers to resume or finish that ride.
 - **Sleep prevention:** `powerSaveBlocker.start('prevent-display-sleep')` during a ride.
 
@@ -197,11 +200,13 @@ settings         (key, value)                                              -- FI
 reco_cache       (id=1, computed_at, json)                                 -- last recommendation from server
 ```
 
-Per-second rows are fine on the desktop (one rider, plenty of disk). Migrations are numbered SQL files run at startup.
+Per-second rows are fine on the desktop (one rider, plenty of disk). Migrations are numbered SQL strings in `main/db.ts`, tracked with `pragma user_version`.
+
+**Built so far (E5, 2026-10-21):** `rides`, `ride_samples` and `settings` only. The profile (FTP) is still in localStorage and imported workouts in `workouts.json`; they move into SQLite when the server sync (E8) needs them. Main only stores rows and writes files; the renderer computes summaries and encodes FIT with `core` (main externalizes dependencies, so it can't import `core` at runtime). Samples are flushed every 5 s; values older than 3 s (sensor dropped) are recorded as missing, not repeated.
 
 ### 4.5 FIT export
 
-On finish: build a FIT activity with `@garmin/fitsdk` (`file_id`, `device_info`, `event`s, 1 Hz `record`s with power/cadence/HR/speed, one `lap` per workout step, `session`, `activity`), sport = cycling, sub-sport = indoor cycling (virtual activity). Save to the user's chosen folder as `YYYY-MM-DD_HHmm_<workout>.fit`. Acceptance test: the file imports cleanly into Garmin Connect and Strava with correct laps and power.
+On finish: build a FIT activity with `@garmin/fitsdk` (`file_id`, `device_info`, `event`s, 1 Hz `record`s with power/cadence/HR/speed/distance, one `lap` per workout step, `session`, `activity`), sport = cycling, sub-sport = `indoorCycling` (not `virtualActivity`: there is no virtual route or GPS). Pauses are timer stop/start events with no records in between. Save to the user's chosen folder (default `Documents/Cyclotron`) as `YYYY-MM-DD_HHmm_<workout>.fit`. Acceptance test: the file imports cleanly into Garmin Connect and Strava with correct laps and power. The SDK is under Garmin's FIT Protocol License (free to use in apps); it adds ~700 kB to the renderer bundle.
 
 ### 4.6 UI screens
 
@@ -212,6 +217,7 @@ On finish: build a FIT activity with `@garmin/fitsdk` (`file_id`, `device_info`,
 | **Ride summary** | Stats, chart, laps, feedback (Easy…Failed), FIT saved + sync status |
 | **Workouts** | Library with filters (type, duration, difficulty), favorites, `.zwo` import, editor |
 | **History** | Ride list, ride detail, power curve, CTL/ATL/TSB chart, time in zone per week (from server; local list when offline) |
+| **Route ride** (E13) | Ride tiles plus elevation profile with position, grade, distance done/left, and a route outline drawn from the GPS points (no map tiles, works offline) |
 | **Settings** | Profile, zones, devices, FIT folder, server URL + token, units, tile layout, about |
 
 ---
@@ -230,12 +236,15 @@ On finish: build a FIT activity with `@garmin/fitsdk` (`file_id`, `device_info`,
 | **CTL** (fitness) | Exponentially weighted daily TSS, 42-day time constant: `CTL_today = CTL_yday + (TSS_today − CTL_yday) / 42` |
 | **ATL** (fatigue) | Same with a 7-day constant |
 | **TSB** (form) | `CTL_yday − ATL_yday` |
-| FTP from ramp test | 75 % of best 1-minute power |
-| FTP from 20 min test | 95 % of 20-minute average power |
+| FTP from ramp test | 75 % of best 1-minute power (rolling, over the ramp steps only) |
+| FTP from 20 min test | 95 % of 20-minute average power (needs ≥ 19 min of the effort) |
+| Calories | kcal = kJ of work / 0.24 (gross efficiency) / 4.184 ≈ 1 kcal per kJ. Shown instead of kJ (user preference, 2026-10-21) and written to FIT |
 | FTP estimate | From power curve (e.g. 95 % of best 20 min in last 90 days, or a CP model fit); shown as a suggestion only |
 
 **Power zones** (Coggan, % FTP): Z1 Recovery < 55 · Z2 Endurance 56–75 · Z3 Tempo 76–90 · Z4 Threshold 91–105 · Z5 VO2max 106–120 · Z6 Anaerobic 121–150 · Z7 Neuromuscular > 150.
-**HR zones**: % of max HR (5 zones), configurable.
+**HR zones**: % of max HR (5 zones: < 60, 60–70, 70–80, 80–90, > 90 %); max HR is set in Settings.
+
+**Live metrics** (E4): `LiveRideMetrics` in `core/metrics/live.ts` updates in O(1) per 1 Hz sample and is tested to equal `summarizeRide` over the same samples, so the numbers during the ride match the saved ride. The 3 s / 10 s power tiles average the trainer's notifications over that time window (`TimeWindowAverage`).
 
 All metric functions are deterministic and covered by unit tests with hand-computed fixtures.
 

@@ -2,13 +2,13 @@
 // rider.
 
 export type WorkoutStep =
-  | { kind: 'steady'; durationS: number; pct: number; cadence?: number }
+  | { kind: 'steady'; durationS: number; pct: number; cadence?: number; effort?: boolean }
   | { kind: 'ramp'; durationS: number; fromPct: number; toPct: number; cadence?: number }
   | { kind: 'repeat'; count: number; steps: WorkoutStep[] }
   /** No ERG; the rider chooses the effort. Optional simulated grade. */
   | { kind: 'freeride'; durationS: number; gradePct?: number }
   /** No ERG; all-out effort (used in tests). */
-  | { kind: 'maxeffort'; durationS: number }
+  | { kind: 'maxeffort'; durationS: number; effort?: boolean }
 
 export interface Workout {
   id: string
@@ -18,6 +18,8 @@ export interface Workout {
   description?: string
   /** Where it came from, e.g. "builtin" or "zwo". */
   source?: string
+  /** FTP tests: steps marked `effort` are the part the result is computed from (E6). */
+  ftpTest?: 'ramp' | '20min'
   steps: WorkoutStep[]
 }
 
@@ -34,6 +36,8 @@ export interface Segment {
   gradePct?: number
   /** Position within a repeat block, e.g. 2 of 3. */
   repeat?: { index: number; count: number }
+  /** Part of an FTP test's measured effort. */
+  effort?: boolean
 }
 
 export function hasTarget(segment: Segment): boolean {
@@ -67,6 +71,7 @@ export function buildTimeline(steps: readonly WorkoutStep[]): Segment[] {
             toPct: step.pct,
             cadence: step.cadence,
             repeat,
+            effort: step.effort,
           })
           break
         case 'ramp':
@@ -90,7 +95,14 @@ export function buildTimeline(steps: readonly WorkoutStep[]): Segment[] {
           })
           break
         case 'maxeffort':
-          add({ kind: 'maxeffort', durationS: step.durationS, fromPct: 0, toPct: 0, repeat })
+          add({
+            kind: 'maxeffort',
+            durationS: step.durationS,
+            fromPct: 0,
+            toPct: 0,
+            repeat,
+            effort: step.effort,
+          })
           break
         case 'repeat':
           for (let i = 0; i < step.count; i++) walk(step.steps, { index: i + 1, count: step.count })

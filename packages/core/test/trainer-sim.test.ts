@@ -22,6 +22,17 @@ function run(control: TrainerControl, seconds: number, start: SimState = initial
   return { state, samples }
 }
 
+describe('rider limit', () => {
+  it('cannot hold ERG targets above maxPowerW', () => {
+    let state = initialSimState()
+    let sample = { powerW: 0 }
+    for (let i = 0; i < 60; i++) {
+      ;({ state, sample } = stepSim(state, { kind: 'erg', watts: 500 }, 1, () => 0.5))
+    }
+    expect(sample.powerW).toBe(DEFAULT_SIM_CONFIG.maxPowerW)
+  })
+})
+
 describe('stepSim', () => {
   it('follows an ERG target with lag', () => {
     const { state, samples } = run({ kind: 'erg', watts: 200 }, 15)

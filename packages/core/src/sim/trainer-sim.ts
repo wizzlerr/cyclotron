@@ -23,6 +23,8 @@ export interface SimConfig {
   /** Relative power noise, e.g. 0.03 = ±3 %. */
   powerNoise: number
   cadenceRpm: number
+  /** The most the virtual rider can push; above it an ERG target can't be held (ramp tests). */
+  maxPowerW: number
 }
 
 export const DEFAULT_SIM_CONFIG: SimConfig = {
@@ -34,6 +36,7 @@ export const DEFAULT_SIM_CONFIG: SimConfig = {
   hrTauS: 25,
   powerNoise: 0.03,
   cadenceRpm: 88,
+  maxPowerW: 325,
 }
 
 export interface SimState {
@@ -80,7 +83,7 @@ export function stepSim(
   rng: Rng,
   cfg: SimConfig = DEFAULT_SIM_CONFIG,
 ): { state: SimState; sample: SimSample } {
-  const target = simTargetPower(control, cfg)
+  const target = Math.min(simTargetPower(control, cfg), cfg.maxPowerW)
   const basePowerW = approach(state.basePowerW, target, dtS, cfg.powerTauS)
 
   const effort = clamp(basePowerW / (cfg.ftpW * 1.15), 0, 1)

@@ -2,8 +2,9 @@
   import DevicePicker from './components/DevicePicker.svelte'
   import DeviceStatus from './components/DeviceStatus.svelte'
   import { devices } from './devices/devices.svelte'
-  import Placeholder from './components/Placeholder.svelte'
   import { nav, go, SCREENS } from './nav.svelte'
+  import { recovery } from './ride/recovery.svelte'
+  import History from './screens/History.svelte'
   import Home from './screens/Home.svelte'
   import Ride from './screens/Ride.svelte'
   import Settings from './screens/Settings.svelte'
@@ -12,6 +13,7 @@
 
   let version = $state('')
   window.cyclotron.app.getVersion().then((v) => (version = v))
+  void recovery.check()
 </script>
 
 <DevicePicker open={devices.picking} />
@@ -35,7 +37,7 @@
     {:else if nav.screen === 'workouts'}
       <Workouts />
     {:else if nav.screen === 'history'}
-      <Placeholder title="History" text="Ride history arrives with E5 and E9." />
+      <History />
     {:else if nav.screen === 'settings'}
       <Settings />
     {:else if nav.screen === 'spike'}

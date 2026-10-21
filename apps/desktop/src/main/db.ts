@@ -1,0 +1,111 @@
+import { join } from 'node:path'
+import { DatabaseSync } from 'node:sqlite'
+import { app } from 'electron'
+
+// Desktop storage (DESIGN.md §4.4). Node's built-in SQLite: no native module to rebuild for
+// Electron. Migrations are numbered by position; `user_version` records how many have run.
+const MIGRATIONS = [
+  `
+  create table rides (
+    id             integer primary key,
+    started_at     integer not null,          -- ms since epoch (UTC)
+    utc_offset_min integer not null,
+    ended_at       integer,
+    status         text    not null default 'active' check (status in ('active', 'finished')),
+    workout_id     text,
+    workout_name   text    not null,
+    ftp_at_ride    integer not null,
+    duration_s     integer,
+    timer_s        integer,
+    avg_power      real,
+    np             real,
+    intensity      real,
+    tss            real,
+    kj             real,
+    avg_hr         real,
+    max_hr         real,
+    distance_m     real,
+    feedback       text,
+    fit_path       text,
+    synced_at      integer
+  );
+  create index rides_started_at on rides (started_at);
+
+  create table ride_samples (
+    ride_id  integer not null references rides (id) on delete cascade,
+    t        integer not null,
+    power    integer,
+    cadence  integer,
+    speed    real,
+    hr       integer,
+    target   integer,
+    segment  integer,
+    paused   integer not null default 0,
+    primary key (ride_id, t)
+  ) without rowid;
+
+  create table settings (
+    key   text primary key,
+    value text not null
+  );
+  `,
+  `
+  create table ftp_history (
+    id      integer primary key,
+    date    integer not null,                 -- ms since epoch
+    ftp_w   integer not null,
+    source  text    not null check (source in ('manual', 'ramp', '20min', 'estimate')),
+    ride_id integer references rides (id) on delete set null
+  );
+  `,
+]
+
+let db: DatabaseSync | undefined
+
+export function getDb(): DatabaseSync {
+  if (db) return db
+  db = new DatabaseSync(join(app.getPath('userData'), 'cyclotron.db'))
+  db.exec('pragma journal_mode = wal; pragma foreign_keys = on;')
+  migrate(db)
+  return db
+}
+
+function migrate(d: DatabaseSync): void {
+  const row = d.prepare('pragma user_version').get() as { user_version: number }
+  for (let v = row.user_version; v < MIGRATIONS.length; v++) {
+    transaction(d, () => {
+      d.exec(MIGRATIONS[v]!)
+      d.exec(`pragma user_version = ${v + 1}`)
+    })
+  }
+}
+
+export function transaction(d: DatabaseSync, fn: () => void): void {
+  d.exec('begin')
+  try {
+    fn()
+    d.exec('commit')
+  } catch (e) {
+    d.exec('rollback')
+    throw e
+  }
+}
+
+export function getSetting(key: string): string | undefined {
+  const row = getDb().prepare('select value from settings where key = ?').get(key) as
+    { value: string } | undefined
+  return row?.value
+}
+
+export function setSetting(key: string, value: string): void {
+  getDb()
+    .prepare(
+      'insert into settings (key, value) values (?, ?) on conflict (key) do update set value = excluded.value',
+    )
+    .run(key, value)
+}
+
+export function closeDb(): void {
+  db?.close()
+  db = undefined
+}

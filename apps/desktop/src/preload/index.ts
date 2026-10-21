@@ -24,6 +24,22 @@ const api: CyclotronApi = {
     save: (json) => ipcRenderer.invoke(IPC.workoutsSave, json),
     pickZwo: () => ipcRenderer.invoke(IPC.workoutsPickZwo),
   },
+  rides: {
+    start: (info) => ipcRenderer.invoke(IPC.ridesStart, info),
+    appendSamples: (id, samples) => ipcRenderer.invoke(IPC.ridesAppend, id, samples),
+    finish: (id, totals, fit) => ipcRenderer.invoke(IPC.ridesFinish, id, totals, fit),
+    unfinished: () => ipcRenderer.invoke(IPC.ridesUnfinished),
+    discard: (id) => ipcRenderer.invoke(IPC.ridesDiscard, id),
+    setFeedback: (id, feedback) => ipcRenderer.invoke(IPC.ridesFeedback, id, feedback),
+    list: (limit) => ipcRenderer.invoke(IPC.ridesList, limit),
+    showFit: (id) => ipcRenderer.invoke(IPC.ridesShowFit, id),
+    fitFolder: () => ipcRenderer.invoke(IPC.ridesFitFolder),
+    chooseFitFolder: () => ipcRenderer.invoke(IPC.ridesChooseFitFolder),
+  },
+  ftp: {
+    history: (limit) => ipcRenderer.invoke(IPC.ftpHistory, limit),
+    record: (entry) => ipcRenderer.invoke(IPC.ftpRecord, entry),
+  },
   spike: {
     saveCapture: (json) => ipcRenderer.invoke(IPC.spikeSaveCapture, json),
   },

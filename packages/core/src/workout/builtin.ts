@@ -94,7 +94,7 @@ export const BUILTIN_WORKOUTS: readonly Workout[] = [
   {
     id: 'builtin.test.short',
     name: 'Player Test',
-    type: 'test',
+    type: 'demo',
     description: 'Short steps for checking the player and ERG changes.',
     source: 'builtin',
     steps: [
@@ -113,3 +113,13 @@ export const BUILTIN_WORKOUTS: readonly Workout[] = [
     ],
   },
 ]
+
+export const FREE_RIDE_ID = 'freeride'
+
+/** A ride without a plan: one long free-ride step. Not listed in the library. */
+export const FREE_RIDE_WORKOUT: Workout = {
+  id: FREE_RIDE_ID,
+  name: 'Free ride',
+  source: 'builtin',
+  steps: [{ kind: 'freeride', durationS: 6 * 3600 }],
+}

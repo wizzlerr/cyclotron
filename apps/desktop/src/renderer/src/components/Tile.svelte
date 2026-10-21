@@ -29,7 +29,7 @@
     background: var(--panel);
     border-radius: 8px;
     border-left: 6px solid transparent;
-    padding: 1rem 1.25rem;
+    padding: 0.75rem 1rem;
     display: grid;
     grid-template-columns: auto 1fr;
     align-items: baseline;
@@ -39,7 +39,8 @@
     color: var(--warn);
   }
   .value {
-    font-size: 3rem;
+    font-size: 2.6rem;
+    line-height: 1.15;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
   }
@@ -49,7 +50,10 @@
   .label {
     grid-column: 1 / -1;
     color: var(--muted);
-    font-size: 0.85rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }

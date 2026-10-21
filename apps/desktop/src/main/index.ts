@@ -2,7 +2,9 @@ import { join } from 'node:path'
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import { IPC } from '../shared/api'
 import { attachBluetooth, registerBluetoothIpc } from './bluetooth'
+import { closeDb } from './db'
 import { registerRideIpc } from './ride'
+import { registerRidesIpc } from './rides'
 import { registerSpikeIpc } from './spike'
 import { registerWorkoutsIpc } from './workouts'
 
@@ -48,6 +50,7 @@ registerBluetoothIpc()
 registerSpikeIpc()
 registerRideIpc()
 registerWorkoutsIpc()
+registerRidesIpc()
 
 void app.whenReady().then(() => {
   createWindow()
@@ -55,6 +58,8 @@ void app.whenReady().then(() => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
 })
+
+app.on('will-quit', () => closeDb())
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()

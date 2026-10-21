@@ -1,3 +1,4 @@
+import { TimeWindowAverage } from '@cyclotron/core'
 import { BleHeartRate, HEART_RATE_SERVICES } from './ble-heart-rate'
 import { FtmsTrainer, TRAINER_SERVICES } from './ftms-trainer'
 import { SimulatedTrainer } from './simulated'
@@ -31,6 +32,14 @@ class Devices {
   picking = $state(false)
   error = $state<string | undefined>()
   remembered = $state(loadRemembered())
+  /** `performance.now()` of the latest trainer data / heart rate, to spot stale values. */
+  dataAt = 0
+  bpmAt = 0
+  /** Power averaged over the notifications of the last 3 s / 10 s (E4-1). */
+  power3s = $state<number | undefined>()
+  power10s = $state<number | undefined>()
+  private avg3s = new TimeWindowAverage(3000)
+  private avg10s = new TimeWindowAverage(10_000)
 
   private trainerSubs: (() => void)[] = []
   private heartRateSubs: (() => void)[] = []
@@ -79,6 +88,7 @@ class Devices {
     this.trainerSubs = []
     this.trainer = undefined
     this.data = undefined
+    this.clearAverages()
     this.control = { kind: 'free' }
     await trainer.disconnect()
   }
@@ -142,11 +152,20 @@ class Devices {
     this.trainer = trainer
     this.trainerStatus = 'connected'
     this.trainerSubs.push(
-      trainer.onData((d) => (this.data = d)),
+      trainer.onData((d) => {
+        const now = performance.now()
+        this.data = d
+        this.dataAt = now
+        this.avg3s.add(now, d.powerW)
+        this.avg10s.add(now, d.powerW)
+        this.power3s = this.avg3s.average(now)
+        this.power10s = this.avg10s.average(now)
+      }),
       trainer.onStatus((s) => (this.trainerStatus = s)),
       trainer.onDisconnect(() => {
         this.trainer = undefined
         this.data = undefined
+        this.clearAverages()
       }),
     )
     // Use the trainer's relayed heart rate once it sends any, unless a strap is connected.
@@ -164,9 +183,19 @@ class Devices {
     this.heartRate = source
     this.heartRateStatus = 'connected'
     this.heartRateSubs.push(
-      source.onHeartRate((bpm) => (this.bpm = bpm)),
+      source.onHeartRate((bpm) => {
+        this.bpm = bpm
+        this.bpmAt = performance.now()
+      }),
       source.onStatus((s) => (this.heartRateStatus = s)),
     )
+  }
+
+  private clearAverages(): void {
+    this.avg3s.clear()
+    this.avg10s.clear()
+    this.power3s = undefined
+    this.power10s = undefined
   }
 
   private remember(value: Partial<Record<Role, string>>): void {

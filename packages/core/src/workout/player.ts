@@ -76,6 +76,13 @@ export class WorkoutPlayer {
     if (seg) this.seek(seg.startS + seg.durationS)
   }
 
+  /** Jumps to the start of segment `index` (e.g. to the cooldown after a failed ramp step). */
+  skipTo(index: number): void {
+    if (this.status !== 'running' && this.status !== 'paused') return
+    const seg = this.timeline[index]
+    if (seg && seg.startS > this.positionS) this.seek(seg.startS)
+  }
+
   finish(): void {
     this.status = 'finished'
   }
