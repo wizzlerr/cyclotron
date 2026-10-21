@@ -1,0 +1,48 @@
+:root {
+  color-scheme: dark;
+  --bg: #111418;
+  --panel: #1b2027;
+  --fg: #e6e9ee;
+  --muted: #8a93a0;
+  --ok: #6fd08c;
+  --warn: #e5b454;
+  --error: #ef6b6b;
+  /* Coggan power zones (DESIGN.md §5) */
+  --z1: #7d8590;
+  --z2: #4a90d9;
+  --z3: #4fb477;
+  --z4: #e5c349;
+  --z5: #e8873a;
+  --z6: #e0533d;
+  --z7: #a35bd6;
+  --z-none: #3a424d;
+  font-family: system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+body {
+  margin: 0;
+}
+
+h1 {
+  font-size: 1.5rem;
+  margin: 0 0 1rem;
+}
+
+h2 {
+  font-size: 1rem;
+  margin: 0 0 0.5rem;
+}
+
+.card {
+  background: var(--panel);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+  max-width: 40rem;
+}
+
+.muted {
+  color: var(--muted);
+}

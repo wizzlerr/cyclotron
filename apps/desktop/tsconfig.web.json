@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "emitDeclarationOnly": true,
+    "noEmit": false,
+    "outDir": "node_modules/.tsc/web",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["web-bluetooth"]
+  },
+  "include": ["src/renderer/src", "src/shared"]
+}

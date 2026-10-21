@@ -1,0 +1,27 @@
+{
+  "name": "@cyclotron/desktop",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Cyclotron indoor cycling trainer",
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "typecheck": "tsc -p tsconfig.node.json && svelte-check --tsconfig ./tsconfig.web.json --fail-on-warnings"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
+    "@types/node": "^26.6.5",
+    "@types/web-bluetooth": "^0.0.21",
+    "electron": "^44.9.3",
+    "electron-vite": "^6.0.0",
+    "svelte": "^5.57.2",
+    "svelte-check": "^4.7.7",
+    "typescript": "~6.0.3",
+    "vite": "^8.3.4"
+  },
+  "dependencies": {
+    "@cyclotron/core": "workspace:*"
+  }
+}
