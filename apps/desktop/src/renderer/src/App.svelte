@@ -7,6 +7,7 @@
   import History from './screens/History.svelte'
   import Home from './screens/Home.svelte'
   import Ride from './screens/Ride.svelte'
+  import Routes from './screens/Routes.svelte'
   import Settings from './screens/Settings.svelte'
   import Workouts from './screens/Workouts.svelte'
   import BleSpike from './spike/BleSpike.svelte'
@@ -36,6 +37,8 @@
       <Ride />
     {:else if nav.screen === 'workouts'}
       <Workouts />
+    {:else if nav.screen === 'routes'}
+      <Routes />
     {:else if nav.screen === 'history'}
       <History />
     {:else if nav.screen === 'settings'}

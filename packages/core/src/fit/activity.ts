@@ -64,6 +64,7 @@ export function encodeFitActivity(input: FitActivityInput): Uint8Array {
   const end = at(samples.at(-1)!.t)
   const ride = summarizeRide(samples, input.ftpW)
   const laps = rideLaps(samples)
+  const virtual = samples.some((s) => s.lat !== undefined)
 
   const e = new Encoder()
   write<FileIdMesg>(e, MESG.fileId, {
@@ -100,9 +101,12 @@ export function encodeFitActivity(input: FitActivityInput): Uint8Array {
       })
     }
     if (paused) continue
-    distanceM += (s.speedKmh ?? 0) / 3.6
+    distanceM = s.distanceM ?? distanceM + (s.speedKmh ?? 0) / 3.6
     write<RecordMesg>(e, MESG.record, {
       timestamp: at(s.t),
+      positionLat: semicircles(s.lat),
+      positionLong: semicircles(s.lon),
+      altitude: s.altitudeM,
       power: round(s.powerW),
       cadence: round(s.cadenceRpm),
       heartRate: s.heartRateBpm ? Math.round(s.heartRateBpm) : undefined,
@@ -138,7 +142,9 @@ export function encodeFitActivity(input: FitActivityInput): Uint8Array {
     eventType: 'stop',
     trigger: 'activityEnd',
     sport: 'cycling',
-    subSport: 'indoorCycling',
+    // A ride along a route has GPS points: a Strava/Garmin "Virtual Ride" (DESIGN.md D16).
+    subSport: virtual ? 'virtualActivity' : 'indoorCycling',
+    totalAscent: ride.ascentM === undefined ? undefined : Math.round(ride.ascentM),
     firstLapIndex: 0,
     numLaps: laps.length,
     thresholdPower: Math.round(input.ftpW),
@@ -179,6 +185,10 @@ function totals(s: IntervalSummary) {
     maxSpeed: s.maxSpeedKmh / 3.6,
   }
 }
+
+/** FIT positions are in semicircles: 2^31 per 180°. */
+const semicircles = (deg: number | undefined): number | undefined =>
+  deg === undefined ? undefined : Math.round((deg * 2 ** 31) / 180)
 
 const round = (n: number | undefined): number | undefined =>
   n === undefined ? undefined : Math.round(n)

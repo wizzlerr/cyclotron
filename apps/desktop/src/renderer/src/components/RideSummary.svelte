@@ -106,6 +106,12 @@
       <dt>Distance</dt>
       <dd>{(s.distanceM / 1000).toFixed(1)} km</dd>
     </div>
+    {#if s.ascentM !== undefined}
+      <div>
+        <dt>Climbing</dt>
+        <dd>{Math.round(s.ascentM)} m</dd>
+      </div>
+    {/if}
   </dl>
 
   {#if result.laps.length > 1}

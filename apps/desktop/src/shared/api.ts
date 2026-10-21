@@ -10,6 +10,8 @@ export interface RideStartInfo {
   workoutId: string
   workoutName: string
   ftpW: number
+  /** Set for rides along a route (E13). */
+  routeId?: string
 }
 
 /** Ride totals stored with the ride row (computed in the renderer by core). */
@@ -52,6 +54,16 @@ export interface PickedFile {
   text: string
 }
 
+/** A route the user imported (E13-7), as stored by main. */
+export interface StoredRoute {
+  id: string
+  name: string
+  description?: string
+  createdAt: number
+  /** `[lat, lon, ele]` triples. */
+  points: number[][]
+}
+
 export interface BluetoothDeviceInfo {
   id: string
   name: string
@@ -63,6 +75,8 @@ export interface CyclotronApi {
     getVersion(): Promise<string>
     /** Opens the folder holding the database and settings (for backups). */
     showDataFolder(): Promise<void>
+    /** Scales the whole interface, 1 = 100 %. */
+    setZoom(factor: number): void
   }
   /** Small settings (profile, devices, tiles) kept in SQLite so they survive dev vs installed
    * builds, which have different localStorage origins. */
@@ -119,6 +133,13 @@ export interface CyclotronApi {
     history(limit: number): Promise<FtpEntry[]>
     record(entry: FtpEntry): Promise<void>
   }
+  routes: {
+    list(): Promise<StoredRoute[]>
+    save(route: StoredRoute): Promise<void>
+    remove(id: string): Promise<void>
+    /** Asks for .gpx files and returns their contents; empty if cancelled. */
+    pickGpx(): Promise<PickedFile[]>
+  }
   spike: {
     /** Asks where to save a BLE capture; returns the path, or null if cancelled. */
     saveCapture(json: string): Promise<string | null>
@@ -151,5 +172,9 @@ export const IPC = {
   ridesChooseFitFolder: 'rides:chooseFitFolder',
   ftpHistory: 'ftp:history',
   ftpRecord: 'ftp:record',
+  routesList: 'routes:list',
+  routesSave: 'routes:save',
+  routesRemove: 'routes:remove',
+  routesPickGpx: 'routes:pickGpx',
   spikeSaveCapture: 'spike:saveCapture',
 } as const

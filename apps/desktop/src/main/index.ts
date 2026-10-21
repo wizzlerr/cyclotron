@@ -6,6 +6,7 @@ import { closeDb } from './db'
 import { registerPrefsIpc } from './prefs'
 import { registerRideIpc } from './ride'
 import { registerRidesIpc } from './rides'
+import { registerRoutesIpc } from './routes'
 import { registerSpikeIpc } from './spike'
 import { registerWorkoutsIpc } from './workouts'
 import { setupUserData } from './user-data'
@@ -67,6 +68,7 @@ registerSpikeIpc()
 registerRideIpc()
 registerWorkoutsIpc()
 registerRidesIpc()
+registerRoutesIpc()
 
 void app.whenReady().then(() => {
   createWindow()

@@ -39,7 +39,8 @@
     color: var(--warn);
   }
   .value {
-    font-size: 2.6rem;
+    /* Grows with the window so numbers stay readable from the bike on a big display. */
+    font-size: clamp(2.2rem, 1.2rem + 1.2vw, 4.5rem);
     line-height: 1.15;
     font-weight: 600;
     font-variant-numeric: tabular-nums;

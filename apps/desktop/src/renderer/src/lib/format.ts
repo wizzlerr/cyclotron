@@ -27,3 +27,9 @@ export function describeSegment(seg: Segment | undefined): string {
       return seg.effort ? 'Test effort: as hard as you can hold evenly' : `Max effort${rep}`
   }
 }
+
+/** 12345 → "12.3 km", 850 → "0.85 km". */
+export function formatKm(metres: number): string {
+  const km = Math.max(0, metres) / 1000
+  return `${km < 1 ? km.toFixed(2) : km.toFixed(1)} km`
+}

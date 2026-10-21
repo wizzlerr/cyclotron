@@ -1,6 +1,7 @@
 // Zwift .zwo import (E3-2, DESIGN.md §6.2). .zwo is simple XML; a small tag scanner is enough and
 // keeps `core` free of DOM APIs. Text events and unknown elements are ignored.
 
+import { decodeXml as decode } from '../xml'
 import type { Workout, WorkoutStep } from './model'
 
 const TAG = /<(\/?)([A-Za-z_][\w-]*)((?:\s+[\w-]+\s*=\s*(?:"[^"]*"|'[^']*'))*)\s*(\/?)>/g
@@ -127,14 +128,4 @@ function attrs(raw: string): Record<string, string> {
   const out: Record<string, string> = {}
   for (const m of raw.matchAll(ATTR)) out[m[1]!.toLowerCase()] = decode(m[2] ?? m[3] ?? '')
   return out
-}
-
-function decode(s: string): string {
-  return s
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'")
-    .replace(/&#(\d+);/g, (_, n: string) => String.fromCodePoint(Number(n)))
-    .replace(/&amp;/g, '&')
 }

@@ -22,7 +22,12 @@ export default tseslint.config(
     languageOptions: { globals: globals.browser },
   },
   {
-    files: ['apps/desktop/src/main/**', 'apps/desktop/src/preload/**', '**/*.config.*'],
+    files: [
+      'apps/desktop/src/main/**',
+      'apps/desktop/src/preload/**',
+      '**/*.config.*',
+      'scripts/**',
+    ],
     languageOptions: { globals: globals.node },
   },
   {

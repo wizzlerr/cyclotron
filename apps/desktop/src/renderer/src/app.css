@@ -43,6 +43,23 @@ h2 {
   max-width: 40rem;
 }
 
+/* Pages made of cards (Home, Settings) flow into as many columns as the window fits: one on a
+   laptop, several on a 4K display. Anything else (messages) spans the full row. */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(26rem, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+.cards > .card {
+  max-width: none;
+  margin: 0;
+}
+.cards > :not(.card) {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
 .muted {
   color: var(--muted);
 }

@@ -88,7 +88,6 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    max-width: 60rem;
   }
   .head h1 {
     margin: 0;
@@ -97,7 +96,6 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
     gap: 0.75rem;
-    max-width: 60rem;
   }
   .list .card {
     margin: 0;

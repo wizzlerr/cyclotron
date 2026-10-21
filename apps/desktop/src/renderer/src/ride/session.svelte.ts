@@ -1,12 +1,18 @@
 import {
+  DEFAULT_PHYSICS,
   FREE_RIDE_ID,
   FREE_RIDE_WORKOUT,
   LiveRideMetrics,
   RampFailureDetector,
+  routeAt,
+  RouteRider,
+  trainerGradePct,
   WorkoutPlayer,
   type LiveMetrics,
   type PlayerState,
   type RideSample,
+  type Route,
+  type RoutePosition,
   type TrainerControl,
   type Workout,
 } from '@cyclotron/core'
@@ -37,6 +43,19 @@ export type ChartData = [
 
 const emptyChart = (): ChartData => [[], [], [], [], []]
 
+/** Workout id of a ride along a route without a workout: free ride, following the grade. */
+export const ROUTE_RIDE_ID = 'route'
+
+/** Live progress along a route (E13-4/E13-5). */
+export interface RouteState {
+  position: RoutePosition
+  speedKmh: number
+  /** Ridden so far (keeps counting past the end when a workout wraps the route). */
+  distanceM: number
+  remainingM: number
+  climbedM: number
+}
+
 /**
  * Drives the core workout player from a drift-corrected 1 Hz tick (E3-3, E3-7), sends its targets
  * to the trainer and records the ride (E5-1). The player itself is pure; time and I/O live here.
@@ -62,6 +81,9 @@ class RideSession {
   intervalAvgW = $state<number | undefined>()
   /** Shown when the ramp test detected failure and moved on to the cooldown. */
   notice = $state<string | undefined>()
+  /** The route being ridden, if any (E13). */
+  route = $state.raw<Route | undefined>()
+  routeState = $state.raw<RouteState | undefined>()
 
   private timer: ReturnType<typeof setTimeout> | undefined
   private nextTickAt = 0
@@ -72,6 +94,7 @@ class RideSession {
   private live: LiveRideMetrics | undefined
   private rampFailure = new RampFailureDetector()
   private interval = { segment: -1, sum: 0, n: 0 }
+  private rider: RouteRider | undefined
 
   /** Loads a workout, ready to start. Replaces any workout that isn't running. */
   load(workout: Workout): boolean {
@@ -92,7 +115,29 @@ class RideSession {
     this.interval = { segment: -1, sum: 0, n: 0 }
     this.intervalAvgW = undefined
     this.notice = undefined
+    this.route = undefined
+    this.routeState = undefined
+    this.rider = undefined
     this.state = this.player.state()
+    return true
+  }
+
+  /**
+   * Loads a ride along `route` (E13-4). Without a workout it's a free ride where the trainer
+   * follows the grade and the ride ends at the finish; with one, the workout sets the power and
+   * the route only provides the scenery (E13-8), starting over if it ends first.
+   */
+  loadRoute(route: Route, workout?: Workout): boolean {
+    const w = workout ?? { ...FREE_RIDE_WORKOUT, id: ROUTE_RIDE_ID, name: route.name }
+    if (!this.load(w)) return false
+    this.route = route
+    this.routeState = {
+      position: routeAt(route, 0),
+      speedKmh: 0,
+      distanceM: 0,
+      remainingM: route.distanceM,
+      climbedM: 0,
+    }
     return true
   }
 
@@ -108,8 +153,9 @@ class RideSession {
     return this.state?.status === 'running' || this.state?.status === 'paused'
   }
 
+  /** No plan to follow: a free ride, or a route ride without a workout. */
   get isFreeRide(): boolean {
-    return this.workout?.id === FREE_RIDE_ID
+    return this.workout?.id === FREE_RIDE_ID || this.workout?.id === ROUTE_RIDE_ID
   }
 
   /** The ERG target in effect, including a manual one in a free-ride step. */
@@ -128,12 +174,22 @@ class RideSession {
     this.nextTickAt = this.startedAtPerf
     this.live = new LiveRideMetrics(this.player.ftpW, profile.weightKg)
     this.metrics = this.live.snapshot()
+    const route = this.route
+    if (route) {
+      this.rider = new RouteRider(
+        route,
+        { ...DEFAULT_PHYSICS, massKg: profile.systemMassKg },
+        { wrap: workout.id !== ROUTE_RIDE_ID },
+      )
+    }
     RideRecorder.start({
       startedAt: Date.now(),
       utcOffsetMin: -new Date().getTimezoneOffset(),
       workoutId: workout.id,
-      workoutName: workout.name,
+      workoutName:
+        route && workout.id !== ROUTE_RIDE_ID ? `${workout.name} · ${route.name}` : workout.name,
       ftpW: this.player.ftpW,
+      routeId: route?.id,
     })
       .then((r) => (this.recorder = r))
       .catch((e: unknown) => (this.error = `Recording failed: ${message(e)}`))
@@ -144,6 +200,8 @@ class RideSession {
   pause(): void {
     this.advanceToNow()
     this.player?.pause()
+    // Stopped means stopped: no coasting on after a break.
+    if (this.rider) this.rider.speedMps = 0
     this.refresh()
   }
 
@@ -204,6 +262,9 @@ class RideSession {
     this.chart = emptyChart()
     this.chartVersion++
     this.notice = undefined
+    this.route = undefined
+    this.routeState = undefined
+    this.rider = undefined
   }
 
   private scheduleTick(): void {
@@ -231,9 +292,29 @@ class RideSession {
         this.notice = `Paused: the app was suspended for ${Math.round(gapMs / 1000)} s (sleep?). Resume when you're ready.`
       } else {
         this.player?.advance(gapMs / 1000)
+        this.ride(gapMs / 1000)
       }
     }
     this.lastTickAt = now
+  }
+
+  /** Moves along the route with the power being pushed now. */
+  private ride(dtS: number): void {
+    const rider = this.rider
+    if (!rider) return
+    const fresh = performance.now() - devices.dataAt < STALE_MS
+    rider.step(fresh ? (devices.data?.powerW ?? 0) : 0, dtS)
+    this.routeState = {
+      position: rider.position,
+      speedKmh: rider.speedMps * 3.6,
+      distanceM: rider.distanceM,
+      remainingM: rider.remainingM,
+      climbedM: rider.climbedM,
+    }
+    if (rider.finished) {
+      this.player?.finish()
+      this.notice = `You made it to the end of ${rider.route.name}.`
+    }
   }
 
   private record(): void {
@@ -246,11 +327,19 @@ class RideSession {
       t: Math.round((now - this.startedAtPerf) / 1000),
       powerW: data?.powerW,
       cadenceRpm: data?.cadenceRpm,
-      speedKmh: data?.speedKmh,
+      // On a route, speed is the virtual road speed, not the trainer's flywheel speed.
+      speedKmh: this.routeState && this.rider ? this.routeState.speedKmh : data?.speedKmh,
       heartRateBpm: bpm,
       targetW: this.targetW,
       segment: s.segment?.index,
       paused: s.status === 'paused',
+    }
+    if (this.rider && this.routeState) {
+      const p = this.routeState.position
+      sample.lat = p.lat
+      sample.lon = p.lon
+      sample.altitudeM = Math.round(p.ele * 10) / 10
+      sample.distanceM = Math.round(this.routeState.distanceM * 10) / 10
     }
     this.recorder?.add(sample)
     this.trackInterval(sample)
@@ -321,7 +410,15 @@ class RideSession {
   }
 
   private effectiveControl(s: PlayerState): TrainerControl {
-    if (s.status === 'running' && s.segment?.kind === 'freeride' && this.manual) return this.manual
+    const freeStep = s.status === 'running' && s.segment?.kind === 'freeride'
+    if (freeStep && this.manual) return this.manual
+    // On a route, free riding means riding the road: the trainer follows the grade (E13-4).
+    if (freeStep && this.rider) {
+      return {
+        kind: 'simulation',
+        gradePct: trainerGradePct(this.rider.position.gradePct, profile.difficulty),
+      }
+    }
     return s.control
   }
 

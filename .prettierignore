@@ -6,3 +6,4 @@ pnpm-lock.yaml
 .idea
 *.md
 **/fixtures/**
+packages/core/src/route/builtin-routes.json

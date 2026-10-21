@@ -13,6 +13,11 @@ export interface RideSample {
   /** Workout segment index, used for laps. */
   segment?: number
   paused?: boolean
+  /** Route rides (E13): virtual position, altitude (m) and distance ridden so far (m). */
+  lat?: number
+  lon?: number
+  altitudeM?: number
+  distanceM?: number
 }
 
 export interface IntervalSummary {
@@ -34,6 +39,8 @@ export interface IntervalSummary {
   maxSpeedKmh: number
   distanceM: number
   workKj: number
+  /** Metres climbed; only for samples with altitude (route rides). */
+  ascentM?: number
 }
 
 export interface RideSummary extends IntervalSummary {
@@ -55,7 +62,7 @@ export function summarizeInterval(samples: readonly RideSample[]): IntervalSumma
   const hr = active.map((s) => s.heartRateBpm).filter((h): h is number => h !== undefined && h > 0)
   const speed = active.map((s) => s.speedKmh ?? 0)
   const work = sum(power)
-  const distanceM = sum(speed) / 3.6
+  const distanceM = rideDistanceM(samples)
   const first = samples[0]
   const last = samples.at(-1)
   return {
@@ -74,7 +81,32 @@ export function summarizeInterval(samples: readonly RideSample[]): IntervalSumma
     maxSpeedKmh: max(speed) ?? 0,
     distanceM,
     workKj: work / 1000,
+    ascentM: ascent(samples),
   }
+}
+
+/** Route rides carry the distance ridden; otherwise it comes from speed (1 s per sample). */
+function rideDistanceM(samples: readonly RideSample[]): number {
+  let m = 0
+  samples.forEach((s, i) => {
+    if (s.paused) return
+    const prev = samples[i - 1]?.distanceM
+    m +=
+      s.distanceM !== undefined && prev !== undefined ? s.distanceM - prev : (s.speedKmh ?? 0) / 3.6
+  })
+  return m
+}
+
+function ascent(samples: readonly RideSample[]): number | undefined {
+  let total: number | undefined
+  let prev: number | undefined
+  for (const s of samples) {
+    if (s.altitudeM === undefined) continue
+    if (prev !== undefined) total = (total ?? 0) + Math.max(0, s.altitudeM - prev)
+    else total ??= 0
+    prev = s.altitudeM
+  }
+  return total
 }
 
 export function summarizeRide(samples: readonly RideSample[], ftpW: number): RideSummary {

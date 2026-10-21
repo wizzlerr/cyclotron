@@ -58,6 +58,22 @@ const MIGRATIONS = [
     ride_id integer references rides (id) on delete set null
   );
   `,
+  // E13: routes the user imported (built-ins ship with the app), and route rides.
+  `
+  create table routes (
+    id          text    primary key,
+    name        text    not null,
+    description text,
+    created_at  integer not null,
+    points      text    not null              -- JSON [[lat, lon, ele], ...]
+  );
+
+  alter table rides add column route_id text;
+  alter table ride_samples add column lat real;
+  alter table ride_samples add column lon real;
+  alter table ride_samples add column alt real;
+  alter table ride_samples add column dist real;
+  `,
 ]
 
 let db: DatabaseSync | undefined

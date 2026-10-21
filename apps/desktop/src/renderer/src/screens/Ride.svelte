@@ -2,16 +2,25 @@
   import { caloriesKcal, heartRateZone, powerZone } from '@cyclotron/core'
   import LiveChart from '../components/LiveChart.svelte'
   import RideSummary from '../components/RideSummary.svelte'
+  import RouteMap from '../components/RouteMap.svelte'
+  import RouteProfile from '../components/RouteProfile.svelte'
   import Tile from '../components/Tile.svelte'
   import WorkoutProfile from '../components/WorkoutProfile.svelte'
   import { devices } from '../devices/devices.svelte'
-  import { describeSegment as describe, formatDuration, formatPct } from '../lib/format'
+  import { describeSegment as describe, formatDuration, formatKm, formatPct } from '../lib/format'
   import { go } from '../nav.svelte'
   import { profile } from '../profile.svelte'
   import { ride } from '../ride/session.svelte'
   import { rideTiles, type TileId } from '../ride/tiles.svelte'
 
   const STEP_W = 10
+
+  // Charts grow with the window, so a big or tall display isn't mostly empty space.
+  let windowHeight = $state(800)
+  const clamp = (v: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, v))
+  const chartHeight = $derived(Math.round(clamp(windowHeight * 0.24, 170, 520)))
+  const profileHeight = $derived(Math.round(clamp(windowHeight * 0.13, 100, 300)))
+  const mapSize = $derived(Math.round(clamp(windowHeight * 0.17, 150, 380)))
   let ergWatts = $state(150)
   let confirmEnd = $state(false)
 
@@ -90,7 +99,11 @@
         accent: hrZone ? `var(--z${hrZone})` : undefined,
       },
       cadence: { label: 'Cadence', value: devices.data?.cadenceRpm, unit: 'rpm' },
-      speed: { label: 'Speed', value: devices.data?.speedKmh, unit: 'km/h' },
+      speed: {
+        label: 'Speed',
+        value: ride.routeState ? fixed(ride.routeState.speedKmh, 1) : devices.data?.speedKmh,
+        unit: 'km/h',
+      },
       wkg: {
         label: profile.weightKg ? 'W/kg' : 'W/kg (set weight)',
         value: profile.weightKg ? fixed((devices.power3s ?? 0) / profile.weightKg, 1) : undefined,
@@ -120,6 +133,8 @@
     }),
   )
 </script>
+
+<svelte:window bind:innerHeight={windowHeight} />
 
 {#snippet ergControls()}
   {#if manualErgOn}
@@ -215,13 +230,59 @@
       <section class="controls">{@render ergControls()}</section>
     {/if}
 
+    {#if ride.route && ride.routeState}
+      {@const r = ride.routeState}
+      {@const grade = r.position.gradePct}
+      <div class="card route">
+        <dl class="route-stats">
+          <div class="grade">
+            <dt>Grade</dt>
+            <dd>{grade.toFixed(1)} %</dd>
+          </div>
+          <div>
+            <dt>Speed</dt>
+            <dd>{r.speedKmh.toFixed(1)} km/h</dd>
+          </div>
+          <div>
+            <dt>Distance</dt>
+            <dd>{formatKm(r.distanceM)}</dd>
+          </div>
+          <div>
+            <dt>To go</dt>
+            <dd>{formatKm(r.remainingM)}</dd>
+          </div>
+          <div>
+            <dt>Elevation</dt>
+            <dd>{Math.round(r.position.ele)} m</dd>
+          </div>
+          <div>
+            <dt>Climbed</dt>
+            <dd>{Math.round(r.climbedM)} m</dd>
+          </div>
+        </dl>
+        <div class="route-view">
+          <div class="route-profile">
+            <RouteProfile route={ride.route} positionM={r.position.d} height={profileHeight} axes />
+          </div>
+          <RouteMap route={ride.route} position={r.position} size={mapSize} />
+        </div>
+        {#if ride.isFreeRide}
+          <p class="muted next">
+            Trainer at {Math.round(profile.difficulty * 100)} % difficulty: {(
+              grade * profile.difficulty
+            ).toFixed(1)} % (change it in Settings → Routes).
+          </p>
+        {/if}
+      </div>
+    {/if}
+
     {#if !ride.isFreeRide}
       <div class="profile card">
         <WorkoutProfile
           timeline={ride.player.timeline}
           positionS={s.positionS}
           ftpW={ride.player.ftpW * s.intensity}
-          height={100}
+          height={profileHeight}
           axes
         />
         {#if s.next}
@@ -235,7 +296,7 @@
     {/if}
 
     {#if s.status !== 'ready'}
-      <div class="card chart"><LiveChart height={170} /></div>
+      <div class="card chart"><LiveChart height={chartHeight} /></div>
     {/if}
   {/if}
 
@@ -275,7 +336,8 @@
   }
   .tiles {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+    /* Wider tiles on big windows, to fit the bigger numbers (Tile.svelte). */
+    grid-template-columns: repeat(auto-fill, minmax(clamp(12rem, 10vw, 22rem), 1fr));
     gap: 0.75rem;
   }
   .chart {
@@ -288,6 +350,40 @@
   }
   .next {
     margin: 0.5rem 0 0;
+  }
+  .route {
+    margin-top: 0.75rem;
+    max-width: none;
+  }
+  .route-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 2rem;
+    margin: 0 0 0.75rem;
+  }
+  .route-stats dt {
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .route-stats dd {
+    margin: 0;
+    font-size: 1.25rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .route-stats .grade dd {
+    font-size: 1.75rem;
+    font-weight: 600;
+  }
+  .route-view {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+  .route-profile {
+    flex: 1;
+    min-width: 0;
   }
   .controls {
     margin-top: 1rem;

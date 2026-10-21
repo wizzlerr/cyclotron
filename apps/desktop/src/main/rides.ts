@@ -26,6 +26,7 @@ interface RideRow {
   status: 'active' | 'finished'
   workout_id: string | null
   workout_name: string
+  route_id: string | null
   ftp_at_ride: number
   duration_s: number | null
   timer_s: number | null
@@ -50,6 +51,10 @@ interface SampleRow {
   target: number | null
   segment: number | null
   paused: number
+  lat: number | null
+  lon: number | null
+  alt: number | null
+  dist: number | null
 }
 
 export function fitFolder(): string {
@@ -60,10 +65,17 @@ export function registerRidesIpc(): void {
   ipcMain.handle(IPC.ridesStart, (_event, info: RideStartInfo) => {
     const r = getDb()
       .prepare(
-        `insert into rides (started_at, utc_offset_min, workout_id, workout_name, ftp_at_ride)
-         values (?, ?, ?, ?, ?)`,
+        `insert into rides (started_at, utc_offset_min, workout_id, workout_name, ftp_at_ride, route_id)
+         values (?, ?, ?, ?, ?, ?)`,
       )
-      .run(info.startedAt, info.utcOffsetMin, info.workoutId, info.workoutName, info.ftpW)
+      .run(
+        info.startedAt,
+        info.utcOffsetMin,
+        info.workoutId,
+        info.workoutName,
+        info.ftpW,
+        info.routeId ?? null,
+      )
     return Number(r.lastInsertRowid)
   })
 
@@ -71,8 +83,8 @@ export function registerRidesIpc(): void {
     const db = getDb()
     const insert = db.prepare(
       `insert or replace into ride_samples
-         (ride_id, t, power, cadence, speed, hr, target, segment, paused)
-       values (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (ride_id, t, power, cadence, speed, hr, target, segment, paused, lat, lon, alt, dist)
+       values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     transaction(db, () => {
       for (const s of samples) {
@@ -86,6 +98,10 @@ export function registerRidesIpc(): void {
           int(s.targetW),
           s.segment ?? null,
           s.paused ? 1 : 0,
+          s.lat ?? null,
+          s.lon ?? null,
+          s.altitudeM ?? null,
+          s.distanceM ?? null,
         )
       }
     })
@@ -234,6 +250,7 @@ function toRide(r: RideRow): StoredRide {
     utcOffsetMin: r.utc_offset_min,
     workoutId: r.workout_id ?? '',
     workoutName: r.workout_name,
+    routeId: r.route_id ?? undefined,
     ftpW: r.ftp_at_ride,
     status: r.status,
     endedAt: r.ended_at ?? undefined,
@@ -267,6 +284,10 @@ function toSample(r: SampleRow): RideSample {
     targetW: r.target ?? undefined,
     segment: r.segment ?? undefined,
     paused: r.paused === 1,
+    lat: r.lat ?? undefined,
+    lon: r.lon ?? undefined,
+    altitudeM: r.alt ?? undefined,
+    distanceM: r.dist ?? undefined,
   }
 }
 

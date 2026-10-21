@@ -1,5 +1,6 @@
 <script lang="ts">
   // E4-4: power, target, heart rate and cadence over the ride (uPlot, DESIGN.md D13).
+  import { untrack } from 'svelte'
   import uPlot from 'uplot'
   import 'uplot/dist/uPlot.min.css'
   import { formatDuration } from '../lib/format'
@@ -21,7 +22,8 @@
     const p = new uPlot(
       {
         width: el.clientWidth,
-        height,
+        // Created once; height changes resize it below instead of rebuilding.
+        height: untrack(() => height),
         cursor: { drag: { x: false, y: false } },
         scales: {
           x: { time: false },
@@ -88,13 +90,20 @@
       el,
     )
     plot = p
-    const resize = new ResizeObserver(() => p.setSize({ width: el.clientWidth, height }))
+    const resize = new ResizeObserver(() =>
+      p.setSize({ width: el.clientWidth, height: untrack(() => height) }),
+    )
     resize.observe(el)
     return () => {
       resize.disconnect()
       p.destroy()
       plot = undefined
     }
+  })
+
+  $effect(() => {
+    const h = height
+    if (el) plot?.setSize({ width: el.clientWidth, height: h })
   })
 
   $effect(() => {

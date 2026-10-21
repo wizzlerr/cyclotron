@@ -1,10 +1,11 @@
-import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
+import { contextBridge, ipcRenderer, webFrame, type IpcRendererEvent } from 'electron'
 import { IPC, type BluetoothDeviceInfo, type CyclotronApi } from '../shared/api'
 
 const api: CyclotronApi = {
   app: {
     getVersion: () => ipcRenderer.invoke(IPC.appGetVersion),
     showDataFolder: () => ipcRenderer.invoke(IPC.appShowDataFolder),
+    setZoom: (factor) => webFrame.setZoomFactor(Math.min(3, Math.max(0.5, factor))),
   },
   prefs: {
     get: (key) => ipcRenderer.sendSync(IPC.prefsGet, key) as string | null,
@@ -44,6 +45,12 @@ const api: CyclotronApi = {
   ftp: {
     history: (limit) => ipcRenderer.invoke(IPC.ftpHistory, limit),
     record: (entry) => ipcRenderer.invoke(IPC.ftpRecord, entry),
+  },
+  routes: {
+    list: () => ipcRenderer.invoke(IPC.routesList),
+    save: (route) => ipcRenderer.invoke(IPC.routesSave, route),
+    remove: (id) => ipcRenderer.invoke(IPC.routesRemove, id),
+    pickGpx: () => ipcRenderer.invoke(IPC.routesPickGpx),
   },
   spike: {
     saveCapture: (json) => ipcRenderer.invoke(IPC.spikeSaveCapture, json),
