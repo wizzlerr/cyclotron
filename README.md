@@ -8,7 +8,7 @@ Cyclotron connects to a smart trainer and a heart rate strap over Bluetooth and 
 workouts in ERG mode: the trainer sets the resistance, you pedal. Every day it suggests a workout
 that fits your training load and weekly plan, and tells you why.
 
-![Ride screen with the 3D world on a route](docs/images/ride.png)
+![Cyclotron: home, workouts, routes and a ride on Alpe d'Huez](docs/images/demo.gif)
 
 > **Status: early (v0.2).** It is used for real rides on a Wahoo KICKR CORE 2 on Windows. Other
 > FTMS trainers should work but haven't been tested. macOS builds are produced by CI but not yet
@@ -58,6 +58,8 @@ that fits your training load and weekly plan, and tells you why.
   database; Garmin and Strava keys are stored encrypted.
 - **English and Polish**, automatic updates on Windows, a diagnostic report for bug reports, and a
   **simulated trainer** for trying the app without a bike.
+
+![Ride screen with the 3D world on a route](docs/images/ride.png)
 
 ![Home: today's recommendation and the weekly plan](docs/images/home.png)
 
