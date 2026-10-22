@@ -229,7 +229,7 @@ The app stays numbers-first: tiles and workout steps you can read while watching
 | E16-5 | ✅ done 2026-10-22. Chase camera, smoothed, following grade changes | S |
 | E16-6 | ✅ done 2026-10-22 ("World" button on the Ride screen, Settings → Display → Virtual world, grade badge). Ride screen: "World" toggle (default in Settings, off) and a layout where the world sits behind or beside the tiles; workout strip and next-step cue stay visible | M |
 | E16-7 | ✅ done 2026-10-22 (skips frames when the window is hidden, quality low/high). Performance guard: pause rendering when the window is hidden or minimised, quality setting (low/high), renderer never blocks the ride loop | S |
-| E16-8 | 🔧 2026-10-22: trees and km markers done; gradient signs on climbs not yet. Simple scenery: roadside trees/posts, gradient signs on climbs, km markers (procedural, no assets to download) | S |
+| E16-8 | ✅ done 2026-10-22 (trees, km markers, gradient signs: `core/world/signs.ts`). Simple scenery: roadside trees/posts, gradient signs on climbs, km markers (procedural, no assets to download) | S |
 
 ## E13 — Virtual routes (requested 2026-10-21)
 

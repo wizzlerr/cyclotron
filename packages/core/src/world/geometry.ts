@@ -424,6 +424,7 @@ export function distantLand(
   marginM = 2000,
   cellM = 150,
   periodZ?: number,
+  index = new RoadIndex(pts),
 ): TerrainGrid {
   const sparse = pts.filter((_, i) => i % 20 === 0)
   let minX = Infinity
@@ -457,8 +458,13 @@ export function distantLand(
       }
       const hills =
         14 * valueNoise(x, z, 160, seed, periodZ) + 4 * valueNoise(x, z, 45, seed + 1, periodZ)
+      let y = sum / weights + hills - DISTANT_BELOW_M
+      // Where the detailed ground covers it, keep it well under the road so it can't show
+      // through (in a valley the blend of the whole climb would lift it above the road).
+      const near = nearestRoad(index, x, z)
+      if (near && near.dist < COVERED_M) y = Math.min(y, near.p.y - SUNK_M)
       positions[v++] = x
-      positions[v++] = sum / weights + hills - DISTANT_BELOW_M
+      positions[v++] = y
       positions[v++] = z
     }
   }
@@ -477,8 +483,11 @@ export function distantLand(
   return { positions, indices }
 }
 
-/** Distant land sits this far under where the detailed ground would be. */
+/** Distant land sits this far under where the detailed ground would be… */
 const DISTANT_BELOW_M = 6
+/** …and this far under the road where the detailed ground (≥ 220 m out) covers it. */
+const COVERED_M = 230
+const SUNK_M = 30
 
 export interface TreeSpot {
   x: number

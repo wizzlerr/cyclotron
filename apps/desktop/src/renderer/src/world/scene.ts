@@ -6,6 +6,7 @@ import {
   densify,
   extendEnds,
   frameAt,
+  gradeSigns,
   groundHeight,
   hashString,
   legPose,
@@ -124,7 +125,10 @@ export function createWorld(
   far.position.y = minY - 25
   scene.add(far)
   scene.add(trees(q))
-  if (route) for (const m of kmMarkers(centre, track)) scene.add(m)
+  if (route) {
+    for (const m of kmMarkers(centre, track)) scene.add(m)
+    for (const m of gradientSigns(route, centre, track)) scene.add(m)
+  }
 
   function roadMesh(pts: WorldPoint[], keep: typeof track): THREE.Group {
     const g = new THREE.Group()
@@ -546,6 +550,81 @@ function buildRider(track: <T extends { dispose(): void }>(x: T) => T): {
 }
 
 /** A small text label that always faces the camera. */
+/**
+ * Gradient signs on climbs (E16-8): a red-bordered warning triangle with the gradient of the
+ * stretch ahead, on a post on the left of the road, facing the rider.
+ */
+function gradientSigns(
+  route: Route,
+  pts: WorldPoint[],
+  track: <T extends { dispose(): void }>(x: T) => T,
+): THREE.Object3D[] {
+  const out: THREE.Object3D[] = []
+  const postGeo = track(new THREE.CylinderGeometry(0.05, 0.05, 2.4, 6).translate(0, 1.2, 0))
+  const postMat = track(new THREE.MeshLambertMaterial({ color: 0x9aa0a6 }))
+  const panelGeo = track(new THREE.PlaneGeometry(1.6, 1.4))
+  const backMat = track(new THREE.MeshLambertMaterial({ color: 0x9aa0a6, side: THREE.BackSide }))
+  // One texture per distinct gradient.
+  const faces = new Map<number, THREE.MeshBasicMaterial>()
+  const face = (pct: number): THREE.MeshBasicMaterial => {
+    let m = faces.get(pct)
+    if (!m) {
+      m = track(new THREE.MeshBasicMaterial({ map: track(signTexture(pct)), transparent: true }))
+      faces.set(pct, m)
+    }
+    return m
+  }
+  for (const sign of gradeSigns(route)) {
+    const f = frameAt(pts, sign.d)
+    // Left of the heading is (hz, −hx).
+    const x = f.x + f.hz * (ROAD_HALF_W + 1)
+    const z = f.z - f.hx * (ROAD_HALF_W + 1)
+    const g = new THREE.Group()
+    g.position.set(x, f.y, z)
+    // The rider's rotation turns −z along the road, so the panel's front (+z) faces back down it,
+    // towards the rider.
+    g.rotation.y = Math.atan2(-f.hx, -f.hz)
+    g.add(new THREE.Mesh(postGeo, postMat))
+    const front = new THREE.Mesh(panelGeo, face(sign.gradePct))
+    front.position.y = 2.9
+    const back = new THREE.Mesh(panelGeo, backMat)
+    back.position.y = 2.9
+    g.add(front, back)
+    out.push(g)
+  }
+  return out
+}
+
+/** The sign face: white triangle, red border, black gradient. */
+function signTexture(pct: number): THREE.CanvasTexture {
+  const c = document.createElement('canvas')
+  c.width = 256
+  c.height = 224
+  const g = c.getContext('2d')!
+  const tri = (inset: number): void => {
+    g.beginPath()
+    g.moveTo(128, 8 + inset * 1.6)
+    g.lineTo(248 - inset * 1.4, 216 - inset * 0.8)
+    g.lineTo(8 + inset * 1.4, 216 - inset * 0.8)
+    g.closePath()
+  }
+  g.lineJoin = 'round'
+  g.fillStyle = '#c8102e'
+  tri(0)
+  g.fill()
+  g.fillStyle = '#ffffff'
+  tri(22)
+  g.fill()
+  g.fillStyle = '#111111'
+  g.font = 'bold 82px system-ui, sans-serif'
+  g.textAlign = 'center'
+  g.textBaseline = 'middle'
+  g.fillText(`${pct}%`, 128, 152)
+  const tex = new THREE.CanvasTexture(c)
+  tex.colorSpace = THREE.SRGBColorSpace
+  return tex
+}
+
 function textSprite(text: string, track: <T extends { dispose(): void }>(x: T) => T): THREE.Sprite {
   const c = document.createElement('canvas')
   c.width = 128

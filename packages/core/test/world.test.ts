@@ -4,6 +4,7 @@ import {
   densify,
   distantLand,
   extendEnds,
+  gradeSigns,
   frameAt,
   groundHeight,
   kneeAt,
@@ -163,8 +164,65 @@ describe('distant land', () => {
     }
     expect(Math.min(...xs)).toBeLessThanOrEqual(-1000)
     expect(Math.max(...xs)).toBeGreaterThanOrEqual(1000)
+    // Never above the road where the detailed ground covers it.
+    for (let i = 0; i < land.positions.length; i += 3) {
+      const [x, y, z] = [land.positions[i]!, land.positions[i + 1]!, land.positions[i + 2]!]
+      if (Math.abs(x) < 200 && z < 0 && z > -2000) expect(y).toBeLessThan(-z / 10)
+    }
     // Higher beside the top of the climb than beside its foot.
     expect(heightNear(-1900)).toBeGreaterThan(heightNear(-100) + 80)
+  })
+})
+
+describe('gradient signs', () => {
+  /** North from (45, 6) through stretches of [length m, grade %]. */
+  const profile = (parts: [number, number][]): GpxPoint[] => {
+    const pts: GpxPoint[] = []
+    let d = 0
+    let ele = 500
+    pts.push({ lat: 45, lon: 6, ele })
+    for (const [len, grade] of parts) {
+      for (let s = 25; s <= len; s += 25) {
+        d += 25
+        ele += (25 * grade) / 100
+        pts.push({ lat: 45 + d / 111_195, lon: 6, ele })
+      }
+    }
+    return pts
+  }
+
+  it('marks a climb where it starts and every kilometre up it', () => {
+    const route = buildRoute(
+      { id: 'c', name: 'c', source: 'gpx' },
+      profile([
+        [1000, 0],
+        [2600, 8],
+        [1000, 0],
+        [1000, -8],
+      ]),
+    )
+    const signs = gradeSigns(route)
+    expect(signs.length).toBeGreaterThanOrEqual(3)
+    // The first sign is near the foot of the climb, the others a kilometre apart.
+    expect(signs[0]!.d).toBeGreaterThan(600)
+    expect(signs[0]!.d).toBeLessThan(1100)
+    for (let i = 1; i < signs.length; i++) expect(signs[i]!.d - signs[i - 1]!.d).toBe(1000)
+    // Full kilometres on the climb read 8 %; nothing on the flat top or the descent.
+    expect(signs[1]!.gradePct).toBe(8)
+    for (const s of signs) expect(s.d).toBeLessThan(3600)
+  })
+
+  it('puts nothing on flat or rolling roads', () => {
+    const route = buildRoute(
+      { id: 'f', name: 'f', source: 'gpx' },
+      profile([
+        [2000, 0],
+        [300, 3],
+        [300, -3],
+        [2000, 1],
+      ]),
+    )
+    expect(gradeSigns(route)).toEqual([])
   })
 })
 
