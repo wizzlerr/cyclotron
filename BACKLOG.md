@@ -238,7 +238,7 @@ The app stays numbers-first: tiles and workout steps you can read while watching
 | ~~E17-1~~ | ✅ Diagnostics: rotating log in `<userData>/logs`, BLE trace ring, "Problem?" card in Settings saves a report (no keys/tokens) and opens a GitHub issue | S |
 | ~~E17-2~~ | ✅ Beep volume slider + test button (Settings → Ride screen) | S |
 | E17-4 | ✅ done 2026-10-22: controller drives the whole app (`lib/padnav.svelte.ts`: D-pad moves a highlight, A presses, B backs out/closes dialogs; up/down stay in the sidebar or the screen; on the Ride screen the highlight fades after 5 s), coloured A/B/Y/Z and +/− badges on the Ride controls (`components/PadHint.svelte`), +/− = shift buttons, Click and paddles (D-pad no longer changes watts); +/− in a free ride switches ERG on. The trainer can't be added as a controller (KICKR CORE 2 also has the Zwift service). Several controllers with the same name (a Play's two halves): remembered by address, shown as "Zwift Play 0523" (last 4 address characters) | M |
-| E17-3 | ✅ tested 2026-10-22 with a Zwift Click by the user; Zwift Play / Ride / Click controllers (`core/ble/zwift.ts`, `devices/zwift-controller.ts`, Settings → Controllers with a button tester; ride mapping: start/pause, harder/easier, skip, ERG toggle, mute, world) | M |
+| E17-3 | ✅ tested 2026-10-22 by the user with a Zwift Click and both Zwift Play halves; Zwift Play / Ride / Click controllers (`core/ble/zwift.ts`, `devices/zwift-controller.ts`, Settings → Controllers with a button tester; ride mapping: start/pause, harder/easier, skip, ERG toggle, mute, world) | M |
 
 ## E13 — Virtual routes (requested 2026-10-21)
 
