@@ -14,6 +14,9 @@ jobs:
   build:
     strategy:
       fail-fast: false
+      # One at a time, Windows first: both upload to the same draft release, and two jobs
+      # creating it at once can make two drafts. A macOS failure doesn't stop the Windows build.
+      max-parallel: 1
       matrix:
         include:
           - os: windows-latest
