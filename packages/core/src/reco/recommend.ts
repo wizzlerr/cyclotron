@@ -1,5 +1,6 @@
 import { addDays, type DailyLoad } from '../metrics/load'
-import { WORKOUT_TYPES, type WorkoutType } from '../workout/meta'
+import { generateWorkout } from '../workout/generate'
+import { workoutMeta, WORKOUT_TYPES, type WorkoutType } from '../workout/meta'
 import { daysBetween, progressionLevels, windowStart } from './levels'
 import { isHard, readinessFor } from './readiness'
 import type {
@@ -29,6 +30,8 @@ export interface RecoInput {
   rides: readonly RideRecord[]
   candidates: readonly Candidate[]
   signals?: readonly ReadinessSignal[]
+  /** Make a workout to measure when the library has nothing close (E11-10). Default true. */
+  generate?: boolean
 }
 
 const GOAL_WEIGHTS: Record<Goal, Record<WorkoutType, number>> = {
@@ -97,6 +100,10 @@ const STRETCH: Record<Readiness, number> = {
 /** Above this share of time in Z3+ over 7 days, ease off intensity (80/20). */
 const HIGH_MAX = 0.25
 const HIGH_MIN = 0.1
+/** Library workouts further than this from the target difficulty are replaced by a generated one. */
+const GENERATE_OFF = 1
+/** …and only when the generated one is at least this much closer. */
+const GENERATE_GAIN = 0.5
 /** Done within this many days: prefer another workout. */
 const REPEAT_DAYS = 14
 
@@ -127,8 +134,29 @@ export function recommend(input: RecoInput): Recommendation {
 
   const stretch = STRETCH[ready.readiness]
   const maxS = input.minutes * 60 * 1.05
-  const choose = (type: WorkoutType, limitS: number, target: number, exclude: string[]) =>
-    bestOf(input, type, limitS, maxS, target, exclude)
+  const choose = (
+    type: WorkoutType,
+    limitS: number,
+    target: number,
+    exclude: string[],
+  ): Pick | undefined => {
+    const lib = bestOf(input, type, limitS, maxS, target, exclude)
+    if (input.generate === false || (lib && Math.abs(lib.difficulty - target) <= GENERATE_OFF)) {
+      return lib
+    }
+    // Nothing in the library within a level of the target: make one, inside the time chosen.
+    const w = generateWorkout(type, target, Math.min(limitS, input.minutes * 60))
+    if (!w || exclude.includes(w.id)) return lib
+    const m = workoutMeta(w)
+    // Hand-made workouts win unless the generated one is clearly closer.
+    if (
+      lib &&
+      Math.abs(lib.difficulty - target) - Math.abs(m.difficulty - target) < GENERATE_GAIN
+    ) {
+      return lib
+    }
+    return { id: w.id, type, difficulty: m.difficulty, durationS: m.durationS, generated: w }
+  }
 
   // Recovery is the last resort when nothing else fits the time.
   if (!ranked.includes('recovery')) ranked.push('recovery')

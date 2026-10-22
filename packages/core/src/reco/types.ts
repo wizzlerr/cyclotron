@@ -1,4 +1,5 @@
 import type { WorkoutType } from '../workout/meta'
+import type { Workout } from '../workout/model'
 
 // Recommendation engine inputs and outputs (E11, DESIGN.md §7). Everything is data: reasons are
 // codes with values, worded by the UI (D21).
@@ -79,6 +80,8 @@ export interface Pick {
   id: string
   type: WorkoutType
   difficulty: number
+  /** Set when the workout was made to measure (E11-10) rather than taken from the library. */
+  generated?: Workout
   durationS: number
 }
 

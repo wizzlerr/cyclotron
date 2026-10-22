@@ -1,7 +1,7 @@
 <script lang="ts">
   // "What should I ride today?" (E11-6): one recommendation, an easier and a shorter one, and why.
   import { buildTimeline, type Pick, type Reason, type Route, type Workout } from '@cyclotron/core'
-  import { workoutName } from '../i18n/content'
+  import { workoutDescription, workoutName } from '../i18n/content'
   import { formatNumber } from '../i18n/i18n.svelte'
   import { t } from '../i18n/t'
   import { formatDuration } from '../lib/format'
@@ -76,11 +76,13 @@
 </script>
 
 {#snippet option(label: string, pick: Pick, big: boolean)}
-  {@const w = library.find(pick.id)}
+  {@const w = pick.generated ?? library.find(pick.id)}
   {#if w}
     <div class="option" class:big>
       <div class="option-head">
-        <span class="label">{label}</span>
+        <span class="label"
+          >{label}{#if pick.generated}<span class="made">{tr.generated.badge}</span>{/if}</span
+        >
         <span class="meta">
           {typeName(pick.type)} · {t().common.level(formatNumber(pick.difficulty, 1))} · {formatDuration(
             pick.durationS,
@@ -91,6 +93,9 @@
         <span class="name">{workoutName(w)}</span>
         <button class:primary={big} onclick={() => (picking = w)}>{t().common.actions.ride}</button>
       </div>
+      {#if big && pick.generated}
+        <p class="desc">{workoutDescription(w)}</p>
+      {/if}
       {#if big}
         <WorkoutProfile timeline={buildTimeline(w.steps)} ftpW={profile.ftpW} height={56} />
       {/if}
@@ -240,6 +245,18 @@
   }
   .rest {
     margin: 0;
+  }
+  .made {
+    margin-left: 0.5rem;
+    padding: 0 0.4rem;
+    border: 1px solid var(--series-1);
+    border-radius: 999px;
+    color: var(--fg);
+  }
+  .desc {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--muted);
   }
   h3 {
     font-size: 0.85rem;

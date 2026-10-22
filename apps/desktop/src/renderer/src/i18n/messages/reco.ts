@@ -75,6 +75,13 @@ export const en = {
     days: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
     hint: 'Used for the recommended workout on Home. Levels go up as you complete workouts; your feedback after a ride tunes them.',
   },
+  generated: {
+    badge: 'Made for you',
+    steady: (span: string, pct: string) =>
+      `Made for your level: warm-up, ${span} at ${pct} % FTP, cool-down.`,
+    intervals: (count: number, on: string, pct: string, off: string, fill: boolean) =>
+      `Made for your level: ${count} × ${on} at ${pct} % FTP with ${off} easy between${fill ? ', then easy riding to use your time' : ''}.`,
+  },
   levels: {
     title: 'Training levels',
     hint: 'Your level per workout type, 1 to 10. Completed workouts raise it, a failed one lowers it, and it slowly drops when you skip a type for weeks.',
@@ -151,6 +158,13 @@ export const pl: typeof en = {
     anyDay: 'Brak zaznaczonych dni: dowolny dzień.',
     days: ['Nd', 'Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb'],
     hint: 'Na tej podstawie wybieram polecany trening na stronie Start. Poziomy rosną, gdy kończysz treningi; twoja ocena po jeździe je dostraja.',
+  },
+  generated: {
+    badge: 'Na miarę',
+    steady: (span: string, pct: string) =>
+      `Ułożony pod twój poziom: rozgrzewka, ${span} przy ${pct} % FTP, schłodzenie.`,
+    intervals: (count: number, on: string, pct: string, off: string, fill: boolean) =>
+      `Ułożony pod twój poziom: ${count} × ${on} przy ${pct} % FTP, ${off} luźno pomiędzy${fill ? ', potem spokojna jazda do końca czasu' : ''}.`,
   },
   levels: {
     title: 'Poziomy treningowe',

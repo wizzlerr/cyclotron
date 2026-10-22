@@ -115,7 +115,7 @@ cyclotron/                (pnpm monorepo, TypeScript everywhere)
 
 ## E8 — Server and sync
 
-**Moved to the end (2026-10-21, user decision):** the desktop does history, analytics, recommendations and Garmin on its own first (E9–E12). The server is then an optional add-on: backup, a second computer, always-on Garmin pulls. It reuses the same `core` code, so nothing is built twice.
+**On demand (2026-10-22, user decision):** optional; built only when users ask for it. **Moved to the end (2026-10-21, user decision):** the desktop does history, analytics, recommendations and Garmin on its own first (E9–E12). The server is then an optional add-on: backup, a second computer, always-on Garmin pulls. It reuses the same `core` code, so nothing is built twice.
 
 | ID | Task | Size |
 |---|---|---|
@@ -174,7 +174,7 @@ Zwift-style "what should I ride today?". Logic lives in `core` and runs on the d
 | E11-7 | ✅ done 2026-10-22 (uses the existing feedback buttons: easy / right / hard / failed). Post-ride feedback (Easy / Moderate / Hard / Very hard / Failed) adjusts progression levels | M |
 | E11-8 | ✅ done 2026-10-22 (`target_hit` per ride, migration 5; cut-short workouts; rides < 5 min ignored). Detect a failed workout (big drop below target) and adjust the next recommendation | M |
 | E11-9 | Weekly plan view: suggest a balanced week (hard/easy days) based on available days | L |
-| E11-10 | Procedurally generated workouts at an exact target difficulty (when the library has no good fit) | L |
+| E11-10 | ✅ done 2026-10-22 (`core/workout/generate.ts`; "made for you" badge on the Today card). Procedurally generated workouts at an exact target difficulty (when the library has no good fit) | L |
 | E11-11 | ✅ done 2026-10-22 (`ReadinessSignal` input, nothing wired yet). Pluggable readiness inputs: engine takes optional external signals (Garmin training load incl. other sports, VO2max trend, training readiness/HRV/sleep) and falls back to our own TSB when they're missing. Design the interface now; wire Garmin in E12-6 | M |
 
 ## E12 — Garmin Connect integration (R&D, last)
@@ -191,6 +191,8 @@ Runs from the desktop app (scheduled pulls while it's open); moves to the server
 | E12-6 | Feed Garmin metrics into recommendations (see E11-11) | M |
 
 ## E14 — Cloud-folder sync (requested 2026-10-21, after E8)
+
+**On demand (2026-10-22, user decision):** optional, like E8; built only when users ask for it.
 
 Sync without a server (DESIGN.md §8.6): the user picks a folder that Google Drive, Dropbox, OneDrive or iCloud Drive keeps in sync; the app writes there. No cloud APIs in the app.
 
@@ -212,6 +214,21 @@ English and Polish UI (DESIGN.md D21). Picks the system language on first start,
 | E15-3 | ✅ Polish translation of the UI | M |
 | E15-4 | ✅ Built-in content: names/descriptions of the 47 workouts, FTP tests and routes, keyed by id (`.zwo`/GPX imports stay as written) | M |
 | E15-5 | ✅ Main process: dialog titles and file filters in the chosen language; Settings → Language | S |
+
+## E16 — Virtual world view (requested 2026-10-22, after E12)
+
+The app stays numbers-first: tiles and workout steps you can read while watching TV. The world is **optional** (off by default): a simple low-poly 3D view of the rider on the road. On a route it follows the route's real shape and elevation; without a route the rider rolls along an endless straight road. Decision D22 (proposed).
+
+| ID | Task | Size |
+|---|---|---|
+| E16-1 | Spike: Three.js, lazy-loaded only when the world is on; 30 fps cap; measure CPU/GPU and that ride ticks, BLE and recording are unaffected | S |
+| E16-2 | Road from the route: ribbon along the route points (local metres from lat/lon, smoothed), elevation, ground, sky and fog | M |
+| E16-3 | No route: endless straight flat road built from recycled segments, with distance markers | S |
+| E16-4 | Rider: low-poly cyclist, legs turn with cadence; position from the route rider (route rides) or trainer speed (other rides) | M |
+| E16-5 | Chase camera, smoothed, following grade changes | S |
+| E16-6 | Ride screen: "World" toggle (default in Settings, off) and a layout where the world sits behind or beside the tiles; workout strip and next-step cue stay visible | M |
+| E16-7 | Performance guard: pause rendering when the window is hidden or minimised, quality setting (low/high), renderer never blocks the ride loop | S |
+| E16-8 | Simple scenery: roadside trees/posts, gradient signs on climbs, km markers (procedural, no assets to download) | S |
 
 ## E13 — Virtual routes (requested 2026-10-21)
 
@@ -237,5 +254,5 @@ Ride a route with real grades sent to the trainer, exported as a Strava/Garmin "
 1b. **E13** — virtual routes (user request; after the MVP, before the server)
 2. **E9 → E3-8 → E10 → E11** — history, workout builder, library, recommendations, all on the desktop
 3. **E12** — Garmin integration (upload + metrics import), from the desktop
-4. **E8** — server in Docker + sync, last (user decision 2026-10-21): optional backup / multi-device / always-on Garmin (DESIGN.md §8.0)
-5. **E14** — cloud-folder sync (Drive/Dropbox/OneDrive/iCloud) for riders without a server
+4. **E16** — optional virtual world view (user request 2026-10-22)
+5. **On demand only** (user decision 2026-10-22): **E8** server in Docker + sync (backup / multi-device / always-on Garmin, DESIGN.md §8.0) and **E14** cloud-folder sync; built when users ask for them

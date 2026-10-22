@@ -1,5 +1,7 @@
 import {
   BUILTIN_WORKOUTS,
+  generatedWorkout,
+  isGeneratedId,
   parseZwo,
   workoutMeta,
   type Workout,
@@ -44,6 +46,8 @@ class Library {
     sort: 'type',
   })
   private metas = new WeakMap<Workout, WorkoutMeta>()
+  /** Same object per generated id, so its metadata is computed once. */
+  private generated = new Map<string, Workout>()
   /** Messages from the last import, e.g. files that weren't valid workouts. */
   messages = $state.raw<string[]>([])
   private loaded: Promise<void> | undefined
@@ -102,8 +106,13 @@ class Library {
     savePref(FAVOURITES_KEY, this.favourites)
   }
 
+  /** A library workout, or a generated one rebuilt from its id (E11-10). */
   find(id: string): Workout | undefined {
-    return this.all.find((w) => w.id === id)
+    const w = this.all.find((x) => x.id === id)
+    if (w || !isGeneratedId(id)) return w
+    let g = this.generated.get(id)
+    if (!g && (g = generatedWorkout(id))) this.generated.set(id, g)
+    return g
   }
 
   /** Adds a workout from the builder, or replaces the one with the same id (E3-8). */
