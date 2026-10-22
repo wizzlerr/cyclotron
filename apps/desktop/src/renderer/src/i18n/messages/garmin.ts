@@ -1,6 +1,7 @@
 // Strings for Garmin Connect (E12): sending rides, the Personal API key in Settings. See common.ts
 // for the glossary; `pl` must match `en` key for key.
 import type { GarminStatus } from '../../../../shared/api'
+import { pluralPl } from '../i18n.svelte'
 
 type GarminError = NonNullable<GarminStatus['error']>
 
@@ -21,6 +22,12 @@ export const en = {
   lastOk: (date: string) => `Last successful contact: ${date}.`,
   expiryNote: 'Keys expire (you choose 30 days to a year); Garmin emails you a week before.',
   test: 'Test',
+  sync: 'Sync now',
+  synced: (date: string, n: number) =>
+    `Last sync ${date}: ${n} other ${n === 1 ? 'activity' : 'activities'} (runs, outdoor rides…) in your training load.`,
+  neverSynced: 'Not synced yet: it runs a few seconds after the app starts, then every 3 hours.',
+  syncHint:
+    'Other activities count for fitness, fatigue and form. Sleep, resting HR and Body Battery are used only when the watch is worn day and night.',
   disconnect: 'Disconnect',
   sample: 'Save sample data…',
   sampleHint:
@@ -55,6 +62,13 @@ export const pl: typeof en = {
   expiryNote:
     'Klucze wygasają (od 30 dni do roku, do wyboru); Garmin wyśle ci e-mail tydzień wcześniej.',
   test: 'Sprawdź',
+  sync: 'Synchronizuj',
+  synced: (date: string, n: number) =>
+    `Ostatnia synchronizacja ${date}: ${pluralPl(n, 'inna aktywność', 'inne aktywności', 'innych aktywności')} (bieganie, jazdy w terenie…) w obciążeniu treningowym.`,
+  neverSynced:
+    'Jeszcze nie zsynchronizowano: startuje kilka sekund po uruchomieniu aplikacji, potem co 3 godziny.',
+  syncHint:
+    'Inne aktywności liczą się do kondycji, zmęczenia i formy. Sen, tętno spoczynkowe i Body Battery są brane pod uwagę tylko, gdy zegarek jest noszony w dzień i w nocy.',
   disconnect: 'Rozłącz',
   sample: 'Zapisz przykładowe dane…',
   sampleHint:

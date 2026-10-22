@@ -4,7 +4,7 @@ import { IPC } from '../shared/api'
 import { backfillAggregates, registerAnalyticsIpc } from './analytics'
 import { attachBluetooth, registerBluetoothIpc } from './bluetooth'
 import { closeDb } from './db'
-import { registerGarminIpc } from './garmin'
+import { registerGarminIpc, scheduleGarminSync } from './garmin'
 import { registerPrefsIpc } from './prefs'
 import { registerRideIpc } from './ride'
 import { registerRidesIpc } from './rides'
@@ -78,6 +78,7 @@ void app.whenReady().then(() => {
   createWindow()
   // Rides saved before E9 get their power curve and zone times (cheap; runs once).
   setTimeout(() => backfillAggregates(), 2000)
+  scheduleGarminSync()
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })

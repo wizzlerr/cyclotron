@@ -455,6 +455,14 @@ Two directions, both on the server:
 
 **Decision D23 (2026-10-22):** metrics through the Personal API with the rider's own key (stored encrypted with Electron `safeStorage`, only main sees it, never logged); upload is semi-manual: "Send to Garmin" opens Garmin's import page and shows the FIT file. Strava upload is an optional on-demand item (E12-7).
 
+**Sample with a real key (2026-10-22):** VO2max, training readiness and training status return 404 (not in the Personal API). Activities carry Garmin's `activityTrainingLoad`, training effect, HR and time in HR/power zones, and `trainingStressScore` only when there is power; HR zones give the lactate threshold HR (running and default). HRV and sleep can be empty, and a watch worn only during workouts reports a "resting HR" of 100+ and a few hours of coverage.
+
+**Built (E12-5/E12-6, 2026-10-22):**
+- Sync (`main/garmin.ts`): on start (+10 s), every 3 h while open, and "Sync now"; first sync reaches back 120 days, later ones overlap 3 days. Activities written by this app (FIT manufacturer `development`, or starting within 60 s of a recorded ride) are skipped. Other activities go to `external_activities` (migration 6) with a load on the TSS scale: Garmin's TSS when the activity has power, else HR-based TSS = hours × (avg HR / LTHR)² × 100 (IF capped at 1.1), LTHR from the running zones, else default (`core/reco/external.ts`). Zone seconds: power zones when present, else HR zones 1–5 mapped onto Z1–Z5.
+- Load: daily TSS (CTL/ATL/TSB, Progress) includes other activities. In the engine they are `RideRecord`s with `external: true`: they count for readiness (hard yesterday), the 80/20 balance and the load, but not for weekly cycling hours, levels or the plan's done marks.
+- Wellness (`external_daily`, last 21 days): resting HR, Body Battery max, hours covered (stress monitoring), last night's sleep. Signals: resting HR ≥ usual + 5 (needs ≥ 4 plausible days ≤ 90 bpm in 14) → −1; Body Battery < 30 → −1, ≥ 80 → +1 (only if yesterday had ≥ 18 h coverage); sleep < 5.5 h → −1. A watch worn only during workouts produces no signals.
+- Disconnecting deletes the key and all Garmin data. Main notifies the window after each sync so Today refreshes.
+
 The scheduled pull runs every few hours and must fit the NAS budget (short-lived, small responses).
 
 ---

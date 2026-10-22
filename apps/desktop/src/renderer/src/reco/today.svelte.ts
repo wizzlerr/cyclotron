@@ -2,10 +2,12 @@ import {
   planDay,
   recommend,
   weekPlan,
+  wellnessSignals,
   type RecoProfile,
   type WeekPlan,
   type Candidate,
   type DailyLoad,
+  type DailyWellness,
   type Recommendation,
   type RideRecord,
 } from '@cyclotron/core'
@@ -19,6 +21,8 @@ import { library } from '../workouts/library.svelte'
 
 /** History the engine looks at: levels need a few months, everything else 4 weeks. */
 const HISTORY_DAYS = 120
+/** Resting HR needs a couple of weeks of baseline. */
+const WELLNESS_DAYS = 21
 
 class Today {
   /** Time the rider picked on the Today card; until then, the plan's time for today. */
@@ -27,6 +31,7 @@ class Today {
   private history = $state.raw<{
     rides: RecoRide[]
     load: DailyLoad[]
+    wellness: DailyWellness[]
     date: string
     weekday: number
   }>()
@@ -74,6 +79,8 @@ class Today {
       rides: this.records,
       candidates,
       planDay: this.planToday,
+      // Garmin wellness (E12-6): silent unless the data looks complete.
+      signals: wellnessSignals(h.wellness, h.date),
     })
   })
 
@@ -84,11 +91,12 @@ class Today {
   async refresh(): Promise<void> {
     try {
       await library.load()
-      const [rides, load] = await Promise.all([
+      const [rides, load, wellness] = await Promise.all([
         window.cyclotron.analytics.recoRides(HISTORY_DAYS),
         window.cyclotron.analytics.load(),
+        window.cyclotron.analytics.wellness(WELLNESS_DAYS),
       ])
-      this.history = { rides, load, ...localToday() }
+      this.history = { rides, load, wellness, ...localToday() }
       this.error = undefined
     } catch (e) {
       this.error = e instanceof Error ? e.message : String(e)
@@ -98,6 +106,16 @@ class Today {
 
 /** Adds what the engine needs from the workout the ride followed (type, difficulty, plan). */
 function toRecord(r: RecoRide): RideRecord {
+  if (r.external) {
+    return {
+      date: r.date,
+      tss: r.tss,
+      intensity: r.intensity,
+      durationS: r.timerS,
+      zoneS: r.zoneS,
+      external: true,
+    }
+  }
   const workout = r.workoutId ? library.find(r.workoutId) : undefined
   const meta = workout && library.meta(workout)
   return {
@@ -116,3 +134,6 @@ function toRecord(r: RecoRide): RideRecord {
 }
 
 export const today = new Today()
+
+// Fresh Garmin data (E12-5) changes the load, readiness and plan.
+window.cyclotron.garmin.onSynced(() => void today.refresh())

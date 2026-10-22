@@ -131,7 +131,9 @@ export function weekPlan(input: PlanInput): WeekPlan {
       kind,
       type: types[i],
       minutes: minutes[i]!,
-      rides: input.rides.filter((r) => r.date === date && r.durationS >= MIN_COUNTED_S),
+      rides: input.rides.filter(
+        (r) => r.date === date && !r.external && r.durationS >= MIN_COUNTED_S,
+      ),
     }
   })
   return { weekStart, days, defaultDays, plannedTss: Math.round(tssOf(minutes)), capped }

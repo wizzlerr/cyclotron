@@ -33,6 +33,11 @@ export interface RideRecord {
   targetHit?: number
   /** Moving time over the workout's planned time. */
   completed?: number
+  /**
+   * Another sport or a ride not recorded by this app (e.g. a run from Garmin, E12-5). Counts for
+   * load, hard days and the 80/20 balance; not for weekly hours, levels or the plan.
+   */
+  external?: boolean
 }
 
 /**

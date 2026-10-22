@@ -10,6 +10,7 @@ import {
   targetHit,
   zoneTimes,
   type DailyLoad,
+  type DailyWellness,
   type RideSample,
 } from '@cyclotron/core'
 import { BrowserWindow, dialog, ipcMain } from 'electron'
@@ -152,7 +153,7 @@ export function registerAnalyticsIpc(): void {
       list[z.zone - 1] = z.seconds
       zones.set(z.ride_id, list)
     }
-    return rows.map((r) => ({
+    const own: RecoRide[] = rows.map((r) => ({
       date: localDate(r.started_at, r.utc_offset_min),
       workoutId: r.workout_id ?? undefined,
       tss: r.tss ?? 0,
@@ -161,6 +162,41 @@ export function registerAnalyticsIpc(): void {
       feedback: r.feedback ?? undefined,
       targetHit: r.target_hit ?? undefined,
       zoneS: zones.get(r.id) ?? [0, 0, 0, 0, 0, 0, 0],
+    }))
+    // Other sports and rides from Garmin (E12-5): load and intensity only.
+    const external = (
+      db
+        .prepare(
+          `select started_at, utc_offset_min, duration_s, tss, intensity, zone_s
+             from external_activities where started_at >= ? and tss is not null`,
+        )
+        .all(since) as {
+        started_at: number
+        utc_offset_min: number
+        duration_s: number
+        tss: number
+        intensity: number | null
+        zone_s: string | null
+      }[]
+    ).map((a): RecoRide => ({
+      date: localDate(a.started_at, a.utc_offset_min),
+      tss: a.tss,
+      intensity: a.intensity ?? 0,
+      timerS: a.duration_s,
+      zoneS: a.zone_s ? (JSON.parse(a.zone_s) as number[]) : [0, 0, 0, 0, 0, 0, 0],
+      external: true,
+    }))
+    return [...own, ...external].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
+  })
+
+  ipcMain.handle(IPC.analyticsWellness, (_event, days: number): DailyWellness[] => {
+    const from = addDays(today(), -Math.max(1, Math.min(60, Math.floor(days))))
+    const rows = getDb()
+      .prepare(`select date, json from external_daily where date >= ? order by date`)
+      .all(from) as { date: string; json: string }[]
+    return rows.map((r) => ({
+      date: r.date,
+      ...(JSON.parse(r.json) as Omit<DailyWellness, 'date'>),
     }))
   })
 
@@ -346,9 +382,14 @@ function ftpAt(ms: number): number {
   }
 }
 
+/** Daily TSS from rides here plus other activities from Garmin (E12-5). */
 function tssByDay(): Map<string, number> {
   const rows = getDb()
-    .prepare(`select started_at, utc_offset_min, tss from rides where status = 'finished'`)
+    .prepare(
+      `select started_at, utc_offset_min, tss from rides where status = 'finished'
+       union all
+       select started_at, utc_offset_min, tss from external_activities where tss is not null`,
+    )
     .all() as { started_at: number; utc_offset_min: number; tss: number | null }[]
   const out = new Map<string, number>()
   for (const r of rows) {

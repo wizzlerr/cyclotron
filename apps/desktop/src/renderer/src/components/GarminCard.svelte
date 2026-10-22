@@ -33,13 +33,21 @@
     }
   }
 
+  async function sync(): Promise<void> {
+    // The Today card refreshes itself when main reports the sync.
+    await run(() => window.cyclotron.garmin.sync())
+  }
+
   async function connect(): Promise<void> {
     await run(
       () => window.cyclotron.garmin.setKey(key),
       () => g.ok,
     )
-    // Don't keep the key in the page once it's saved.
-    if (status?.connected) key = ''
+    // Don't keep the key in the page once it's saved; pull the history right away.
+    if (status?.connected) {
+      key = ''
+      await sync()
+    }
   }
 </script>
 
@@ -53,7 +61,13 @@
       {#if status.lastOkAt}<span class="muted">{g.lastOk(formatDateTime(status.lastOkAt))}</span
         >{/if}
     </p>
+    <p class="muted">
+      {status.lastSyncAt
+        ? g.synced(formatDateTime(status.lastSyncAt), status.activities ?? 0)
+        : g.neverSynced}
+    </p>
     <div class="row">
+      <button class="primary" disabled={busy} onclick={sync}>{g.sync}</button>
       <button
         disabled={busy}
         onclick={() =>
@@ -76,6 +90,7 @@
         onclick={() => run(() => window.cyclotron.garmin.clearKey())}>{g.disconnect}</button
       >
     </div>
+    <p class="muted">{g.syncHint}</p>
     <p class="muted">{g.sampleHint}</p>
     <p class="muted">{g.expiryNote}</p>
   {:else}

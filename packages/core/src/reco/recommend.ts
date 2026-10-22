@@ -117,9 +117,11 @@ export function recommend(input: RecoInput): Recommendation {
   const ready = readinessFor(today, input.load, rides, input.signals)
   const reasons: Reason[] = [...ready.reasons]
   const week = rides.filter((r) => r.date >= windowStart(today, 7) && r.date <= today)
+  // Weekly hours are the rider's cycling time in this app.
+  const ownWeek = week.filter((r) => !r.external)
 
   // Rest: very tired, not a ride day, or the week's hours are already in.
-  const weekHours = week.reduce((s, r) => s + r.durationS, 0) / 3600
+  const weekHours = ownWeek.reduce((s, r) => s + r.durationS, 0) / 3600
   let rest = ready.readiness === 'very_fatigued'
   if (input.planDay) {
     if (input.planDay.kind === 'rest') {

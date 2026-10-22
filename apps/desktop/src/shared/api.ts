@@ -1,6 +1,6 @@
-import type { DailyLoad, PowerCurvePoint, RideSample } from '@cyclotron/core'
+import type { DailyLoad, DailyWellness, PowerCurvePoint, RideSample } from '@cyclotron/core'
 
-export type { DailyLoad, PowerCurvePoint, RideSample }
+export type { DailyLoad, DailyWellness, PowerCurvePoint, RideSample }
 
 export interface RideStartInfo {
   /** ms since the Unix epoch. */
@@ -76,6 +76,8 @@ export interface RecoRide {
   targetHit?: number
   /** Seconds in Z1…Z7. */
   zoneS: number[]
+  /** Another sport or a ride not recorded here, from Garmin (E12-5). */
+  external?: boolean
 }
 
 /** FTP suggested from recent rides (E9-6). */
@@ -135,6 +137,10 @@ export interface GarminStatus {
   savedAt?: number
   /** Last successful call. */
   lastOkAt?: number
+  /** Last completed sync of activities and wellness data (E12-5). */
+  lastSyncAt?: number
+  /** Other activities stored from Garmin. */
+  activities?: number
   /** OS key store available (needed to save the key). */
   encryption: boolean
   /** Set when the last action failed; worded by the UI. */
@@ -229,6 +235,8 @@ export interface CyclotronApi {
     ftpEstimate(): Promise<FtpEstimate | null>
     /** Finished rides of the last `days` days, oldest first, for recommendations (E11). */
     recoRides(days: number): Promise<RecoRide[]>
+    /** Daily wellness values of the last `days` days (E12-6). */
+    wellness(days: number): Promise<DailyWellness[]>
   }
   ftp: {
     /** Newest first. */
@@ -250,6 +258,10 @@ export interface CyclotronApi {
     test(): Promise<GarminStatus>
     /** Saves a week of every endpoint to a JSON file and shows it (E12-3). */
     saveSample(): Promise<GarminStatus>
+    /** Pulls other activities and wellness data now (E12-5). */
+    sync(): Promise<GarminStatus>
+    /** Called after every completed sync (also the scheduled ones). Returns an unsubscribe. */
+    onSynced(listener: () => void): () => void
   }
   spike: {
     /** Asks where to save a BLE capture; returns the path, or null if cancelled. */
@@ -303,4 +315,7 @@ export const IPC = {
   garminClearKey: 'garmin:clearKey',
   garminTest: 'garmin:test',
   garminSaveSample: 'garmin:saveSample',
+  garminSync: 'garmin:sync',
+  garminSynced: 'garmin:synced',
+  analyticsWellness: 'analytics:wellness',
 } as const

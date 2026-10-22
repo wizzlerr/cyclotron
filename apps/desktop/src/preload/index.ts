@@ -53,6 +53,7 @@ const api: CyclotronApi = {
     zonesByWeek: (weeks) => ipcRenderer.invoke(IPC.analyticsZonesByWeek, weeks),
     ftpEstimate: () => ipcRenderer.invoke(IPC.analyticsFtpEstimate),
     recoRides: (days) => ipcRenderer.invoke(IPC.analyticsRecoRides, days),
+    wellness: (days) => ipcRenderer.invoke(IPC.analyticsWellness, days),
   },
   ftp: {
     history: (limit) => ipcRenderer.invoke(IPC.ftpHistory, limit),
@@ -70,6 +71,12 @@ const api: CyclotronApi = {
     clearKey: () => ipcRenderer.invoke(IPC.garminClearKey),
     test: () => ipcRenderer.invoke(IPC.garminTest),
     saveSample: () => ipcRenderer.invoke(IPC.garminSaveSample),
+    sync: () => ipcRenderer.invoke(IPC.garminSync),
+    onSynced: (listener) => {
+      const handler = (): void => listener()
+      ipcRenderer.on(IPC.garminSynced, handler)
+      return () => ipcRenderer.removeListener(IPC.garminSynced, handler)
+    },
   },
   spike: {
     saveCapture: (json) => ipcRenderer.invoke(IPC.spikeSaveCapture, json),

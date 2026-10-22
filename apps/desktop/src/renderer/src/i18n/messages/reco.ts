@@ -36,7 +36,17 @@ export const en = {
     twoHardDays: 'Two hard days in a row: time to back off.',
     recentFail: "A recent workout didn't go to plan, so today is a little easier.",
     signal: (source: string, shift: number) =>
-      shift < 0 ? `${source} says you're less recovered.` : `${source} says you're well recovered.`,
+      source === 'restingHr'
+        ? 'Garmin: your resting heart rate is above your usual.'
+        : source === 'bodyBattery'
+          ? shift < 0
+            ? 'Garmin: your Body Battery is low this morning.'
+            : 'Garmin: your Body Battery is well charged.'
+          : source === 'sleep'
+            ? 'Garmin: short sleep last night.'
+            : shift < 0
+              ? `${source}: less recovered than usual.`
+              : `${source}: well recovered.`,
     goal: (goal: Goal, type: string) =>
       ({
         fitness: `${type} builds general fitness.`,
@@ -136,7 +146,17 @@ export const pl: typeof en = {
     twoHardDays: 'Dwa mocne dni z rzędu: czas zwolnić.',
     recentFail: 'Ostatni trening nie poszedł zgodnie z planem, więc dziś trochę łatwiej.',
     signal: (source: string, shift: number) =>
-      shift < 0 ? `${source}: słabsza regeneracja.` : `${source}: dobra regeneracja.`,
+      source === 'restingHr'
+        ? 'Garmin: tętno spoczynkowe wyższe niż zwykle.'
+        : source === 'bodyBattery'
+          ? shift < 0
+            ? 'Garmin: niska Body Battery tego ranka.'
+            : 'Garmin: Body Battery dobrze naładowana.'
+          : source === 'sleep'
+            ? 'Garmin: krótki sen tej nocy.'
+            : shift < 0
+              ? `${source}: słabsza regeneracja niż zwykle.`
+              : `${source}: dobra regeneracja.`,
     goal: (goal: Goal, type: string) =>
       ({
         fitness: `${type} buduje ogólną kondycję.`,

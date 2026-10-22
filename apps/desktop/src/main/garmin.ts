@@ -1,7 +1,7 @@
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { addDays } from '@cyclotron/core'
-import { app, ipcMain, safeStorage, shell } from 'electron'
+import { addDays, externalLoad, localDate, type DailyWellness } from '@cyclotron/core'
+import { app, BrowserWindow, ipcMain, safeStorage, shell } from 'electron'
 import { IPC, type GarminStatus } from '../shared/api'
 import { getDb, getSetting, setSetting } from './db'
 
@@ -21,7 +21,19 @@ interface Meta {
   hint?: string
   savedAt?: number
   lastOkAt?: number
+  lastSyncAt?: number
 }
+
+/** How far back the first sync reaches; later syncs overlap the last few days. */
+const HISTORY_DAYS = 120
+const OVERLAP_DAYS = 3
+const WELLNESS_DAYS = 21
+const PAGE = 100
+/** Our own uploads: same start within this window, or FIT files written by this app. */
+const SAME_RIDE_MS = 60_000
+const OWN_MANUFACTURER = 'DEVELOPMENT'
+/** While the app is open. */
+const SYNC_EVERY_MS = 3 * 3600_000
 
 /** A failure the renderer words in its language. */
 export class GarminError extends Error {
@@ -124,12 +136,181 @@ function status(): GarminStatus {
     keyHint: meta.hint,
     savedAt: meta.savedAt,
     lastOkAt: meta.lastOkAt,
+    lastSyncAt: meta.lastSyncAt,
+    activities: (
+      getDb().prepare(`select count(*) as n from external_activities`).get() as { n: number }
+    ).n,
     encryption: safeStorage.isEncryptionAvailable(),
   }
 }
 
 const errorCode = (e: unknown): { error: GarminError['code']; status?: number } =>
   e instanceof GarminError ? { error: e.code, status: e.status } : { error: 'network' }
+
+interface GarminActivity {
+  activityId: number
+  activityName?: string
+  startTimeGMT?: string
+  startTimeLocal?: string
+  activityType?: { typeKey?: string }
+  duration?: number
+  movingDuration?: number
+  averageHR?: number
+  trainingStressScore?: number
+  intensityFactor?: number
+  manufacturer?: string
+  [key: string]: unknown
+}
+
+/** "2026-10-21 17:15:58" (no zone) as ms, read as UTC. */
+const garminTime = (s: string): number => Date.parse(`${s.replace(' ', 'T')}Z`)
+
+/** Seconds in Z1…Z7: power zones when the activity has them, else HR zones 1–5. */
+function zoneSeconds(a: GarminActivity): number[] {
+  const pick = (prefix: string, n: number): number[] =>
+    Array.from({ length: 7 }, (_, i) => (i < n ? Number(a[`${prefix}${i + 1}`] ?? 0) : 0))
+  const power = pick('powerTimeInZone_', 7)
+  return power.some((s) => s > 0) ? power : pick('hrTimeInZone_', 5)
+}
+
+/** Lactate threshold HR for the HR-based load estimate: running zones first, then default. */
+async function thresholdHr(): Promise<number | undefined> {
+  const zones = (await garminGet('/biometric-service/heartRateZones/v2')) as
+    { sport?: string; lactateThresholdHeartRateUsed?: number | null }[] | undefined
+  if (!Array.isArray(zones)) return undefined
+  const lthr = (sport: string): number | undefined =>
+    zones.find((z) => z.sport === sport)?.lactateThresholdHeartRateUsed ?? undefined
+  return lthr('RUNNING') ?? lthr('DEFAULT')
+}
+
+async function syncActivities(
+  since: string,
+  today: string,
+  lthr: number | undefined,
+): Promise<void> {
+  const db = getDb()
+  const own = db
+    .prepare(`select started_at from rides where status = 'finished' and source = 'recorded'`)
+    .all() as { started_at: number }[]
+  const insert = db.prepare(
+    `insert into external_activities
+       (id, started_at, utc_offset_min, sport, name, duration_s, avg_hr, tss, intensity, zone_s)
+     values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     on conflict (id) do update set
+       started_at = excluded.started_at, utc_offset_min = excluded.utc_offset_min,
+       sport = excluded.sport, name = excluded.name, duration_s = excluded.duration_s,
+       avg_hr = excluded.avg_hr, tss = excluded.tss, intensity = excluded.intensity,
+       zone_s = excluded.zone_s`,
+  )
+  for (let start = 0; ; start += PAGE) {
+    const page = (await garminGet(
+      `/activitylist-service/activities/search/activities?start=${start}&limit=${PAGE}&startDate=${since}&endDate=${today}`,
+    )) as GarminActivity[]
+    if (!Array.isArray(page)) break
+    for (const a of page) {
+      if (!a.startTimeGMT || !a.activityId) continue
+      const startedAt = garminTime(a.startTimeGMT)
+      // Rides recorded here and sent to Garmin are already in the history.
+      const isOwn =
+        a.manufacturer === OWN_MANUFACTURER ||
+        own.some((r) => Math.abs(r.started_at - startedAt) < SAME_RIDE_MS)
+      if (isOwn) continue
+      const offset = a.startTimeLocal
+        ? Math.round((garminTime(a.startTimeLocal) - startedAt) / 60_000)
+        : 0
+      const durationS = a.movingDuration ?? a.duration ?? 0
+      const load = externalLoad(
+        { durationS, avgHr: a.averageHR, tss: a.trainingStressScore, intensity: a.intensityFactor },
+        lthr,
+      )
+      insert.run(
+        `garmin:${a.activityId}`,
+        startedAt,
+        offset,
+        a.activityType?.typeKey ?? 'other',
+        a.activityName ?? null,
+        durationS,
+        a.averageHR ?? null,
+        load?.tss ?? null,
+        load?.intensity ?? null,
+        JSON.stringify(zoneSeconds(a)),
+      )
+    }
+    if (page.length < PAGE) break
+  }
+}
+
+interface GarminDailySummary {
+  calendarDate?: string
+  heartRate?: { restingValue?: number | null }
+  bodyBattery?: { maxValue?: number | null }
+  stress?: { totalDurationInMillis?: number | null }
+}
+
+async function syncWellness(today: string): Promise<void> {
+  const from = addDays(today, -WELLNESS_DAYS)
+  const res = (await garminGet(
+    `/usersummary-service/v2/dailysummaries?startDate=${from}&endDate=${today}`,
+  )) as { data?: GarminDailySummary[] } | undefined
+  const days = new Map<string, Omit<DailyWellness, 'date'>>()
+  for (const d of res?.data ?? []) {
+    if (!d.calendarDate) continue
+    days.set(d.calendarDate, {
+      restingHr: d.heartRate?.restingValue ?? undefined,
+      bodyBatteryMax: d.bodyBattery?.maxValue ?? undefined,
+      coverageH: (d.stress?.totalDurationInMillis ?? 0) / 3_600_000,
+    })
+  }
+  // Last night's sleep belongs to today.
+  const sleep = (await garminGet(`/sleep-service/sleep/dailySleep?date=${today}`)) as
+    { sleepTimeSeconds?: number | null } | undefined
+  if (sleep?.sleepTimeSeconds) {
+    days.set(today, { ...days.get(today), sleepS: sleep.sleepTimeSeconds })
+  }
+  const upsert = getDb().prepare(
+    `insert into external_daily (date, source, json) values (?, 'garmin', ?)
+     on conflict (date, source) do update set json = excluded.json`,
+  )
+  for (const [date, values] of days) upsert.run(date, JSON.stringify(values))
+}
+
+let syncing: Promise<GarminStatus> | undefined
+
+/** Pulls other activities and wellness data (E12-5). One sync at a time. */
+export function syncGarmin(): Promise<GarminStatus> {
+  syncing ??= (async (): Promise<GarminStatus> => {
+    try {
+      if (!storedKey()) return { ...status(), error: 'noKey' }
+      const offset = -new Date().getTimezoneOffset()
+      const today = localDate(Date.now(), offset)
+      const meta = readMeta()
+      const first = addDays(today, -HISTORY_DAYS)
+      const since = meta.lastSyncAt
+        ? addDays(localDate(meta.lastSyncAt, offset), -OVERLAP_DAYS)
+        : first
+      await syncActivities(since < first ? first : since, today, await thresholdHr())
+      await syncWellness(today)
+      writeMeta({ ...readMeta(), lastSyncAt: Date.now(), lastOkAt: Date.now() })
+      // New activities change fitness, readiness and the plan shown in the window.
+      for (const w of BrowserWindow.getAllWindows()) w.webContents.send(IPC.garminSynced)
+      return status()
+    } catch (e) {
+      return { ...status(), ...errorCode(e) }
+    } finally {
+      syncing = undefined
+    }
+  })()
+  return syncing
+}
+
+/** Sync shortly after start and then every few hours, while connected. */
+export function scheduleGarminSync(): void {
+  const run = (): void => {
+    if (storedKey()) void syncGarmin()
+  }
+  setTimeout(run, 10_000)
+  setInterval(run, SYNC_EVERY_MS)
+}
 
 /**
  * Sample of every known endpoint for the last week, saved to a JSON file so the fields Garmin
@@ -191,10 +372,16 @@ export function registerGarminIpc(): void {
   })
 
   ipcMain.handle(IPC.garminClearKey, () => {
-    getDb().prepare('delete from settings where key in (?, ?)').run(KEY_SETTING, META_SETTING)
+    // Disconnecting forgets the key and everything pulled with it.
+    const db = getDb()
+    db.prepare('delete from settings where key in (?, ?)').run(KEY_SETTING, META_SETTING)
+    db.exec(`delete from external_activities where id like 'garmin:%'`)
+    db.exec(`delete from external_daily where source = 'garmin'`)
     token = undefined
     return status()
   })
+
+  ipcMain.handle(IPC.garminSync, () => syncGarmin())
 
   ipcMain.handle(IPC.garminTest, async () => {
     try {

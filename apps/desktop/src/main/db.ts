@@ -98,6 +98,29 @@ const MIGRATIONS = [
   alter table rides add column target_hit real;           -- share of work seconds on target
   update rides set aggregates_at = null;
   `,
+  // E12-5: data from Garmin. Other activities (runs, outdoor rides) count for the training load;
+  // daily wellness values feed readiness. Rides recorded by this app are not stored here.
+  `
+  create table external_activities (
+    id             text    primary key,              -- e.g. 'garmin:123456'
+    started_at     integer not null,                 -- ms since epoch (UTC)
+    utc_offset_min integer not null,
+    sport          text    not null,                 -- source's type key, e.g. 'running'
+    name           text,
+    duration_s     real    not null,
+    avg_hr         real,
+    tss            real,                             -- source TSS or HR-based estimate
+    intensity      real,
+    zone_s         text                              -- JSON seconds in Z1…Z7 (HR zones when no power)
+  );
+  create index external_activities_started_at on external_activities (started_at);
+  create table external_daily (
+    date   text not null,                            -- local YYYY-MM-DD
+    source text not null,
+    json   text not null,                            -- DailyWellness without the date
+    primary key (date, source)
+  ) without rowid;
+  `,
 ]
 
 let db: DatabaseSync | undefined
