@@ -2,6 +2,7 @@
   // E3-5: workout profile, one block per segment coloured by power zone, with the current position.
   // Hovering a block shows the step and its watts; `axes` adds power and time axes.
   import { hasTarget, powerZone, type Segment } from '@cyclotron/core'
+  import { t } from '../i18n/t'
   import { describeSegment, formatDuration } from '../lib/format'
 
   let {
@@ -68,7 +69,7 @@
   const xTicks = $derived.by(() => {
     const step = niceStep(totalS, [60, 120, 300, 600, 900, 1200, 1800, 3600])
     const ticks = []
-    for (let t = 0; t <= totalS; t += step) ticks.push(t)
+    for (let s = 0; s <= totalS; s += step) ticks.push(s)
     return ticks
   })
 
@@ -79,8 +80,8 @@
   function onMove(e: PointerEvent): void {
     const rect = (e.currentTarget as Element).getBoundingClientRect()
     hoverX = e.clientX - rect.left
-    const t = (hoverX / rect.width) * totalS
-    const i = timeline.findIndex((s) => t >= s.startS && t < s.startS + s.durationS)
+    const at = (hoverX / rect.width) * totalS
+    const i = timeline.findIndex((s) => at >= s.startS && at < s.startS + s.durationS)
     hovered = i >= 0 ? i : undefined
   }
 
@@ -95,17 +96,17 @@
     return {
       title: describeSegment(seg),
       target,
-      when: `${formatDuration(seg.durationS)} · at ${formatDuration(seg.startS)}`,
+      when: t().ride.profile.when(formatDuration(seg.durationS), formatDuration(seg.startS)),
     }
   })
 </script>
 
 <div class="profile" class:axes>
   {#if axes}
-    <span class="axis-title y-title">{ftpW ? 'Power (W)' : '% FTP'}</span>
+    <span class="axis-title y-title">{ftpW ? t().ride.profile.powerAxis : '% FTP'}</span>
     <div class="y-ticks" style:height="{height}px">
-      {#each yTicks as t (t.pct)}
-        <span style:top="{(y(t.pct) / height) * 100}%">{t.label}</span>
+      {#each yTicks as tick (tick.pct)}
+        <span style:top="{(y(tick.pct) / height) * 100}%">{tick.label}</span>
       {/each}
     </div>
   {/if}
@@ -122,11 +123,11 @@
       preserveAspectRatio="none"
       style:height="{height}px"
       role="img"
-      aria-label="Workout profile"
+      aria-label={t().ride.profile.workoutProfile}
     >
       {#if axes}
-        {#each yTicks as t (t.pct)}
-          <line class="grid" x1="0" x2={W} y1={y(t.pct)} y2={y(t.pct)} />
+        {#each yTicks as tick (tick.pct)}
+          <line class="grid" x1="0" x2={W} y1={y(tick.pct)} y2={y(tick.pct)} />
         {/each}
       {/if}
       {#each blocks as b, i (i)}
@@ -152,11 +153,11 @@
 
   {#if axes}
     <div class="x-ticks">
-      {#each xTicks as t (t)}
-        <span style:left="{(t / totalS) * 100}%">{formatDuration(t)}</span>
+      {#each xTicks as tick (tick)}
+        <span style:left="{(tick / totalS) * 100}%">{formatDuration(tick)}</span>
       {/each}
     </div>
-    <span class="axis-title x-title">Time</span>
+    <span class="axis-title x-title">{t().ride.profile.time}</span>
   {/if}
 </div>
 

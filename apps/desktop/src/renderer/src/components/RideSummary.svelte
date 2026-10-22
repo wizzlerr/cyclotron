@@ -2,6 +2,8 @@
   // E5-4: shown after a ride is saved.
   import { caloriesKcal } from '@cyclotron/core'
   import type { RideFeedback } from '../../../shared/api'
+  import { formatNumber } from '../i18n/i18n.svelte'
+  import { t } from '../i18n/t'
   import { formatDuration } from '../lib/format'
   import { profile } from '../profile.svelte'
   import type { FinishedRide } from '../ride/recorder'
@@ -12,12 +14,7 @@
     ondiscard,
   }: { result: FinishedRide; onclose: () => void; ondiscard: () => void } = $props()
 
-  const FEEDBACK: { value: RideFeedback; label: string }[] = [
-    { value: 'easy', label: 'Too easy' },
-    { value: 'right', label: 'Just right' },
-    { value: 'hard', label: 'Hard' },
-    { value: 'failed', label: "Couldn't finish" },
-  ]
+  const FEEDBACK: RideFeedback[] = ['easy', 'right', 'hard', 'failed']
 
   let feedback = $state<RideFeedback | undefined>()
   let confirmDiscard = $state(false)
@@ -39,43 +36,47 @@
 </script>
 
 {#if result.ftpTest}
-  {@const t = result.ftpTest}
+  {@const test = result.ftpTest}
+  {@const L = t().ride.summary}
   <section class="card ftp">
-    <h2>FTP test result</h2>
-    {#if t.ok}
-      <p class="ftp-value">{t.ftpW} W</p>
+    <h2>{L.ftpResult}</h2>
+    {#if test.ok}
+      <p class="ftp-value">{test.ftpW} W</p>
       <p class="muted">
-        {t.kind === 'ramp'
-          ? `75 % of your best 1-minute power (${t.basisW} W).`
-          : `95 % of your 20-minute average (${t.basisW} W).`}
-        Your FTP was {result.info.ftpW} W ({t.ftpW >= result.info.ftpW ? '+' : ''}{t.ftpW -
-          result.info.ftpW} W).
+        {test.kind === 'ramp' ? L.rampBasis(test.basisW) : L.twentyBasis(test.basisW)}
+        {L.ftpWas(
+          result.info.ftpW,
+          `${test.ftpW >= result.info.ftpW ? '+' : ''}${test.ftpW - result.info.ftpW}`,
+        )}
       </p>
       {#if ftpDecision === 'accepted'}
-        <p class="ok">FTP set to {t.ftpW} W. Workouts now use it.</p>
+        <p class="ok">{L.ftpSet(test.ftpW)}</p>
       {:else if ftpDecision === 'kept'}
-        <p class="muted">Kept {result.info.ftpW} W.</p>
+        <p class="muted">{L.kept(result.info.ftpW)}</p>
       {:else}
         <div class="row">
-          <button class="primary" onclick={() => acceptFtp(t.ftpW)}>Use {t.ftpW} W</button>
-          <button onclick={() => (ftpDecision = 'kept')}>Keep {result.info.ftpW} W</button>
+          <button class="primary" onclick={() => acceptFtp(test.ftpW)}>{L.use(test.ftpW)}</button>
+          <button onclick={() => (ftpDecision = 'kept')}>{L.keep(result.info.ftpW)}</button>
         </div>
       {/if}
     {:else}
-      <p class="error">No result: {t.reason}</p>
+      <!-- core has one failure reason per test kind; word it here (DESIGN.md D21). -->
+      <p class="error">
+        {L.noResult(test.kind === 'ramp' ? L.rampTooShort : L.twentyIncomplete)}
+      </p>
     {/if}
   </section>
 {/if}
 
 <section class="card summary">
-  <h2>Ride saved</h2>
+  <h2>{t().ride.summary.saved}</h2>
   <dl class="stats">
     <div>
-      <dt>Time</dt>
+      <dt>{t().ride.summary.time}</dt>
       <dd>{formatDuration(s.timerS)}</dd>
     </div>
     <div>
-      <dt>Avg power</dt>
+      <dt>{t().ride.summary.avgPower}</dt>
       <dd>{round(s.avgPowerW)} W</dd>
     </div>
     <div>
@@ -84,31 +85,31 @@
     </div>
     <div>
       <dt>IF</dt>
-      <dd>{s.intensity.toFixed(2)}</dd>
+      <dd>{formatNumber(s.intensity, 2)}</dd>
     </div>
     <div>
       <dt>TSS</dt>
       <dd>{round(s.tss)}</dd>
     </div>
     <div>
-      <dt>Calories</dt>
+      <dt>{t().ride.summary.calories}</dt>
       <dd>{round(caloriesKcal(s.workKj))} kcal</dd>
     </div>
     <div>
-      <dt>Avg / max HR</dt>
+      <dt>{t().ride.summary.avgMaxHr}</dt>
       <dd>{round(s.avgHeartRateBpm)} / {round(s.maxHeartRateBpm)}</dd>
     </div>
     <div>
-      <dt>Avg cadence</dt>
+      <dt>{t().ride.summary.avgCadence}</dt>
       <dd>{round(s.avgCadenceRpm)} rpm</dd>
     </div>
     <div>
-      <dt>Distance</dt>
-      <dd>{(s.distanceM / 1000).toFixed(1)} km</dd>
+      <dt>{t().ride.summary.distance}</dt>
+      <dd>{formatNumber(s.distanceM / 1000, 1)} km</dd>
     </div>
     {#if s.ascentM !== undefined}
       <div>
-        <dt>Climbing</dt>
+        <dt>{t().ride.summary.climbing}</dt>
         <dd>{Math.round(s.ascentM)} m</dd>
       </div>
     {/if}
@@ -117,8 +118,14 @@
   {#if result.laps.length > 1}
     <table>
       <thead>
-        <tr><th>Lap</th><th>Time</th><th>Avg W</th><th>Max W</th><th>Avg HR</th><th>Cadence</th></tr
-        >
+        <tr>
+          <th>{t().ride.summary.lap}</th>
+          <th>{t().ride.summary.time}</th>
+          <th>{t().ride.summary.avgW}</th>
+          <th>{t().ride.summary.maxW}</th>
+          <th>{t().ride.summary.avgHr}</th>
+          <th>{t().ride.summary.cadence}</th>
+        </tr>
       </thead>
       <tbody>
         {#each result.laps as lap, i (i)}
@@ -137,30 +144,32 @@
 
   <p class="file">
     {#if result.fitPath}
-      FIT file: <code>{result.fitPath}</code>
-      <button onclick={() => window.cyclotron.rides.showFit(result.rideId)}>Show in folder</button>
+      {t().ride.summary.fitFile} <code>{result.fitPath}</code>
+      <button onclick={() => window.cyclotron.rides.showFit(result.rideId)}>
+        {t().ride.summary.showInFolder}
+      </button>
     {:else}
-      <span class="error">The FIT file couldn't be written: {result.fitError}</span>
+      <span class="error">{t().ride.summary.fitFailed(result.fitError ?? '')}</span>
     {/if}
   </p>
 
   <div class="row">
-    <span class="muted">How did it feel?</span>
-    {#each FEEDBACK as f (f.value)}
-      <button class:chosen={feedback === f.value} onclick={() => giveFeedback(f.value)}>
-        {f.label}
+    <span class="muted">{t().ride.summary.howDidItFeel}</span>
+    {#each FEEDBACK as f (f)}
+      <button class:chosen={feedback === f} onclick={() => giveFeedback(f)}>
+        {t().ride.summary.feedback[f]}
       </button>
     {/each}
   </div>
 
   <div class="row actions">
-    <button class="primary" onclick={onclose}>Done</button>
+    <button class="primary" onclick={onclose}>{t().ride.summary.done}</button>
     {#if confirmDiscard}
-      <span class="error">Delete this ride and its FIT file?</span>
-      <button onclick={ondiscard}>Delete</button>
-      <button onclick={() => (confirmDiscard = false)}>Keep</button>
+      <span class="error">{t().ride.summary.confirmDiscard}</span>
+      <button onclick={ondiscard}>{t().common.actions.delete}</button>
+      <button onclick={() => (confirmDiscard = false)}>{t().ride.summary.keepRide}</button>
     {:else}
-      <button onclick={() => (confirmDiscard = true)}>Discard ride…</button>
+      <button onclick={() => (confirmDiscard = true)}>{t().ride.summary.discard}</button>
     {/if}
   </div>
 </section>

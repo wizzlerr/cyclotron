@@ -7,6 +7,9 @@
   import Tile from '../components/Tile.svelte'
   import WorkoutProfile from '../components/WorkoutProfile.svelte'
   import { devices } from '../devices/devices.svelte'
+  import { workoutName } from '../i18n/content'
+  import { formatNumber } from '../i18n/i18n.svelte'
+  import { t } from '../i18n/t'
   import { describeSegment as describe, formatDuration, formatKm, formatPct } from '../lib/format'
   import { go } from '../nav.svelte'
   import { profile } from '../profile.svelte'
@@ -65,54 +68,55 @@
   }
 
   const fixed = (n: number | undefined, digits: number): string | undefined =>
-    n === undefined ? undefined : n.toFixed(digits)
+    n === undefined ? undefined : formatNumber(n, digits)
 
   /** Props for every tile (E4-1…E4-3); the layout setting picks which are shown (E4-5). */
   const tiles = $derived.by((): Record<TileId, TileProps> => {
     const m = ride.metrics
+    const L = t().ride.tiles
     const target = ride.active ? ride.targetW : manualErgOn ? ergWatts : undefined
     return {
       power3s: {
-        label: pZone ? `Power · Z${pZone}` : 'Power',
+        label: pZone ? t().ride.powerZoneTile(pZone) : L.power3s.short,
         value: devices.power3s,
         unit: 'W',
         accent: pZone ? `var(--z${pZone})` : undefined,
       },
-      power: { label: 'Power (instant)', value: devices.data?.powerW, unit: 'W' },
-      power10s: { label: 'Power 10 s', value: devices.power10s, unit: 'W' },
-      target: { label: 'Target', value: target, unit: 'W' },
+      power: { label: L.power.short, value: devices.data?.powerW, unit: 'W' },
+      power10s: { label: L.power10s.short, value: devices.power10s, unit: 'W' },
+      target: { label: L.target.short, value: target, unit: 'W' },
       intervalLeft: {
-        label: 'Interval left',
+        label: L.intervalLeft.short,
         value: s ? formatDuration(remaining) : undefined,
         highlight: s?.status === 'running' && remaining <= 5 && s.next !== undefined,
       },
-      intervalAvg: { label: 'Interval avg', value: ride.intervalAvgW, unit: 'W' },
+      intervalAvg: { label: L.intervalAvg.short, value: ride.intervalAvgW, unit: 'W' },
       elapsed: {
-        label: 'Elapsed',
+        label: L.elapsed.short,
         value: s ? formatDuration(s.positionS) : undefined,
         unit: s && !ride.isFreeRide ? `/ ${formatDuration(s.totalS)}` : '',
       },
       hr: {
-        label: hrZone ? `HR · Z${hrZone}` : 'Heart rate',
+        label: hrZone ? t().ride.hrZoneTile(hrZone) : L.hr.short,
         value: devices.bpm,
         unit: 'bpm',
         accent: hrZone ? `var(--z${hrZone})` : undefined,
       },
-      cadence: { label: 'Cadence', value: devices.data?.cadenceRpm, unit: 'rpm' },
+      cadence: { label: L.cadence.short, value: devices.data?.cadenceRpm, unit: 'rpm' },
       speed: {
-        label: 'Speed',
+        label: L.speed.short,
         value: ride.routeState ? fixed(ride.routeState.speedKmh, 1) : devices.data?.speedKmh,
         unit: 'km/h',
       },
       wkg: {
-        label: profile.weightKg ? 'W/kg' : 'W/kg (set weight)',
+        label: profile.weightKg ? L.wkg.short : t().ride.wkgSetWeight,
         value: profile.weightKg ? fixed((devices.power3s ?? 0) / profile.weightKg, 1) : undefined,
       },
-      avgPower: { label: 'Avg power', value: m?.avgPowerW, unit: 'W' },
-      np: { label: 'NP', value: m?.normalizedPowerW, unit: 'W' },
-      if: { label: 'IF', value: fixed(m?.intensity, 2) },
-      tss: { label: 'TSS', value: m?.tss },
-      kcal: { label: 'Calories', value: m && caloriesKcal(m.workKj), unit: 'kcal' },
+      avgPower: { label: L.avgPower.short, value: m?.avgPowerW, unit: 'W' },
+      np: { label: L.np.short, value: m?.normalizedPowerW, unit: 'W' },
+      if: { label: L.if.short, value: fixed(m?.intensity, 2) },
+      tss: { label: L.tss.short, value: m?.tss },
+      kcal: { label: L.kcal.short, value: m && caloriesKcal(m.workKj), unit: 'kcal' },
     }
   })
 
@@ -141,9 +145,9 @@
     <button onclick={() => setErg(ergWatts - STEP_W)}>−{STEP_W} W</button>
     <span class="erg">ERG {ergWatts} W</span>
     <button onclick={() => setErg(ergWatts + STEP_W)}>+{STEP_W} W</button>
-    <button onclick={ergOff}>ERG off</button>
+    <button onclick={ergOff}>{t().ride.ergOff}</button>
   {:else}
-    <button onclick={() => setErg(ergWatts)}>ERG mode</button>
+    <button onclick={() => setErg(ergWatts)}>{t().ride.ergMode}</button>
   {/if}
 {/snippet}
 
@@ -158,24 +162,22 @@
 {#snippet deviceWarnings()}
   {#if !devices.trainer}
     <p class="warn">
-      No trainer connected. <button onclick={() => go('settings')}>Devices…</button>
+      {t().ride.noTrainer} <button onclick={() => go('settings')}>{t().ride.devices}</button>
     </p>
   {:else if devices.trainerStatus === 'reconnecting'}
-    <p class="warn">
-      Trainer connection lost, reconnecting… The target is re-applied when it's back.
-    </p>
+    <p class="warn">{t().ride.reconnecting}</p>
   {/if}
 {/snippet}
 
 {#if ride.workout && ride.player && s}
   <div class="head">
-    <h1>{ride.workout.name}</h1>
+    <h1>{workoutName(ride.workout)}</h1>
     {#if !ride.isFreeRide}<span class="muted">{describe(s.segment)}</span>{/if}
   </div>
 
   {#if s.status === 'finished'}
     {#if ride.saving}
-      <p class="muted">Saving the ride…</p>
+      <p class="muted">{t().ride.saving}</p>
     {:else if ride.result}
       <RideSummary
         result={ride.result}
@@ -183,8 +185,8 @@
         ondiscard={() => ride.discard()}
       />
     {:else}
-      <p class="muted">Nothing was recorded.</p>
-      <button onclick={() => ride.close()}>Close</button>
+      <p class="muted">{t().ride.nothingRecorded}</p>
+      <button onclick={() => ride.close()}>{t().common.actions.close}</button>
     {/if}
   {:else}
     {@render deviceWarnings()}
@@ -194,36 +196,41 @@
     <section class="controls">
       {#if s.status === 'ready'}
         <button class="primary" onclick={() => ride.start()} disabled={!devices.trainer}>
-          Start
+          {t().common.actions.start}
         </button>
-        <button onclick={() => ride.close()}>Close</button>
+        <button onclick={() => ride.close()}>{t().common.actions.close}</button>
       {:else}
         {#if s.status === 'running'}
-          <button onclick={() => ride.pause()}>Pause</button>
+          <button onclick={() => ride.pause()}>{t().common.actions.pause}</button>
         {:else}
-          <button class="primary" onclick={() => ride.resume()}>Resume</button>
+          <button class="primary" onclick={() => ride.resume()}>{t().common.actions.resume}</button>
         {/if}
-        {#if !ride.isFreeRide}<button onclick={() => ride.skip()}>Skip step</button>{/if}
+        {#if !ride.isFreeRide}<button onclick={() => ride.skip()}>{t().ride.skipStep}</button>{/if}
         {#if confirmEnd}
-          <span class="warn">End and save the ride?</span>
-          <button class="primary" onclick={end}>End</button>
-          <button onclick={() => (confirmEnd = false)}>Cancel</button>
+          <span class="warn">{t().ride.confirmEnd}</span>
+          <button class="primary" onclick={end}>{t().common.actions.end}</button>
+          <button onclick={() => (confirmEnd = false)}>{t().common.actions.cancel}</button>
         {:else}
-          <button onclick={() => (confirmEnd = true)}>End…</button>
+          <button onclick={() => (confirmEnd = true)}>{t().ride.endEllipsis}</button>
         {/if}
 
         {#if !ride.isFreeRide}
           <span class="sep"></span>
           <button onclick={() => ride.adjustIntensity(-0.05)}>−5</button>
           <button onclick={() => ride.adjustIntensity(-0.01)}>−1</button>
-          <button class="intensity" onclick={() => ride.resetIntensity()} title="Reset to 100 %">
+          <button
+            class="intensity"
+            onclick={() => ride.resetIntensity()}
+            title={t().ride.resetIntensity}
+          >
             {formatPct(s.intensity)}
           </button>
           <button onclick={() => ride.adjustIntensity(0.01)}>+1</button>
           <button onclick={() => ride.adjustIntensity(0.05)}>+5</button>
         {/if}
       {/if}
-      <label class="mute"><input type="checkbox" bind:checked={ride.muted} /> Mute</label>
+      <label class="mute"><input type="checkbox" bind:checked={ride.muted} /> {t().ride.mute}</label
+      >
     </section>
 
     {#if inFreeStep}
@@ -236,27 +243,27 @@
       <div class="card route">
         <dl class="route-stats">
           <div class="grade">
-            <dt>Grade</dt>
-            <dd>{grade.toFixed(1)} %</dd>
+            <dt>{t().ride.route.grade}</dt>
+            <dd>{formatNumber(grade, 1)} %</dd>
           </div>
           <div>
-            <dt>Speed</dt>
-            <dd>{r.speedKmh.toFixed(1)} km/h</dd>
+            <dt>{t().ride.route.speed}</dt>
+            <dd>{formatNumber(r.speedKmh, 1)} km/h</dd>
           </div>
           <div>
-            <dt>Distance</dt>
+            <dt>{t().ride.route.distance}</dt>
             <dd>{formatKm(r.distanceM)}</dd>
           </div>
           <div>
-            <dt>To go</dt>
+            <dt>{t().ride.route.toGo}</dt>
             <dd>{formatKm(r.remainingM)}</dd>
           </div>
           <div>
-            <dt>Elevation</dt>
+            <dt>{t().ride.route.elevation}</dt>
             <dd>{Math.round(r.position.ele)} m</dd>
           </div>
           <div>
-            <dt>Climbed</dt>
+            <dt>{t().ride.route.climbed}</dt>
             <dd>{Math.round(r.climbedM)} m</dd>
           </div>
         </dl>
@@ -268,9 +275,10 @@
         </div>
         {#if ride.isFreeRide}
           <p class="muted next">
-            Trainer at {Math.round(profile.difficulty * 100)} % difficulty: {(
-              grade * profile.difficulty
-            ).toFixed(1)} % (change it in Settings → Routes).
+            {t().ride.route.trainerDifficulty(
+              Math.round(profile.difficulty * 100),
+              formatNumber(grade * profile.difficulty, 1),
+            )}
           </p>
         {/if}
       </div>
@@ -287,7 +295,7 @@
         />
         {#if s.next}
           <p class="muted next">
-            Next in {formatDuration(remaining)}: {describe(s.next)}{s.nextTargetW
+            {t().ride.nextIn(formatDuration(remaining), describe(s.next))}{s.nextTargetW
               ? ` · ${s.nextTargetW} W`
               : ''}
           </p>
@@ -300,26 +308,26 @@
     {/if}
   {/if}
 
-  {#if ride.notice && s.status !== 'finished'}<p class="warn">{ride.notice}</p>{/if}
-  {#if ride.error}<p class="error">{ride.error}</p>{/if}
+  {#if ride.notice && s.status !== 'finished'}<p class="warn">{ride.notice()}</p>{/if}
+  {#if ride.error}<p class="error">{ride.error()}</p>{/if}
   {#if devices.error}<p class="error">{devices.error}</p>{/if}
 {:else}
-  <h1>Ride</h1>
+  <h1>{t().ride.title}</h1>
 
   {#if !devices.trainer}
-    <p class="muted">No trainer connected.</p>
-    <button onclick={() => go('settings')}>Devices…</button>
+    <p class="muted">{t().ride.noTrainer}</p>
+    <button onclick={() => go('settings')}>{t().ride.devices}</button>
   {:else}
     {@render deviceWarnings()}
     {@render tileGrid()}
 
     <section class="controls">
-      <button class="primary" onclick={() => ride.startFreeRide()}>Start free ride</button>
-      <button onclick={() => go('workouts')}>Choose a workout…</button>
+      <button class="primary" onclick={() => ride.startFreeRide()}>{t().ride.startFreeRide}</button>
+      <button onclick={() => go('workouts')}>{t().ride.chooseWorkout}</button>
       <span class="sep"></span>
       {@render ergControls()}
     </section>
-    <p class="muted">Nothing is recorded until you start a ride.</p>
+    <p class="muted">{t().ride.notRecordedYet}</p>
     {#if devices.error}<p class="error">{devices.error}</p>{/if}
   {/if}
 {/if}

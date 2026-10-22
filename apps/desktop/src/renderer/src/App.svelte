@@ -3,6 +3,7 @@
   import DeviceStatus from './components/DeviceStatus.svelte'
   import { devices } from './devices/devices.svelte'
   import { nav, go, SCREENS } from './nav.svelte'
+  import { t } from './i18n/t'
   import { recovery } from './ride/recovery.svelte'
   import Builder from './screens/Builder.svelte'
   import History from './screens/History.svelte'
@@ -23,11 +24,11 @@
 
 <div class="shell">
   <nav>
-    <div class="brand">Cyclotron</div>
-    {#each SCREENS as s (s.id)}
+    <div class="brand">{t().common.appName}</div>
+    {#each SCREENS as s (s)}
       <button
-        class:active={nav.screen === s.id || (s.id === 'workouts' && nav.screen === 'builder')}
-        onclick={() => go(s.id)}>{s.label}</button
+        class:active={nav.screen === s || (s === 'workouts' && nav.screen === 'builder')}
+        onclick={() => go(s)}>{t().app.nav[s]}</button
       >
     {/each}
     <div class="spacer"></div>

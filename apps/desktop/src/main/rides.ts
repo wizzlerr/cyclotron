@@ -12,6 +12,7 @@ import {
 } from '../shared/api'
 import { computeAggregates } from './analytics'
 import { getDb, getSetting, setSetting, transaction } from './db'
+import { strings } from './i18n'
 
 // Ride recording storage (E5-1), FIT files (E5-3) and FTP history (E6-3). The renderer computes summaries and encodes
 // FIT with core; main only stores rows and writes files.
@@ -198,6 +199,16 @@ export function registerRidesIpc(): void {
     return rows.map(toRide)
   })
 
+  ipcMain.handle(IPC.ridesWorkoutsDone, () =>
+    getDb()
+      .prepare(
+        `select workout_id as workoutId, count(*) as count, max(started_at) as lastAt
+         from rides where status = 'finished' and workout_id is not null and workout_id != ''
+         group by workout_id`,
+      )
+      .all(),
+  )
+
   ipcMain.handle(IPC.ridesShowFit, (_event, rideId: number) => {
     const path = rideRow(rideId)?.fit_path
     if (path) shell.showItemInFolder(path)
@@ -233,7 +244,7 @@ export function registerRidesIpc(): void {
   ipcMain.handle(IPC.ridesChooseFitFolder, async (event) => {
     const win = BrowserWindow.fromWebContents(event.sender)
     const options: Electron.OpenDialogOptions = {
-      title: 'Folder for ride files (.fit)',
+      title: strings().fitFolderTitle,
       defaultPath: fitFolder(),
       properties: ['openDirectory', 'createDirectory'],
     }

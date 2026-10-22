@@ -7,7 +7,15 @@ import type { Workout, WorkoutStep } from './model'
 const TAG = /<(\/?)([A-Za-z_][\w-]*)((?:\s+[\w-]+\s*=\s*(?:"[^"]*"|'[^']*'))*)\s*(\/?)>/g
 const ATTR = /([\w-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g
 
-export class ZwoError extends Error {}
+/** `code` lets the UI word the error in its own language (DESIGN.md D21). */
+export class ZwoError extends Error {
+  constructor(
+    readonly code: 'notZwo' | 'notCycling' | 'noSteps',
+    message: string,
+  ) {
+    super(message)
+  }
+}
 
 /** Parses a .zwo document. `id` becomes the workout id. Throws `ZwoError` if it isn't a workout. */
 export function parseZwo(xml: string, id: string): Workout {
@@ -54,11 +62,11 @@ export function parseZwo(xml: string, id: string): Workout {
     }
   }
 
-  if (!sawWorkout) throw new ZwoError('not a .zwo workout: no <workout> element')
+  if (!sawWorkout) throw new ZwoError('notZwo', 'not a .zwo workout: no <workout> element')
   if (fields['sporttype'] && fields['sporttype'] !== 'bike') {
-    throw new ZwoError(`not a cycling workout (sportType ${fields['sporttype']})`)
+    throw new ZwoError('notCycling', `not a cycling workout (sportType ${fields['sporttype']})`)
   }
-  if (steps.length === 0) throw new ZwoError('workout has no steps')
+  if (steps.length === 0) throw new ZwoError('noSteps', 'workout has no steps')
 
   return {
     id,

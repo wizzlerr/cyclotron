@@ -1,6 +1,8 @@
 <script lang="ts">
   // E13-5: elevation profile of a route, coloured by grade, with the rider's position.
   import { ROUTE_STEP_M, routeAt, type Route } from '@cyclotron/core'
+  import { formatNumber } from '../i18n/i18n.svelte'
+  import { t } from '../i18n/t'
   import { formatKm } from '../lib/format'
 
   let {
@@ -81,10 +83,10 @@
 
 <div class="profile" class:axes>
   {#if axes}
-    <span class="axis-title y-title">Elevation (m)</span>
+    <span class="axis-title y-title">{t().ride.profile.elevationAxis}</span>
     <div class="y-ticks" style:height="{height}px">
-      {#each yTicks as t (t)}
-        <span style:top="{(y(t) / height) * 100}%">{t}</span>
+      {#each yTicks as tick (tick)}
+        <span style:top="{(y(tick) / height) * 100}%">{tick}</span>
       {/each}
     </div>
   {/if}
@@ -101,11 +103,11 @@
       preserveAspectRatio="none"
       style:height="{height}px"
       role="img"
-      aria-label="Elevation profile"
+      aria-label={t().ride.profile.elevationProfile}
     >
       {#if axes}
-        {#each yTicks as t (t)}
-          <line class="grid" x1="0" x2={W} y1={y(t)} y2={y(t)} />
+        {#each yTicks as tick (tick)}
+          <line class="grid" x1="0" x2={W} y1={y(tick)} y2={y(tick)} />
         {/each}
       {/if}
       {#each bins as b, i (i)}
@@ -121,20 +123,20 @@
     </svg>
     {#if tip && hover}
       <div class="tip" class:left={hover.x > plotWidth / 2} style:left="{hover.x}px">
-        <strong>{tip.gradePct.toFixed(1)} %</strong>
+        <strong>{formatNumber(tip.gradePct, 1)} %</strong>
         <span>{Math.round(tip.ele)} m</span>
-        <span class="muted">at {formatKm(tip.d)}</span>
+        <span class="muted">{t().ride.profile.at(formatKm(tip.d))}</span>
       </div>
     {/if}
   </div>
 
   {#if axes}
     <div class="x-ticks">
-      {#each xTicks as t (t)}
-        <span style:left="{(t / route.distanceM) * 100}%">{t / 1000}</span>
+      {#each xTicks as tick (tick)}
+        <span style:left="{(tick / route.distanceM) * 100}%">{formatNumber(tick / 1000)}</span>
       {/each}
     </div>
-    <span class="axis-title x-title">Distance (km)</span>
+    <span class="axis-title x-title">{t().ride.profile.distanceAxis}</span>
   {/if}
 </div>
 

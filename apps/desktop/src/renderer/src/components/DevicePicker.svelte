@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { BluetoothDeviceInfo } from '../../../shared/api'
+  import { t } from '../i18n/t'
 
   let { open }: { open: boolean } = $props()
 
@@ -20,26 +21,28 @@
 
 {#if open}
   <div class="backdrop">
-    <div class="dialog" role="dialog" aria-label="Choose a Bluetooth device">
-      <h2>Choose a device</h2>
-      <p class="muted">Scanning… wake the trainer by pedalling or spinning the flywheel.</p>
+    <div class="dialog" role="dialog" aria-label={t().app.picker.label}>
+      <h2>{t().app.picker.title}</h2>
+      <p class="muted">{t().app.picker.scanning}</p>
       <ul>
         {#each visible as d (d.id)}
           <li>
             <button onclick={() => window.cyclotron.bluetooth.selectDevice(d.id)}>
-              {d.name || 'Unknown device'} <span class="muted">{d.id}</span>
+              {d.name || t().app.picker.unknown} <span class="muted">{d.id}</span>
             </button>
           </li>
         {:else}
-          <li class="muted">No devices yet</li>
+          <li class="muted">{t().app.picker.none}</li>
         {/each}
       </ul>
       <label>
         <input type="checkbox" bind:checked={showUnnamed} />
-        Show unnamed devices ({devices.filter((d) => !d.name).length})
+        {t().app.picker.showUnnamed(devices.filter((d) => !d.name).length)}
       </label>
       <div class="actions">
-        <button onclick={() => window.cyclotron.bluetooth.cancelSelection()}>Cancel</button>
+        <button onclick={() => window.cyclotron.bluetooth.cancelSelection()}
+          >{t().common.actions.cancel}</button
+        >
       </div>
     </div>
   </div>

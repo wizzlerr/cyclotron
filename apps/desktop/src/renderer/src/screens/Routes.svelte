@@ -1,39 +1,43 @@
 <script lang="ts">
   // E13-7/E13-9: route library and browser.
-  import type { Route } from '@cyclotron/core'
+  import type { Route, Workout } from '@cyclotron/core'
   import RouteMap from '../components/RouteMap.svelte'
   import RouteProfile from '../components/RouteProfile.svelte'
+  import WorkoutPicker from '../components/WorkoutPicker.svelte'
+  import { routeDescription, routeName } from '../i18n/content'
+  import { errorText } from '../i18n/errors'
+  import { formatNumber } from '../i18n/i18n.svelte'
+  import { t } from '../i18n/t'
   import { formatKm } from '../lib/format'
   import { go } from '../nav.svelte'
   import { ride } from '../ride/session.svelte'
   import { routeLibrary } from '../routes/library.svelte'
-  import { library } from '../workouts/library.svelte'
 
   let error = $state<string | undefined>()
 
   $effect(() => {
-    routeLibrary.load().catch((e: unknown) => (error = `Couldn't load your routes: ${String(e)}`))
-    library.load().catch(() => {})
+    routeLibrary.load().catch((e: unknown) => (error = t().library.routes.loadFailed(String(e))))
   })
 
-  // Filters (E13-9). Ranges are [min, max) in the route's own units.
+  // Filters (E13-9). Ranges are [min, max) in the route's own units; labels come from
+  // t().library.routes.distances / climbs / grades by index.
   const DISTANCE = [
-    { label: 'Any distance', min: 0, max: Infinity },
-    { label: 'Under 20 km', min: 0, max: 20_000 },
-    { label: '20–50 km', min: 20_000, max: 50_000 },
-    { label: 'Over 50 km', min: 50_000, max: Infinity },
+    { min: 0, max: Infinity },
+    { min: 0, max: 20_000 },
+    { min: 20_000, max: 50_000 },
+    { min: 50_000, max: Infinity },
   ]
   const CLIMBING = [
-    { label: 'Any climbing', min: 0, max: Infinity },
-    { label: 'Under 500 m', min: 0, max: 500 },
-    { label: '500–1500 m', min: 500, max: 1500 },
-    { label: 'Over 1500 m', min: 1500, max: Infinity },
+    { min: 0, max: Infinity },
+    { min: 0, max: 500 },
+    { min: 500, max: 1500 },
+    { min: 1500, max: Infinity },
   ]
   const GRADE = [
-    { label: 'Any grade', min: -Infinity, max: Infinity },
-    { label: 'Flat to rolling (avg < 3 %)', min: -Infinity, max: 3 },
-    { label: 'Climb (avg 3–6 %)', min: 3, max: 6 },
-    { label: 'Steep climb (avg ≥ 6 %)', min: 6, max: Infinity },
+    { min: -Infinity, max: Infinity },
+    { min: -Infinity, max: 3 },
+    { min: 3, max: 6 },
+    { min: 6, max: Infinity },
   ]
 
   let search = $state('')
@@ -41,8 +45,8 @@
   let climbing = $state(0)
   let grade = $state(0)
   let favouritesOnly = $state(false)
-  /** Workout chosen per route card; '' = free ride following the grade. */
-  let workoutFor = $state<Record<string, string>>({})
+  /** Route waiting for a workout choice. */
+  let picking = $state<Route | undefined>()
 
   const inRange = (v: number, r: { min: number; max: number }): boolean => v >= r.min && v < r.max
 
@@ -50,7 +54,7 @@
     routeLibrary.all
       .filter(
         (r) =>
-          r.name.toLowerCase().includes(search.trim().toLowerCase()) &&
+          routeName(r).toLowerCase().includes(search.trim().toLowerCase()) &&
           inRange(r.distanceM, DISTANCE[distance]!) &&
           inRange(r.ascentM, CLIMBING[climbing]!) &&
           inRange(r.avgGradePct, GRADE[grade]!) &&
@@ -62,11 +66,10 @@
       ),
   )
 
-  function rideRoute(route: Route): void {
-    const workoutId = workoutFor[route.id] ?? ''
-    const workout = workoutId ? library.all.find((w) => w.id === workoutId) : undefined
+  function rideRoute(route: Route, workout: Workout | undefined): void {
+    picking = undefined
     if (ride.loadRoute(route, workout)) go('ride')
-    else error = 'Finish or end the current ride first.'
+    else error = t().library.routes.rideBusy
   }
 
   async function importGpx(): Promise<void> {
@@ -74,39 +77,50 @@
     try {
       await routeLibrary.importGpx()
     } catch (e) {
-      error = `Import failed: ${e instanceof Error ? e.message : String(e)}`
+      error = t().library.routes.importFailed(errorText(e))
     }
   }
 </script>
 
 <div class="head">
-  <h1>Routes</h1>
-  <button onclick={importGpx}>Import GPX…</button>
+  <h1>{t().library.routes.title}</h1>
+  <button onclick={importGpx}>{t().library.routes.importGpx}</button>
 </div>
-<p class="muted">
-  Ride a real road: the trainer follows the grade and the ride is saved as a virtual ride with GPS.
-  Imported routes stay in your library.
-</p>
+<p class="muted">{t().library.routes.intro}</p>
 
 {#if error}<p class="error">{error}</p>{/if}
 {#each routeLibrary.messages as m (m)}<p class="muted">{m}</p>{/each}
 
+{#if picking}
+  {@const route = picking}
+  <WorkoutPicker
+    title={routeName(route)}
+    onpick={(workout) => rideRoute(route, workout)}
+    oncancel={() => (picking = undefined)}
+  />
+{/if}
+
 <div class="filters">
-  <input type="search" placeholder="Search" bind:value={search} aria-label="Search routes" />
-  <select bind:value={distance} aria-label="Distance">
-    {#each DISTANCE as o, i (i)}<option value={i}>{o.label}</option>{/each}
+  <input
+    type="search"
+    placeholder={t().common.actions.search}
+    bind:value={search}
+    aria-label={t().library.routes.searchLabel}
+  />
+  <select bind:value={distance} aria-label={t().library.routes.distance}>
+    {#each t().library.routes.distances as label, i (i)}<option value={i}>{label}</option>{/each}
   </select>
-  <select bind:value={climbing} aria-label="Climbing">
-    {#each CLIMBING as o, i (i)}<option value={i}>{o.label}</option>{/each}
+  <select bind:value={climbing} aria-label={t().library.routes.climbing}>
+    {#each t().library.routes.climbs as label, i (i)}<option value={i}>{label}</option>{/each}
   </select>
-  <select bind:value={grade} aria-label="Average grade">
-    {#each GRADE as o, i (i)}<option value={i}>{o.label}</option>{/each}
+  <select bind:value={grade} aria-label={t().library.routes.avgGrade}>
+    {#each t().library.routes.grades as label, i (i)}<option value={i}>{label}</option>{/each}
   </select>
-  <label><input type="checkbox" bind:checked={favouritesOnly} /> Favourites</label>
+  <label><input type="checkbox" bind:checked={favouritesOnly} /> {t().common.favourites}</label>
 </div>
 
 {#if shown.length === 0}
-  <p class="muted">No routes match these filters.</p>
+  <p class="muted">{t().library.routes.noMatch}</p>
 {/if}
 
 <div class="list">
@@ -114,41 +128,33 @@
     {@const fav = routeLibrary.isFavourite(route.id)}
     <article class="card">
       <div class="title">
-        <h2>{route.name}</h2>
+        <h2>{routeName(route)}</h2>
         <button
           class="star"
           class:on={fav}
           onclick={() => routeLibrary.toggleFavourite(route.id)}
-          title={fav ? 'Remove from favourites' : 'Add to favourites'}
+          title={fav ? t().common.actions.removeFavourite : t().common.actions.addFavourite}
           aria-pressed={fav}>{fav ? '★' : '☆'}</button
         >
       </div>
       <p class="stats">
-        {formatKm(route.distanceM)} · {route.ascentM} m climbing · avg {route.avgGradePct.toFixed(
-          1,
-        )} % · max {route.maxGradePct.toFixed(1)} %{route.loop ? ' · loop' : ''}
+        {formatKm(route.distanceM)} · {t().library.routes.climbingM(route.ascentM)} · {t().library.routes.avg(
+          formatNumber(route.avgGradePct, 1),
+        )} · {t().library.routes.max(formatNumber(route.maxGradePct, 1))}{route.loop
+          ? ` · ${t().library.routes.loop}`
+          : ''}
       </p>
       <div class="shape">
         <div class="profile"><RouteProfile {route} height={70} /></div>
         <RouteMap {route} size={90} />
       </div>
-      {#if route.description}<p class="muted desc">{route.description}</p>{/if}
+      {#if routeDescription(route)}<p class="muted desc">{routeDescription(route)}</p>{/if}
       <div class="actions">
-        <button onclick={() => rideRoute(route)}>Ride</button>
-        <select
-          value={workoutFor[route.id] ?? ''}
-          onchange={(e) =>
-            (workoutFor = {
-              ...workoutFor,
-              [route.id]: (e.currentTarget as HTMLSelectElement).value,
-            })}
-          aria-label="Workout on this route"
-        >
-          <option value="">Follow the road (grade)</option>
-          {#each library.all as w (w.id)}<option value={w.id}>Workout: {w.name}</option>{/each}
-        </select>
+        <button onclick={() => (picking = route)}>{t().common.actions.ride}</button>
         {#if route.source === 'gpx'}
-          <button class="quiet" onclick={() => routeLibrary.remove(route.id)}>Delete</button>
+          <button class="quiet" onclick={() => routeLibrary.remove(route.id)}
+            >{t().common.actions.delete}</button
+          >
         {/if}
       </div>
       {#if route.attribution}<p class="credit">{route.attribution}</p>{/if}
@@ -226,10 +232,6 @@
     display: flex;
     gap: 0.5rem;
     align-items: center;
-  }
-  .actions select {
-    min-width: 0;
-    flex: 1;
   }
   .quiet {
     margin-left: auto;

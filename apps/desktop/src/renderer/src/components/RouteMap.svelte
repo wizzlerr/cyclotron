@@ -1,6 +1,8 @@
 <script lang="ts">
   // E13-5: the route's outline from its GPS points (no map tiles, works offline), with the rider.
   import type { Route } from '@cyclotron/core'
+  import { routeName } from '../i18n/content'
+  import { t } from '../i18n/t'
 
   let {
     route,
@@ -54,7 +56,7 @@
   height={size}
   viewBox="0 0 {size} {size}"
   role="img"
-  aria-label="Route outline of {route.name}"
+  aria-label={t().ride.profile.routeOutline(routeName(route))}
 >
   <polyline points={line} />
   {#if !route.loop}<circle class="end" cx={end[0]} cy={end[1]} r="4" />{/if}

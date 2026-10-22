@@ -15,7 +15,15 @@ export interface Gpx {
   points: GpxPoint[]
 }
 
-export class GpxError extends Error {}
+/** `code` lets the UI word the error in its own language (DESIGN.md D21). */
+export class GpxError extends Error {
+  constructor(
+    readonly code: 'notGpx' | 'noPoints',
+    message: string,
+  ) {
+    super(message)
+  }
+}
 
 const POINT = /<(trkpt|rtept)\b([^>]*?)(?:\/>|>([\s\S]*?)<\/\1\s*>)/g
 const ELE = /<ele>\s*([^<]*?)\s*<\/ele>/
@@ -23,7 +31,7 @@ const NAME = /<name>([\s\S]*?)<\/name>/
 
 export function parseGpx(xml: string): Gpx {
   const text = xml.replace(/<!--[\s\S]*?-->/g, '')
-  if (!/<gpx\b/.test(text)) throw new GpxError('not a GPX file: no <gpx> element')
+  if (!/<gpx\b/.test(text)) throw new GpxError('notGpx', 'not a GPX file: no <gpx> element')
 
   const track: GpxPoint[] = []
   const route: GpxPoint[] = []
@@ -39,7 +47,7 @@ export function parseGpx(xml: string): Gpx {
     ;(m[1] === 'trkpt' ? track : route).push(point)
   }
   const points = track.length > 0 ? track : route
-  if (points.length < 2) throw new GpxError('the GPX file has no track or route points')
+  if (points.length < 2) throw new GpxError('noPoints', 'the GPX file has no track or route points')
 
   // Prefer the track's name; the metadata name is often just the exporting app.
   const trk = /<trk\b[\s\S]*?<\/trk>/.exec(text)?.[0] ?? /<rte\b[\s\S]*?<\/rte>/.exec(text)?.[0]

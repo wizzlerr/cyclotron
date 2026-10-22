@@ -44,6 +44,7 @@ const api: CyclotronApi = {
     chooseFitFolder: () => ipcRenderer.invoke(IPC.ridesChooseFitFolder),
     detail: (id) => ipcRenderer.invoke(IPC.ridesDetail, id),
     importFit: () => ipcRenderer.invoke(IPC.ridesImportFit),
+    workoutsDone: () => ipcRenderer.invoke(IPC.ridesWorkoutsDone),
   },
   analytics: {
     powerCurve: (days) => ipcRenderer.invoke(IPC.analyticsPowerCurve, days),

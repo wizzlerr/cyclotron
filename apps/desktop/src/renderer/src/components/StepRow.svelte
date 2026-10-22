@@ -1,6 +1,7 @@
 <script lang="ts">
   // E3-8: one step in the workout builder. Repeats contain their own rows.
   import { newStep, parseDuration, type WorkoutStep } from '@cyclotron/core'
+  import { t } from '../i18n/t'
   import { formatDuration } from '../lib/format'
   import StepRow from './StepRow.svelte'
 
@@ -13,13 +14,8 @@
 
   const step = $derived(steps[index]!)
 
-  const KINDS = [
-    { kind: 'steady', label: 'Steady' },
-    { kind: 'ramp', label: 'Ramp' },
-    { kind: 'freeride', label: 'Free ride' },
-    { kind: 'maxeffort', label: 'Max effort' },
-  ] as const
-  type Kind = (typeof KINDS)[number]['kind']
+  const KINDS = ['steady', 'ramp', 'freeride', 'maxeffort'] as const
+  type Kind = (typeof KINDS)[number]
 
   /** Turns a step into another kind, keeping its duration and power where that makes sense. */
   function changeKind(kind: Kind): void {
@@ -78,7 +74,7 @@
   {#if step.kind === 'repeat'}
     {@const rep = step}
     <div class="row">
-      <span class="kind">Repeat</span>
+      <span class="kind">{t().library.step.repeat}</span>
       <label class="field">
         <input
           type="number"
@@ -90,9 +86,9 @@
             if (Number.isInteger(v) && v >= 1 && v <= 50) rep.count = v
             else e.currentTarget.value = String(rep.count)
           }}
-          aria-label="Times"
+          aria-label={t().library.step.timesLabel}
         />
-        times
+        {t().library.step.times}
       </label>
       {@render actions()}
     </div>
@@ -102,7 +98,9 @@
       {/each}
     </ol>
     <div class="add-inner">
-      <button onclick={() => rep.steps.push(newStep('steady'))}>+ Step in repeat</button>
+      <button onclick={() => rep.steps.push(newStep('steady'))}
+        >{t().library.step.stepInRepeat}</button
+      >
     </div>
   {:else}
     {@const s = step}
@@ -111,17 +109,17 @@
         class="kind"
         value={s.kind}
         onchange={(e) => changeKind(e.currentTarget.value as Kind)}
-        aria-label="Step type"
+        aria-label={t().library.step.stepType}
       >
-        {#each KINDS as k (k.kind)}<option value={k.kind}>{k.label}</option>{/each}
+        {#each KINDS as k (k)}<option value={k}>{t().common.segments[k]}</option>{/each}
       </select>
 
       <input
         class="duration"
         value={formatDuration(s.durationS)}
         onchange={setDuration}
-        aria-label="Duration"
-        title="Minutes:seconds (5:00, 0:30) or hours:minutes:seconds; a plain number is minutes"
+        aria-label={t().library.step.duration}
+        title={t().library.step.durationHint}
       />
 
       {#if s.kind === 'steady'}
@@ -132,7 +130,7 @@
             max="300"
             value={pctValue(s.pct)}
             onchange={(e) => (s.pct = pctFrom(e, s.pct))}
-            aria-label="Power, % of FTP"
+            aria-label={t().library.step.power}
           />
           % FTP <span class="muted">{watts(s.pct)} W</span>
         </span>
@@ -144,7 +142,7 @@
             max="300"
             value={pctValue(s.fromPct)}
             onchange={(e) => (s.fromPct = pctFrom(e, s.fromPct))}
-            aria-label="Start power, % of FTP"
+            aria-label={t().library.step.startPower}
           />
           →
           <input
@@ -153,14 +151,14 @@
             max="300"
             value={pctValue(s.toPct)}
             onchange={(e) => (s.toPct = pctFrom(e, s.toPct))}
-            aria-label="End power, % of FTP"
+            aria-label={t().library.step.endPower}
           />
           % FTP <span class="muted">{watts(s.fromPct)}–{watts(s.toPct)} W</span>
         </span>
       {:else if s.kind === 'freeride'}
-        <span class="muted hint">No target: ride as you like (ERG off)</span>
+        <span class="muted hint">{t().library.step.freerideHint}</span>
       {:else}
-        <span class="muted hint">All out (ERG off)</span>
+        <span class="muted hint">{t().library.step.maxeffortHint}</span>
       {/if}
 
       {#if s.kind === 'steady' || s.kind === 'ramp'}
@@ -172,7 +170,7 @@
             placeholder="–"
             value={s.cadence ?? ''}
             onchange={setCadence}
-            aria-label="Cadence target, rpm (optional)"
+            aria-label={t().library.step.cadence}
           />
           rpm
         </span>
@@ -184,23 +182,32 @@
 
 {#snippet actions()}
   <span class="actions">
-    <button onclick={() => move(-1)} disabled={index === 0} title="Move up" aria-label="Move up">
+    <button
+      onclick={() => move(-1)}
+      disabled={index === 0}
+      title={t().library.step.moveUp}
+      aria-label={t().library.step.moveUp}
+    >
       ↑
     </button>
     <button
       onclick={() => move(1)}
       disabled={index === steps.length - 1}
-      title="Move down"
-      aria-label="Move down"
+      title={t().library.step.moveDown}
+      aria-label={t().library.step.moveDown}
     >
       ↓
     </button>
-    <button onclick={duplicate} title="Duplicate" aria-label="Duplicate">⧉</button>
+    <button
+      onclick={duplicate}
+      title={t().common.actions.duplicate}
+      aria-label={t().common.actions.duplicate}>⧉</button
+    >
     <button
       onclick={() => steps.splice(index, 1)}
       disabled={nested && steps.length === 1}
-      title="Delete"
-      aria-label="Delete"
+      title={t().common.actions.delete}
+      aria-label={t().common.actions.delete}
     >
       ✕
     </button>

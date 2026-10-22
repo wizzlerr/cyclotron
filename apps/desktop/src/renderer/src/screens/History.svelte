@@ -2,7 +2,9 @@
   // E9-1/E9-5: ride history, ride detail and FIT import. Analytics are on the Progress screen.
   import type { RideDetail as Detail, StoredRide } from '../../../shared/api'
   import RideDetail from '../components/RideDetail.svelte'
-  import { formatDuration } from '../lib/format'
+  import { formatDateTime, formatNumber } from '../i18n/i18n.svelte'
+  import { t } from '../i18n/t'
+  import { formatDuration, formatKm } from '../lib/format'
 
   let rides = $state.raw<StoredRide[]>([])
   let loaded = $state(false)
@@ -38,19 +40,17 @@
     try {
       const r = await window.cyclotron.rides.importFit()
       if (r.imported > 0 || r.skipped.length > 0) {
-        message = `Imported ${r.imported} ride${r.imported === 1 ? '' : 's'}.`
+        message = t().history.history.imported(r.imported)
         skipped = r.skipped
       }
       await reload()
     } catch (e) {
-      message = `Import failed: ${e instanceof Error ? e.message : String(e)}`
+      message = t().history.history.importFailed(e instanceof Error ? e.message : String(e))
     } finally {
       importing = false
     }
   }
 
-  const date = (ms: number): string =>
-    new Date(ms).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
   const round = (n: number | undefined): string => (n === undefined ? '–' : String(Math.round(n)))
 </script>
 
@@ -58,16 +58,16 @@
   <RideDetail {detail} onclose={() => (detail = undefined)} ondelete={remove} />
 {:else}
   <div class="head">
-    <h1>History</h1>
+    <h1>{t().history.history.title}</h1>
     <button onclick={importFit} disabled={importing}>
-      {importing ? 'Importing…' : 'Import FIT files…'}
+      {importing ? t().history.history.importing : t().history.history.importFit}
     </button>
   </div>
 
   {#if message}<p class="muted">{message}</p>{/if}
   {#if skipped.length > 0}
     <details class="muted">
-      <summary>{skipped.length} skipped</summary>
+      <summary>{t().history.history.skipped(skipped.length)}</summary>
       <ul>
         {#each skipped as s (s)}<li>{s}</li>{/each}
       </ul>
@@ -75,41 +75,39 @@
   {/if}
 
   {#if loaded && rides.length === 0}
-    <p class="muted">
-      No rides yet. Finished rides appear here. Import FIT files from Garmin Connect, Strava or
-      other apps to bring in your past rides.
-    </p>
+    <p class="muted">{t().history.history.empty}</p>
   {:else if rides.length > 0}
     <table>
       <thead>
         <tr>
-          <th class="left">Date</th>
-          <th class="left">Ride</th>
-          <th>Time</th>
-          <th>Distance</th>
-          <th>Avg W</th>
+          <th class="left">{t().history.history.cols.date}</th>
+          <th class="left">{t().history.history.cols.ride}</th>
+          <th>{t().history.history.cols.time}</th>
+          <th>{t().history.history.cols.distance}</th>
+          <th>{t().history.history.cols.avgW}</th>
           <th>NP</th>
           <th>IF</th>
           <th>TSS</th>
-          <th>Avg HR</th>
+          <th>{t().history.history.cols.avgHr}</th>
         </tr>
       </thead>
       <tbody>
         {#each rides as r (r.id)}
           <!-- The ride name is the keyboard-accessible button; the row is just a bigger target. -->
           <tr onclick={() => open(r.id)}>
-            <td class="left">{date(r.startedAt)}</td>
+            <td class="left">{formatDateTime(r.startedAt)}</td>
             <td class="left">
               <button class="link" onclick={(e) => (e.stopPropagation(), open(r.id))}>
                 {r.workoutName}
               </button>
-              {#if r.source === 'import'}<span class="tag">imported</span>{/if}
+              {#if r.source === 'import'}<span class="tag">{t().history.history.importedTag}</span
+                >{/if}
             </td>
             <td>{formatDuration(r.totals?.timerS ?? 0)}</td>
-            <td>{r.totals ? `${(r.totals.distanceM / 1000).toFixed(1)} km` : '–'}</td>
+            <td>{r.totals ? formatKm(r.totals.distanceM) : '–'}</td>
             <td>{round(r.totals?.avgPowerW)}</td>
             <td>{round(r.totals?.npW)}</td>
-            <td>{r.totals ? r.totals.intensity.toFixed(2) : '–'}</td>
+            <td>{r.totals ? formatNumber(r.totals.intensity, 2) : '–'}</td>
             <td>{round(r.totals?.tss)}</td>
             <td>{round(r.totals?.avgHrBpm)}</td>
           </tr>

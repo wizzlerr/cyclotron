@@ -1,15 +1,18 @@
 <script lang="ts">
   import { devices } from '../devices/devices.svelte'
+  import { t } from '../i18n/t'
   import { go } from '../nav.svelte'
 </script>
 
-<button class="status" onclick={() => go('settings')} title="Devices">
+<button class="status" onclick={() => go('settings')} title={t().app.status.devices}>
   <span
     class="dot"
     class:on={devices.trainer}
     class:warn={devices.trainer && devices.trainerStatus === 'reconnecting'}
   ></span>
-  {devices.connecting === 'trainer' ? 'Connecting…' : (devices.trainer?.name ?? 'No trainer')}
+  {devices.connecting === 'trainer'
+    ? t().app.status.connecting
+    : (devices.trainer?.name ?? t().app.status.noTrainer)}
   {#if devices.heartRate}
     <span class="dot on" class:warn={devices.heartRateStatus === 'reconnecting'}></span>
     {devices.bpm ?? '–'} bpm

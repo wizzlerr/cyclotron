@@ -77,15 +77,13 @@ describe('validateWorkout', () => {
       ],
     }
     expect(validateWorkout(bad)).toEqual([
-      'Give the workout a name.',
-      'step 1: duration must be between 0:01 and 12:00:00.',
-      'step 2: power must be 0–300 % of FTP.',
-      'step 3: repeat 1–50 times.',
-      'step 3: the repeat has no steps.',
+      { code: 'noName' },
+      { code: 'duration', path: [0] },
+      { code: 'power', path: [1] },
+      { code: 'repeatCount', path: [2] },
+      { code: 'emptyRepeat', path: [2] },
     ])
-    expect(validateWorkout({ id: 'e', name: 'Empty', steps: [] })).toEqual([
-      'Add at least one step.',
-    ])
+    expect(validateWorkout({ id: 'e', name: 'Empty', steps: [] })).toEqual([{ code: 'noSteps' }])
   })
 })
 

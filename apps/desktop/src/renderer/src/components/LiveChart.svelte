@@ -3,6 +3,8 @@
   import { untrack } from 'svelte'
   import uPlot from 'uplot'
   import 'uplot/dist/uPlot.min.css'
+  import { formatNumber } from '../i18n/i18n.svelte'
+  import { t } from '../i18n/t'
   import { formatDuration } from '../lib/format'
   import { ride } from '../ride/session.svelte'
 
@@ -14,10 +16,14 @@
   $effect(() => {
     const css = getComputedStyle(document.documentElement)
     const color = (name: string): string => css.getPropertyValue(name).trim()
+    const localeTicks = (_u: uPlot, splits: number[]): string[] =>
+      splits.map((v) => (v == null ? '' : formatNumber(v)))
     const grid = { stroke: '#262d36', width: 1 }
     const axis = { stroke: color('--muted'), grid, ticks: grid }
     // Lines read better than dots at 1 Hz.
     const line = { points: { show: false } }
+    // Reading t() here rebuilds the chart when the language changes.
+    const L = t().ride.chart
 
     const p = new uPlot(
       {
@@ -32,26 +38,27 @@
         axes: [
           {
             ...axis,
-            label: 'Time',
+            label: L.time,
             // Whole seconds and round minutes, so early in a ride labels don't repeat (0:01 0:01 …).
             incrs: [1, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600],
             values: (_u, splits) => splits.map((s) => formatDuration(s)),
           },
-          { ...axis, scale: 'W', label: 'Power (W)', size: 50 },
+          { ...axis, scale: 'W', label: L.powerAxis, size: 50, values: localeTicks },
           {
             ...axis,
             scale: 'bpm',
             side: 1,
-            label: 'HR (bpm) · rpm',
+            label: L.hrAxis,
             size: 50,
+            values: localeTicks,
             grid: { show: false },
           },
         ],
         series: [
-          { label: 'Time', value: (_u, v) => (v == null ? '–' : formatDuration(v)) },
+          { label: L.time, value: (_u, v) => (v == null ? '–' : formatDuration(v)) },
           {
             ...line,
-            label: 'Power',
+            label: L.power,
             scale: 'W',
             stroke: color('--z2'),
             width: 1.5,
@@ -59,7 +66,7 @@
           },
           {
             ...line,
-            label: 'Target',
+            label: L.target,
             scale: 'W',
             stroke: color('--warn'),
             width: 1.5,
@@ -69,7 +76,7 @@
           },
           {
             ...line,
-            label: 'Heart rate',
+            label: L.heartRate,
             scale: 'bpm',
             stroke: color('--error'),
             width: 1.5,
@@ -77,7 +84,7 @@
           },
           {
             ...line,
-            label: 'Cadence',
+            label: L.cadence,
             scale: 'bpm',
             stroke: color('--muted'),
             width: 1,

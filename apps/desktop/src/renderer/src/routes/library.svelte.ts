@@ -7,6 +7,8 @@ import {
   type Route,
 } from '@cyclotron/core'
 import type { StoredRoute } from '../../../shared/api'
+import { errorText } from '../i18n/errors'
+import { t } from '../i18n/t'
 import { loadPref, savePref } from '../lib/prefs'
 
 const FAVOURITES_KEY = 'cyclotron.routeFavourites'
@@ -57,16 +59,16 @@ class RouteLibrary {
         }
         const route = toRoute(stored)
         if (!gpx.points.some((p) => p.ele !== undefined)) {
-          messages.push(`${f.name}: no elevation in the file, so the route is flat.`)
+          messages.push(t().library.routes.noElevation(f.name))
         }
         await window.cyclotron.routes.save(stored)
         added.push(route)
       } catch (e) {
-        messages.push(`${f.name}: ${e instanceof Error ? e.message : String(e)}`)
+        messages.push(`${f.name}: ${errorText(e)}`)
       }
     }
     if (added.length > 0) {
-      messages.unshift(`Imported ${added.length} route${added.length === 1 ? '' : 's'}.`)
+      messages.unshift(t().library.routes.imported(added.length))
       this.imported = [...this.imported, ...added]
     }
     this.messages = messages

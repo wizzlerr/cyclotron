@@ -17,7 +17,15 @@ export interface DecodedActivity {
   samples: RideSample[]
 }
 
-export class FitImportError extends Error {}
+/** `code` lets the UI word the error in its own language (DESIGN.md D21). */
+export class FitImportError extends Error {
+  constructor(
+    readonly code: 'notFit' | 'noRecords',
+    message: string,
+  ) {
+    super(message)
+  }
+}
 
 // FIT time counts seconds from 1989-12-31T00:00:00Z.
 const FIT_EPOCH_S = 631065600
@@ -25,11 +33,14 @@ const SEMICIRCLE_TO_DEG = 180 / 2 ** 31
 
 export function decodeFitActivity(bytes: Uint8Array): DecodedActivity {
   const decoder = new Decoder(Stream.fromByteArray(bytes))
-  if (!decoder.isFIT()) throw new FitImportError('not a FIT file')
+  if (!decoder.isFIT()) throw new FitImportError('notFit', 'not a FIT file')
   const { messages, errors } = decoder.read()
   const records = (messages.recordMesgs ?? []).filter((r) => r.timestamp instanceof Date)
   if (records.length === 0) {
-    throw new FitImportError(errors.length > 0 ? String(errors[0]) : 'no data records in the file')
+    throw new FitImportError(
+      'noRecords',
+      errors.length > 0 ? String(errors[0]) : 'no data records in the file',
+    )
   }
 
   const startedAtMs = (records[0]!.timestamp as Date).getTime() - 1000

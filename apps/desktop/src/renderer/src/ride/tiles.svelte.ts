@@ -1,5 +1,6 @@
 // E4-5: which tiles the ride screen shows, in which order.
 
+import { t } from '../i18n/t'
 import { loadPref, savePref } from '../lib/prefs'
 
 export type TileId =
@@ -20,24 +21,32 @@ export type TileId =
   | 'tss'
   | 'kcal'
 
-export const TILES: readonly { id: TileId; label: string }[] = [
-  { id: 'power3s', label: 'Power (3 s average)' },
-  { id: 'power', label: 'Power (instant)' },
-  { id: 'power10s', label: 'Power (10 s average)' },
-  { id: 'target', label: 'Target' },
-  { id: 'intervalLeft', label: 'Interval time left (workouts)' },
-  { id: 'intervalAvg', label: 'Interval average power' },
-  { id: 'elapsed', label: 'Elapsed' },
-  { id: 'hr', label: 'Heart rate' },
-  { id: 'cadence', label: 'Cadence' },
-  { id: 'speed', label: 'Speed' },
-  { id: 'wkg', label: 'W/kg (3 s)' },
-  { id: 'avgPower', label: 'Average power' },
-  { id: 'np', label: 'Normalized Power' },
-  { id: 'if', label: 'Intensity Factor' },
-  { id: 'tss', label: 'TSS' },
-  { id: 'kcal', label: 'Calories (kcal)' },
+const TILE_IDS: readonly TileId[] = [
+  'power3s',
+  'power',
+  'power10s',
+  'target',
+  'intervalLeft',
+  'intervalAvg',
+  'elapsed',
+  'hr',
+  'cadence',
+  'speed',
+  'wkg',
+  'avgPower',
+  'np',
+  'if',
+  'tss',
+  'kcal',
 ]
+
+/** Every tile, in layout order. `label` is the long name in the UI language (read at render). */
+export const TILES: readonly { id: TileId; readonly label: string }[] = TILE_IDS.map((id) => ({
+  id,
+  get label() {
+    return t().ride.tiles[id].long
+  },
+}))
 
 const DEFAULT: TileId[] = [
   'power3s',

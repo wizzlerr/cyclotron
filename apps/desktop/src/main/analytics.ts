@@ -21,6 +21,7 @@ import {
   type WeekZones,
 } from '../shared/api'
 import { getDb, getSetting, transaction } from './db'
+import { errorText, strings } from './i18n'
 import { fitFolder, int, rideRow, toRide, toSample, type SampleRow } from './rides'
 
 // History and analytics (E9, DESIGN.md §4.4, D19). Per-ride aggregates are computed once when a
@@ -158,9 +159,9 @@ export function registerAnalyticsIpc(): void {
   ipcMain.handle(IPC.ridesImportFit, async (event): Promise<ImportResult> => {
     const win = BrowserWindow.fromWebContents(event.sender)
     const options: Electron.OpenDialogOptions = {
-      title: 'Import rides from FIT files',
+      title: strings().importFitTitle,
       properties: ['openFile', 'multiSelections'],
-      filters: [{ name: 'FIT activities', extensions: ['fit'] }],
+      filters: [{ name: strings().fitFilter, extensions: ['fit'] }],
     }
     const picked = win
       ? await dialog.showOpenDialog(win, options)
@@ -174,7 +175,7 @@ export function registerAnalyticsIpc(): void {
         if (why) result.skipped.push(`${name}: ${why}`)
         else result.imported++
       } catch (e) {
-        result.skipped.push(`${name}: ${e instanceof Error ? e.message : String(e)}`)
+        result.skipped.push(`${name}: ${errorText(e)}`)
       }
     }
     return result
@@ -184,12 +185,12 @@ export function registerAnalyticsIpc(): void {
 /** Adds one FIT file to the history; returns why it was skipped, if it was. */
 async function importFitFile(path: string): Promise<string | undefined> {
   const activity = decodeFitActivity(new Uint8Array(await readFile(path)))
-  if (activity.sport && activity.sport !== 'cycling') return `not a ride (${activity.sport})`
+  if (activity.sport && activity.sport !== 'cycling') return strings().notARide(activity.sport)
   const db = getDb()
   const duplicate = db
     .prepare('select id from rides where abs(started_at - ?) < ? limit 1')
     .get(activity.startedAtMs, SAME_RIDE_MS)
-  if (duplicate) return 'already in your history'
+  if (duplicate) return strings().duplicate
 
   const startedAt = activity.startedAtMs
   const utcOffsetMin = activity.utcOffsetMin ?? -new Date(startedAt).getTimezoneOffset()

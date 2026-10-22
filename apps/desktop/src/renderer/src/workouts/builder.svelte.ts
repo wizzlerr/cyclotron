@@ -1,4 +1,6 @@
 import { newStep, type Workout } from '@cyclotron/core'
+import { workoutDescription, workoutName } from '../i18n/content'
+import { t } from '../i18n/t'
 
 /** The workout being built or edited (E3-8). Deep state: the step editor mutates it in place. */
 class Builder {
@@ -27,7 +29,9 @@ class Builder {
     const copy = clone(w)
     // A copy of an FTP test is just a workout: no automatic result or ramp-failure detection.
     delete copy.ftpTest
-    this.set({ ...copy, id: newId(), name: `${w.name} (copy)`, source: 'custom' }, undefined)
+    const name = t().library.builder.copyName(workoutName(w))
+    const description = copy.source === 'builtin' ? workoutDescription(w) : copy.description
+    this.set({ ...copy, id: newId(), name, description, source: 'custom' }, undefined)
     // A copy isn't saved yet.
     this.saved = ''
   }
@@ -51,7 +55,7 @@ function clone(w: Workout): Workout {
 function blank(): Workout {
   return {
     id: newId(),
-    name: 'My workout',
+    name: t().library.builder.defaultName,
     type: 'endurance',
     source: 'custom',
     steps: [newStep('warmup'), newStep('steady'), newStep('cooldown')],

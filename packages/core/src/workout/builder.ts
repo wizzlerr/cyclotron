@@ -32,38 +32,44 @@ export function newStep(template: StepTemplate): WorkoutStep {
   }
 }
 
-const MAX_PCT = 3
-const MAX_REPEAT = 50
-const MAX_DURATION_S = 12 * 3600
+export const MAX_PCT = 3
+export const MAX_REPEAT = 50
+export const MAX_DURATION_S = 12 * 3600
+
+/**
+ * Something that stops a workout from being saved. `path` is the 0-based step position (two
+ * entries for a step inside a repeat). The UI words it (core has no language, DESIGN.md D21).
+ */
+export interface WorkoutProblem {
+  code: 'noName' | 'noSteps' | 'repeatCount' | 'emptyRepeat' | 'nestedRepeat' | 'duration' | 'power'
+  path?: number[]
+}
 
 /** Problems that stop a workout from being saved; empty when it's fine. */
-export function validateWorkout(w: Workout): string[] {
-  const problems: string[] = []
-  if (!w.name.trim()) problems.push('Give the workout a name.')
-  if (w.steps.length === 0) problems.push('Add at least one step.')
-  const check = (steps: readonly WorkoutStep[], where: string): void => {
+export function validateWorkout(w: Workout): WorkoutProblem[] {
+  const problems: WorkoutProblem[] = []
+  if (!w.name.trim()) problems.push({ code: 'noName' })
+  if (w.steps.length === 0) problems.push({ code: 'noSteps' })
+  const check = (steps: readonly WorkoutStep[], where: number[]): void => {
     steps.forEach((s, i) => {
-      const at = `${where}step ${i + 1}`
+      const path = [...where, i]
       if (s.kind === 'repeat') {
         if (!Number.isInteger(s.count) || s.count < 1 || s.count > MAX_REPEAT) {
-          problems.push(`${at}: repeat 1–${MAX_REPEAT} times.`)
+          problems.push({ code: 'repeatCount', path })
         }
-        if (s.steps.length === 0) problems.push(`${at}: the repeat has no steps.`)
-        if (s.steps.some((x) => x.kind === 'repeat'))
-          problems.push(`${at}: repeats can't be nested.`)
-        check(s.steps, `${at}, `)
+        if (s.steps.length === 0) problems.push({ code: 'emptyRepeat', path })
+        if (s.steps.some((x) => x.kind === 'repeat')) problems.push({ code: 'nestedRepeat', path })
+        check(s.steps, path)
         return
       }
       if (!(s.durationS >= 1 && s.durationS <= MAX_DURATION_S)) {
-        problems.push(`${at}: duration must be between 0:01 and 12:00:00.`)
+        problems.push({ code: 'duration', path })
       }
       const pcts = s.kind === 'steady' ? [s.pct] : s.kind === 'ramp' ? [s.fromPct, s.toPct] : []
-      if (pcts.some((p) => !(p >= 0 && p <= MAX_PCT))) {
-        problems.push(`${at}: power must be 0–${MAX_PCT * 100} % of FTP.`)
-      }
+      if (pcts.some((p) => !(p >= 0 && p <= MAX_PCT))) problems.push({ code: 'power', path })
     })
   }
-  check(w.steps, '')
+  check(w.steps, [])
   return problems
 }
 

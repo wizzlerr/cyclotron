@@ -17,6 +17,8 @@ import {
   type Workout,
 } from '@cyclotron/core'
 import { devices } from '../devices/devices.svelte'
+import { routeName, workoutName } from '../i18n/content'
+import { t } from '../i18n/t'
 import { profile } from '../profile.svelte'
 import { countdownCue, finishCue, stepCue } from './cues'
 import { RideRecorder, type FinishedRide } from './recorder'
@@ -71,7 +73,8 @@ class RideSession {
   /** Set once a finished ride has been saved. */
   result = $state.raw<FinishedRide | undefined>()
   saving = $state(false)
-  error = $state<string | undefined>()
+  /** Words itself at render, so it follows a language change. */
+  error = $state<(() => string) | undefined>()
   /** Ride totals so far (E4-3); undefined until the ride starts. */
   metrics = $state.raw<LiveMetrics | undefined>()
   /** Not reactive (it grows every second); `chartVersion` changes when it does. */
@@ -80,7 +83,9 @@ class RideSession {
   /** Average power in the current segment so far, for pacing efforts like the 20-min test. */
   intervalAvgW = $state<number | undefined>()
   /** Shown when the ramp test detected failure and moved on to the cooldown. */
-  notice = $state<string | undefined>()
+  /** Words itself at render, so it follows a language change. */
+  notice = $state<(() => string) | undefined>()
+  private pausedBySuspend = false
   /** The route being ridden, if any (E13). */
   route = $state.raw<Route | undefined>()
   routeState = $state.raw<RouteState | undefined>()
@@ -115,6 +120,7 @@ class RideSession {
     this.interval = { segment: -1, sum: 0, n: 0 }
     this.intervalAvgW = undefined
     this.notice = undefined
+    this.pausedBySuspend = false
     this.route = undefined
     this.routeState = undefined
     this.rider = undefined
@@ -128,7 +134,7 @@ class RideSession {
    * the route only provides the scenery (E13-8), starting over if it ends first.
    */
   loadRoute(route: Route, workout?: Workout): boolean {
-    const w = workout ?? { ...FREE_RIDE_WORKOUT, id: ROUTE_RIDE_ID, name: route.name }
+    const w = workout ?? { ...FREE_RIDE_WORKOUT, id: ROUTE_RIDE_ID, name: routeName(route) }
     if (!this.load(w)) return false
     this.route = route
     this.routeState = {
@@ -187,12 +193,14 @@ class RideSession {
       utcOffsetMin: -new Date().getTimezoneOffset(),
       workoutId: workout.id,
       workoutName:
-        route && workout.id !== ROUTE_RIDE_ID ? `${workout.name} · ${route.name}` : workout.name,
+        route && workout.id !== ROUTE_RIDE_ID
+          ? `${workoutName(workout)} · ${routeName(route)}`
+          : workoutName(workout),
       ftpW: this.player.ftpW,
       routeId: route?.id,
     })
       .then((r) => (this.recorder = r))
-      .catch((e: unknown) => (this.error = `Recording failed: ${message(e)}`))
+      .catch((e: unknown) => (this.error = () => t().ride.notices.recordingFailed(message(e))))
     this.scheduleTick()
     this.refresh()
   }
@@ -206,7 +214,10 @@ class RideSession {
   }
 
   resume(): void {
-    if (this.notice?.startsWith('Paused:')) this.notice = undefined
+    if (this.pausedBySuspend) {
+      this.notice = undefined
+      this.pausedBySuspend = false
+    }
     this.advanceToNow()
     this.player?.resume()
     this.refresh()
@@ -262,6 +273,7 @@ class RideSession {
     this.chart = emptyChart()
     this.chartVersion++
     this.notice = undefined
+    this.pausedBySuspend = false
     this.route = undefined
     this.routeState = undefined
     this.rider = undefined
@@ -289,7 +301,9 @@ class RideSession {
     if (this.state?.status === 'running') {
       if (gapMs > MAX_GAP_MS) {
         this.player?.pause()
-        this.notice = `Paused: the app was suspended for ${Math.round(gapMs / 1000)} s (sleep?). Resume when you're ready.`
+        const s = Math.round(gapMs / 1000)
+        this.notice = () => t().ride.notices.suspended(s)
+        this.pausedBySuspend = true
       } else {
         this.player?.advance(gapMs / 1000)
         this.ride(gapMs / 1000)
@@ -313,7 +327,8 @@ class RideSession {
     }
     if (rider.finished) {
       this.player?.finish()
-      this.notice = `You made it to the end of ${rider.route.name}.`
+      const route = rider.route
+      this.notice = () => t().ride.notices.routeFinished(routeName(route))
     }
   }
 
@@ -376,7 +391,7 @@ class RideSession {
     if (!this.rampFailure.update(sample)) return
     const cooldown = this.player.timeline.find((x) => x.index > s.segment!.index && !x.effort)
     if (cooldown) this.player.skipTo(cooldown.index)
-    this.notice = 'Ramp done: power dropped below the target. Cooling down; end the ride any time.'
+    this.notice = () => t().ride.notices.rampDone
     this.refresh()
   }
 
@@ -403,7 +418,8 @@ class RideSession {
     try {
       this.result = await recorder.finish()
     } catch (e) {
-      this.error = `Saving the ride failed: ${message(e)}`
+      const why = message(e)
+      this.error = () => t().ride.notices.savingFailed(why)
     } finally {
       this.saving = false
     }

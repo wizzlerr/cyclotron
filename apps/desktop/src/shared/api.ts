@@ -79,6 +79,14 @@ export interface ImportResult {
   skipped: string[]
 }
 
+/** How often a workout was ridden (E10-4). */
+export interface WorkoutDone {
+  workoutId: string
+  count: number
+  /** ms since epoch of the latest ride. */
+  lastAt: number
+}
+
 export type FtpSource = 'manual' | 'ramp' | '20min' | 'estimate'
 
 export interface FtpEntry {
@@ -172,6 +180,8 @@ export interface CyclotronApi {
     detail(rideId: number): Promise<RideDetail | null>
     /** Asks for FIT files and adds them to the history (E9-5). */
     importFit(): Promise<ImportResult>
+    /** Finished rides per workout id. */
+    workoutsDone(): Promise<WorkoutDone[]>
   }
   analytics: {
     /** Best power per duration over the last `days` days, or all time when null. */
@@ -228,6 +238,7 @@ export const IPC = {
   ridesChooseFitFolder: 'rides:chooseFitFolder',
   ridesDetail: 'rides:detail',
   ridesImportFit: 'rides:importFit',
+  ridesWorkoutsDone: 'rides:workoutsDone',
   analyticsPowerCurve: 'analytics:powerCurve',
   analyticsLoad: 'analytics:load',
   analyticsZonesByWeek: 'analytics:zonesByWeek',

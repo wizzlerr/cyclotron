@@ -9,15 +9,16 @@ export type Screen =
   | 'builder'
   | 'spike'
 
-export const SCREENS: { id: Screen; label: string }[] = [
-  { id: 'home', label: 'Home' },
-  { id: 'ride', label: 'Ride' },
-  { id: 'workouts', label: 'Workouts' },
-  { id: 'routes', label: 'Routes' },
-  { id: 'history', label: 'History' },
-  { id: 'progress', label: 'Progress' },
-  { id: 'settings', label: 'Settings' },
-]
+/** Screens in the sidebar; labels come from `t().app.nav[id]`. */
+export const SCREENS = [
+  'home',
+  'ride',
+  'workouts',
+  'routes',
+  'history',
+  'progress',
+  'settings',
+] as const satisfies readonly Screen[]
 
 /** Current screen. Plain state-based navigation; no router needed for a desktop app. */
 export const nav = $state<{ screen: Screen }>({ screen: 'home' })

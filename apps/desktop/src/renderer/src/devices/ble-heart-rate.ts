@@ -2,6 +2,7 @@ import { GATT, parseHeartRateMeasurement } from '@cyclotron/core'
 import { BleLink } from './ble-link'
 import { Emitter } from './emitter'
 import type { HeartRateSource, LinkStatus } from './types'
+import { t } from '../i18n/t'
 
 export const HEART_RATE_SERVICES: BluetoothServiceUUID[] = [GATT.heartRate]
 
@@ -12,7 +13,7 @@ export class BleHeartRate implements HeartRateSource {
   private hr = new Emitter<number>()
 
   private constructor(device: BluetoothDevice) {
-    this.name = device.name ?? 'Heart rate'
+    this.name = device.name ?? t().app.devices.heartRate
     this.link = new BleLink(
       device,
       (server) => this.setup(server),

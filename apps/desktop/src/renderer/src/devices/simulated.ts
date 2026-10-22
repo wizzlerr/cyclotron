@@ -9,13 +9,16 @@ import {
 } from '@cyclotron/core'
 import { Emitter } from './emitter'
 import type { HeartRateSource, Trainer, TrainerData } from './types'
+import { t } from '../i18n/t'
 
 const TICK_MS = 1000
 
 /** Fake trainer + HR strap driven by the core simulation model (E1-6). */
 export class SimulatedTrainer implements Trainer {
   readonly kind = 'simulated'
-  readonly name = 'Simulated trainer'
+  get name(): string {
+    return t().app.devices.simulatedTrainer
+  }
   readonly heartRate: HeartRateSource
 
   private state: SimState
@@ -31,7 +34,9 @@ export class SimulatedTrainer implements Trainer {
     this.state = initialSimState(cfg)
     this.timer = setInterval(() => this.tick(), TICK_MS)
     this.heartRate = {
-      name: 'Simulated HR',
+      get name() {
+        return t().app.devices.simulatedHr
+      },
       onHeartRate: (listener) => this.hr.on(listener),
       onStatus: () => () => {},
       disconnect: async () => {},

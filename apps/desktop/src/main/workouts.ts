@@ -2,6 +2,7 @@ import { readFile, rename, writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import { app, BrowserWindow, dialog, ipcMain } from 'electron'
 import { IPC, type PickedFile } from '../shared/api'
+import { strings } from './i18n'
 
 // The user's workout library (imported and, later, custom workouts) lives in
 // <userData>/workouts.json (DESIGN.md §6.1). Built-ins ship with the app and aren't stored.
@@ -30,9 +31,9 @@ export function registerWorkoutsIpc(): void {
     async (event, fileName: string, xml: string): Promise<string | null> => {
       const win = BrowserWindow.fromWebContents(event.sender)
       const options: Electron.SaveDialogOptions = {
-        title: 'Export workout',
+        title: strings().exportZwoTitle,
         defaultPath: join(app.getPath('documents'), basename(fileName)),
-        filters: [{ name: 'Zwift workouts', extensions: ['zwo'] }],
+        filters: [{ name: strings().zwoFilter, extensions: ['zwo'] }],
       }
       const result = win
         ? await dialog.showSaveDialog(win, options)
@@ -46,9 +47,9 @@ export function registerWorkoutsIpc(): void {
   ipcMain.handle(IPC.workoutsPickZwo, async (event): Promise<PickedFile[]> => {
     const win = BrowserWindow.fromWebContents(event.sender)
     const options: Electron.OpenDialogOptions = {
-      title: 'Import Zwift workouts',
+      title: strings().importZwoTitle,
       properties: ['openFile', 'multiSelections'],
-      filters: [{ name: 'Zwift workouts', extensions: ['zwo'] }],
+      filters: [{ name: strings().zwoFilter, extensions: ['zwo'] }],
     }
     const result = win
       ? await dialog.showOpenDialog(win, options)

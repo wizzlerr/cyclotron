@@ -14,6 +14,7 @@ import {
 import { BleLink } from './ble-link'
 import { Emitter } from './emitter'
 import type { HeartRateSource, LinkStatus, Trainer, TrainerControl, TrainerData } from './types'
+import { t } from '../i18n/t'
 
 /** Services the trainer connection asks for. Kept lean: E1-0 saw ~70 s connects with everything. */
 export const TRAINER_SERVICES: BluetoothServiceUUID[] = [GATT.fitnessMachine, GATT.heartRate]
@@ -45,7 +46,7 @@ export class FtmsTrainer implements Trainer {
   private disconnected = new Emitter<void>()
 
   private constructor(device: BluetoothDevice) {
-    this.name = device.name ?? 'Trainer'
+    this.name = device.name ?? t().app.devices.trainer
     this.link = new BleLink(
       device,
       (server) => this.setup(server),

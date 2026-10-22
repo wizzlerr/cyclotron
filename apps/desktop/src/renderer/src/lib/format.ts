@@ -1,4 +1,6 @@
 import type { Segment } from '@cyclotron/core'
+import { formatNumber } from '../i18n/i18n.svelte'
+import { t } from '../i18n/t'
 
 /** 75 → "1:15", 3725 → "1:02:05". */
 export function formatDuration(seconds: number): string {
@@ -16,22 +18,23 @@ export function describeSegment(seg: Segment | undefined): string {
   if (!seg) return ''
   const rep = seg.repeat ? ` · ${seg.repeat.index}/${seg.repeat.count}` : ''
   const cad = seg.cadence ? ` · ${seg.cadence} rpm` : ''
+  const s = t().common.segments
   switch (seg.kind) {
     case 'steady':
-      return `Steady ${formatPct(seg.toPct)}${cad}${rep}`
+      return `${s.steady} ${formatPct(seg.toPct)}${cad}${rep}`
     case 'ramp':
-      return `Ramp ${formatPct(seg.fromPct)} → ${formatPct(seg.toPct)}${cad}${rep}`
+      return `${s.ramp} ${formatPct(seg.fromPct)} → ${formatPct(seg.toPct)}${cad}${rep}`
     case 'freeride':
-      return `Free ride${rep}`
+      return `${s.freeride}${rep}`
     case 'maxeffort':
-      return seg.effort ? 'Test effort: as hard as you can hold evenly' : `Max effort${rep}`
+      return seg.effort ? s.testEffort : `${s.maxeffort}${rep}`
   }
 }
 
 /** 12345 → "12.3 km", 850 → "0.85 km". */
 export function formatKm(metres: number): string {
   const km = Math.max(0, metres) / 1000
-  return `${km < 1 ? km.toFixed(2) : km.toFixed(1)} km`
+  return `${formatNumber(km, km < 1 ? 2 : 1)} km`
 }
 
 /** Power-curve durations: 5 → "5 s", 300 → "5 min", 3600 → "60 min". */

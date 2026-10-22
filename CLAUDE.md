@@ -27,7 +27,11 @@ Read both before starting work. Refer to tasks by ID (e.g. "E1-0").
 - **Order changed (2026-10-21, user):** server (E8) moves to the end; E9 → E10 → E11 → E12 run on the desktop first (D19). `core/metrics/curve.ts` and `load.ts` were written at the start of E8 and are kept for E9.
 - **E9 done** (2026-10-21): ride detail (History), Progress screen (fitness/fatigue/form, power curve, weekly zones, FTP estimate), FIT import; aggregates in desktop SQLite (migration 4, `main/analytics.ts`), `core/fit/decode.ts`. Server role + online/offline model + cloud-folder sync epic E14 written into DESIGN §8 (D20). Charts follow the dataviz rules (one y-axis per chart, validated `--series-1..3` colours).
 - **E3-8 workout builder done** (2026-10-21): `screens/Builder.svelte`, `components/StepRow.svelte`, `workouts/builder.svelte.ts`, `core/workout/builder.ts` (validation, `parseDuration`, `workoutToZwo`). Driven end to end.
-- Next step: E10 (workout library), then E11 → E12, then E8 (server), E14 (folder sync).
+- **E10 done** (2026-10-22): 47 built-in workouts (`core/workout/builtin.ts`), `workoutMeta` (type classification, difficulty 1–10, zone times) in `core/workout/meta.ts`, Workouts screen with search/type/length/level filters, sort, favourites and "done before" markers. Player Test moved to Settings → Developer. Driven in the dev app; the "done" marker wasn't seen live (the dev DB has only a free ride).
+- **Route picker / workout picker** (2026-10-22): Ride on a workout card opens a visual route picker, Ride on a route card a visual workout picker (both on `components/PickerDialog.svelte`); FTP tests skip the route picker.
+- **E15 Polish done** (2026-10-22, D21): in-house i18n in `renderer/src/i18n/` (`t()`, one messages file per area with `pl: typeof en`, `content.ts` for built-in workout/route text, `errors.ts`), language select in Settings (first start follows the system), live switching. Core is language-free: `validateWorkout` returns `WorkoutProblem` codes, parser errors carry `code`, `WORKOUT_TYPE_NAMES` removed. Main words its dialogs (`main/i18n.ts`). BLE spike stays English. Driven in Polish on the simulated trainer.
+- Next step: E11 (recommendations, write new UI text into the i18n catalogues in both languages), then E12, then E8 (server), E14 (folder sync).
+- **Resume here (saved 2026-10-22):** E10, the pickers and E15 are uncommitted on top of `5aa8c04`; 128 tests, typecheck, lint, format and build pass. Start E11. Open checks for the user, none blocking: a real KICKR ride in grade (route) mode; E13-6 (route ride shows as a virtual ride in Garmin/Strava); rebuild the installer with `pnpm dist`; the macOS `.dmg` is untested.
 - Shell note: pnpm lives in `%APPDATA%\npm`; the Bash tool's PATH doesn't include Node, so run pnpm through PowerShell after refreshing `$env:Path` from the Machine+User values.
 
 ## Open questions to raise with the user
@@ -55,5 +59,6 @@ Resolved 2026-10-21: trainer is a **KICKR CORE 2** (D14, FTMS expected); UI is *
 ## Conventions
 
 - Keep `packages/core` pure and unit-tested (Vitest). Time is passed in, never read.
+- UI text is bilingual (English + Polish, D21): never hard-code user-visible strings; add them to the area's `renderer/src/i18n/messages/*.ts` in both `en` and `pl`, use `formatNumber`/`formatDate` for numbers and dates. `core` returns codes, not sentences.
 - Electron security defaults: `contextIsolation`, `sandbox`, no `nodeIntegration`; the UI only talks to main via the typed preload API.
 - Update BACKLOG.md when scope changes, and DESIGN.md §2 when a decision is made or reversed. Update "Current status" above at the end of each session.

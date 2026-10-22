@@ -3,6 +3,7 @@ import { basename } from 'node:path'
 import { BrowserWindow, dialog, ipcMain } from 'electron'
 import { IPC, type PickedFile, type StoredRoute } from '../shared/api'
 import { getDb } from './db'
+import { strings } from './i18n'
 
 // Imported routes (E13-7). The renderer parses GPX and builds routes with core; main stores the
 // raw points so the route can be rebuilt the same way later.
@@ -54,9 +55,9 @@ export function registerRoutesIpc(): void {
   ipcMain.handle(IPC.routesPickGpx, async (event): Promise<PickedFile[]> => {
     const win = BrowserWindow.fromWebContents(event.sender)
     const options: Electron.OpenDialogOptions = {
-      title: 'Import GPX routes',
+      title: strings().importGpxTitle,
       properties: ['openFile', 'multiSelections'],
-      filters: [{ name: 'GPX routes', extensions: ['gpx'] }],
+      filters: [{ name: strings().gpxFilter, extensions: ['gpx'] }],
     }
     const result = win
       ? await dialog.showOpenDialog(win, options)

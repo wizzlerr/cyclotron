@@ -1,42 +1,46 @@
 <script lang="ts">
   import { devices } from '../devices/devices.svelte'
   import { go } from '../nav.svelte'
+  import { formatDateTime } from '../i18n/i18n.svelte'
+  import { t } from '../i18n/t'
   import { recovery } from '../ride/recovery.svelte'
 
-  const date = (ms: number): string =>
-    new Date(ms).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+  const h = $derived(t().app.home)
 </script>
 
-<h1>Home</h1>
+<h1>{h.title}</h1>
 
 <div class="cards">
   {#if recovery.found}
     <section class="card">
-      <h2>Unfinished ride</h2>
+      <h2>{h.unfinishedTitle}</h2>
       <p>
-        {recovery.found.ride.workoutName} from {date(recovery.found.ride.startedAt)} wasn't finished ({recovery
-          .found.samples.length} s recorded). Save what was recorded?
+        {h.unfinished(
+          recovery.found.ride.workoutName,
+          formatDateTime(recovery.found.ride.startedAt),
+          recovery.found.samples.length,
+        )}
       </p>
-      <button onclick={() => recovery.save()} disabled={recovery.busy}>Save ride</button>
-      <button onclick={() => recovery.discard()} disabled={recovery.busy}>Discard</button>
+      <button onclick={() => recovery.save()} disabled={recovery.busy}>{h.saveRide}</button>
+      <button onclick={() => recovery.discard()} disabled={recovery.busy}>{h.discard}</button>
     </section>
   {/if}
   {#if recovery.message}<p class="muted">{recovery.message}</p>{/if}
 
   <section class="card">
-    <h2>Today</h2>
-    <p class="muted">Recommended workouts arrive with E11.</p>
+    <h2>{h.today}</h2>
+    <p class="muted">{h.todaySoon}</p>
   </section>
 
   <section class="card">
-    <h2>Quick start</h2>
+    <h2>{h.quickStart}</h2>
     {#if devices.trainer}
-      <button onclick={() => go('ride')}>Free ride</button>
-      <button onclick={() => go('workouts')}>Workouts…</button>
-      <button onclick={() => go('workouts')}>FTP test…</button>
+      <button onclick={() => go('ride')}>{h.freeRide}</button>
+      <button onclick={() => go('workouts')}>{h.workouts}</button>
+      <button onclick={() => go('workouts')}>{h.ftpTest}</button>
     {:else}
-      <p class="muted">Connect a trainer first.</p>
-      <button onclick={() => go('settings')}>Devices…</button>
+      <p class="muted">{h.connectFirst}</p>
+      <button onclick={() => go('settings')}>{h.devices}</button>
     {/if}
   </section>
 </div>

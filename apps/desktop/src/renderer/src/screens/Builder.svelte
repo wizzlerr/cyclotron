@@ -2,15 +2,20 @@
   // E3-8: workout builder. Edits builder.draft in place; the profile and stats follow live.
   import {
     buildTimeline,
+    MAX_PCT,
+    MAX_REPEAT,
     newStep,
     validateWorkout,
     workoutStats,
     workoutToZwo,
     type StepTemplate,
     type Workout,
+    type WorkoutProblem,
   } from '@cyclotron/core'
   import StepRow from '../components/StepRow.svelte'
   import WorkoutProfile from '../components/WorkoutProfile.svelte'
+  import { formatNumber } from '../i18n/i18n.svelte'
+  import { t } from '../i18n/t'
   import { formatDuration } from '../lib/format'
   import { go } from '../nav.svelte'
   import { profile } from '../profile.svelte'
@@ -37,15 +42,31 @@
     'sprint',
     'other',
   ]
-  const ADD: { template: StepTemplate; label: string }[] = [
-    { template: 'warmup', label: 'Warm-up' },
-    { template: 'steady', label: 'Steady' },
-    { template: 'intervals', label: 'Intervals' },
-    { template: 'ramp', label: 'Ramp' },
-    { template: 'freeride', label: 'Free ride' },
-    { template: 'maxeffort', label: 'Max effort' },
-    { template: 'cooldown', label: 'Cool-down' },
+  const ADD: StepTemplate[] = [
+    'warmup',
+    'steady',
+    'intervals',
+    'ramp',
+    'freeride',
+    'maxeffort',
+    'cooldown',
   ]
+
+  const typeLabel = (type: string): string =>
+    (t().common.workoutTypes as Record<string, string>)[type] ??
+    t().library.builder.extraTypes[type] ??
+    type
+
+  function problemText(p: WorkoutProblem): string {
+    const b = t().library.builder
+    const text =
+      p.code === 'repeatCount'
+        ? b.problems.repeatCount(MAX_REPEAT)
+        : p.code === 'power'
+          ? b.problems.power(MAX_PCT * 100)
+          : b.problems[p.code]
+    return p.path ? `${b.stepAt(p.path)}: ${text}` : text
+  }
 
   function snapshot(): Workout {
     const w = $state.snapshot(builder.draft) as Workout
@@ -57,7 +78,7 @@
     const w = snapshot()
     await library.upsert(w)
     builder.markSaved(w.id)
-    message = `Saved "${w.name}" to your workouts.`
+    message = t().library.builder.savedMessage(w.name)
     return w
   }
 
@@ -65,15 +86,14 @@
     const w = await save()
     if (!w) return
     if (ride.load(w)) go('ride')
-    else message = 'Saved. Finish or end the current ride first to ride it.'
+    else message = t().library.builder.savedBusy
   }
 
   async function exportZwo(): Promise<void> {
     if (problems.length > 0) return
     const w = snapshot()
     const path = await window.cyclotron.workouts.exportZwo(`${w.name}.zwo`, workoutToZwo(w))
-    if (path)
-      message = `Exported to ${path}. Zwift, TrainerRoad, MyWhoosh and others can import it.`
+    if (path) message = t().library.builder.exported(path)
   }
 
   function leave(): void {
@@ -87,19 +107,23 @@
 </script>
 
 <div class="head">
-  <h1>{builder.editingId ? 'Edit workout' : 'New workout'}</h1>
+  <h1>{builder.editingId ? t().library.builder.editTitle : t().library.builder.newTitle}</h1>
   <div class="buttons">
     {#if confirmLeave}
-      <span class="warn">Leave without saving?</span>
-      <button onclick={leave}>Leave</button>
-      <button onclick={() => (confirmLeave = false)}>Stay</button>
+      <span class="warn">{t().library.builder.leaveQuestion}</span>
+      <button onclick={leave}>{t().library.builder.leave}</button>
+      <button onclick={() => (confirmLeave = false)}>{t().library.builder.stay}</button>
     {:else}
-      <button onclick={leave}>← Workouts</button>
+      <button onclick={leave}>{t().library.builder.back}</button>
     {/if}
-    <button onclick={exportZwo} disabled={problems.length > 0}>Export .zwo…</button>
-    <button onclick={saveAndRide} disabled={problems.length > 0}>Save and ride</button>
+    <button onclick={exportZwo} disabled={problems.length > 0}
+      >{t().library.builder.exportZwo}</button
+    >
+    <button onclick={saveAndRide} disabled={problems.length > 0}
+      >{t().library.builder.saveAndRide}</button
+    >
     <button class="primary" onclick={save} disabled={problems.length > 0 || !builder.dirty}>
-      {builder.dirty ? 'Save' : 'Saved'}
+      {builder.dirty ? t().common.actions.save : t().library.builder.saved}
     </button>
   </div>
 </div>
@@ -109,29 +133,30 @@
 <section class="card wide">
   <div class="meta">
     <label>
-      Name
+      {t().library.builder.name}
       <input class="name" bind:value={builder.draft.name} maxlength="80" />
     </label>
     <label>
-      Type
+      {t().library.builder.type}
       <select bind:value={builder.draft.type}>
-        {#each TYPES as t (t)}<option value={t}>{t}</option>{/each}
+        {#each TYPES as type (type)}<option value={type}>{typeLabel(type)}</option>{/each}
       </select>
     </label>
     {#if stats}
       <p class="stats">
-        {formatDuration(stats.durationS)} · TSS {Math.round(stats.tss)} · IF {stats.intensity.toFixed(
+        {formatDuration(stats.durationS)} · TSS {Math.round(stats.tss)} · IF {formatNumber(
+          stats.intensity,
           2,
-        )} · at your FTP of {profile.ftpW} W
+        )} · {t().library.builder.atFtp(profile.ftpW)}
       </p>
     {/if}
   </div>
   <label class="desc">
-    Description
+    {t().library.builder.description}
     <textarea
       rows="2"
       maxlength="2000"
-      placeholder="What the workout is for, and how to ride it"
+      placeholder={t().library.builder.descriptionPlaceholder}
       value={builder.draft.description ?? ''}
       oninput={(e) => (builder.draft.description = e.currentTarget.value || undefined)}></textarea>
   </label>
@@ -144,9 +169,9 @@
 </section>
 
 <section class="card wide">
-  <h2>Steps</h2>
+  <h2>{t().library.builder.steps}</h2>
   {#if draft.steps.length === 0}
-    <p class="muted">No steps yet. Add some below.</p>
+    <p class="muted">{t().library.builder.noSteps}</p>
   {/if}
   <ol class="steps">
     {#each draft.steps, i (i)}
@@ -154,14 +179,16 @@
     {/each}
   </ol>
   <div class="add">
-    <span class="muted">Add:</span>
-    {#each ADD as a (a.template)}
-      <button onclick={() => builder.draft.steps.push(newStep(a.template))}>+ {a.label}</button>
+    <span class="muted">{t().library.builder.add}</span>
+    {#each ADD as template (template)}
+      <button onclick={() => builder.draft.steps.push(newStep(template))}
+        >+ {t().library.builder.templates[template]}</button
+      >
     {/each}
   </div>
   {#if problems.length > 0}
     <ul class="problems">
-      {#each problems as p (p)}<li>{p}</li>{/each}
+      {#each problems as p, i (i)}<li>{problemText(p)}</li>{/each}
     </ul>
   {/if}
 </section>
