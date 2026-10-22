@@ -1,5 +1,10 @@
-# Builds the Windows installer and the macOS dmg on a version tag (e.g. v0.2.0) and publishes
-# them, with the latest*.yml files auto-update reads, to a draft GitHub Release (E7).
+# Builds the Windows installer and the macOS dmg on a version tag (e.g. v0.2.0) and attaches them,
+# with the latest*.yml files auto-update reads, to a draft GitHub Release (E7).
+#
+# The draft is created once, up front, with the notes from CHANGELOG.md. The builds only upload
+# to it: when electron-builder published by itself, its parallel uploads each created a draft
+# and the files ended up split over two releases.
+#
 # Signing (E7-4) is optional: add these repository secrets to turn it on.
 #   Windows: WIN_CSC_LINK (base64 .pfx), WIN_CSC_KEY_PASSWORD
 #   macOS:   MAC_CSC_LINK (base64 .p12 "Developer ID Application"), MAC_CSC_KEY_PASSWORD,
@@ -11,12 +16,32 @@ on:
 permissions:
   contents: write
 jobs:
+  draft:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the tag matches the app version
+        run: |
+          version=$(node -p "require('./apps/desktop/package.json').version")
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "Tag $GITHUB_REF_NAME doesn't match apps/desktop/package.json version $version" >&2
+            exit 1
+          fi
+      - name: Create the draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version=${GITHUB_REF_NAME#v}
+          # This version's section of CHANGELOG.md: from its "## <version>" heading to the next "## ".
+          awk -v v="$version" '/^## / { on = index($0, "## " v " ") == 1 || $0 == "## " v; next } on' \
+            CHANGELOG.md > notes.md
+          gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 ||
+            gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft --title "Cyclotron $version" --notes-file notes.md
+
   build:
+    needs: draft
     strategy:
       fail-fast: false
-      # One at a time, Windows first: both upload to the same draft release, and two jobs
-      # creating it at once can make two drafts. A macOS failure doesn't stop the Windows build.
-      max-parallel: 1
       matrix:
         include:
           - os: windows-latest
@@ -33,11 +58,10 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm test
-      - name: Build and publish
+      - name: Build
         working-directory: apps/desktop
         shell: bash
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
           WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
           MAC_CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
@@ -57,4 +81,14 @@ jobs:
             export CSC_IDENTITY_AUTO_DISCOVERY=false
           fi
           pnpm exec electron-vite build
-          pnpm exec electron-builder ${{ matrix.target }} --publish always
+          pnpm exec electron-builder ${{ matrix.target }} --publish never
+      - name: Upload to the draft release
+        working-directory: apps/desktop/dist
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          shopt -s nullglob
+          files=(*.exe *.dmg *.zip *.blockmap latest*.yml)
+          printf 'Uploading %s\n' "${files[@]}"
+          gh release upload "$GITHUB_REF_NAME" "${files[@]}" --repo "$GITHUB_REPOSITORY" --clobber
