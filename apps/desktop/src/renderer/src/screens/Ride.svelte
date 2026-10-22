@@ -5,6 +5,7 @@
   import RouteMap from '../components/RouteMap.svelte'
   import RouteProfile from '../components/RouteProfile.svelte'
   import Tile from '../components/Tile.svelte'
+  import WorldView from '../components/WorldView.svelte'
   import WorkoutProfile from '../components/WorkoutProfile.svelte'
   import { devices } from '../devices/devices.svelte'
   import { workoutName } from '../i18n/content'
@@ -15,6 +16,7 @@
   import { profile } from '../profile.svelte'
   import { ride } from '../ride/session.svelte'
   import { rideTiles, type TileId } from '../ride/tiles.svelte'
+  import { worldPrefs } from '../world/prefs.svelte'
 
   const STEP_W = 10
 
@@ -24,6 +26,7 @@
   const chartHeight = $derived(Math.round(clamp(windowHeight * 0.24, 170, 520)))
   const profileHeight = $derived(Math.round(clamp(windowHeight * 0.13, 100, 300)))
   const mapSize = $derived(Math.round(clamp(windowHeight * 0.17, 150, 380)))
+  const worldMaxHeight = $derived(Math.round(Math.max(220, windowHeight * 0.6)))
   let ergWatts = $state(150)
   let confirmEnd = $state(false)
 
@@ -229,9 +232,20 @@
           <button onclick={() => ride.adjustIntensity(0.05)}>+5</button>
         {/if}
       {/if}
+      <button
+        class="world-toggle"
+        class:on={worldPrefs.enabled}
+        aria-pressed={worldPrefs.enabled}
+        title={worldPrefs.enabled ? t().world.toggleOn : t().world.toggleOff}
+        onclick={() => worldPrefs.setEnabled(!worldPrefs.enabled)}>{t().world.toggle}</button
+      >
       <label class="mute"><input type="checkbox" bind:checked={ride.muted} /> {t().ride.mute}</label
       >
     </section>
+
+    {#if worldPrefs.enabled}
+      {#key ride.route?.id}<WorldView maxHeight={worldMaxHeight} />{/key}
+    {/if}
 
     {#if inFreeStep}
       <section class="controls">{@render ergControls()}</section>
@@ -333,6 +347,15 @@
 {/if}
 
 <style>
+  .world-toggle {
+    margin-left: auto;
+  }
+  .world-toggle.on {
+    outline: 2px solid var(--series-1);
+  }
+  .world-toggle + .mute {
+    margin-left: 0.5rem;
+  }
   .head {
     display: flex;
     align-items: baseline;

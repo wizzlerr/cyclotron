@@ -3,16 +3,18 @@ import type { StoredRide } from '../../../shared/api'
 import { errorText } from '../i18n/errors'
 import { t } from '../i18n/t'
 import { finalizeRide } from './recorder'
+import { ride } from './session.svelte'
 
 type Notice =
   | { kind: 'empty' }
   | { kind: 'saved'; path: string }
   | { kind: 'fitFailed'; error: string }
   | { kind: 'failed'; error: string }
+  | { kind: 'cantContinue' }
 
 /**
- * E5-1 crash recovery: a ride left 'active' (the app crashed or was closed mid-ride) can be saved
- * from its recorded samples or discarded. Resuming the workout itself isn't supported yet.
+ * E5-1 crash recovery: a ride left 'active' (the app crashed or was closed mid-ride) can be
+ * continued where it stopped, saved from its recorded samples, or discarded.
  */
 class Recovery {
   found = $state.raw<{ ride: StoredRide; samples: RideSample[] } | undefined>()
@@ -26,11 +28,31 @@ class Recovery {
     if (!n) return undefined
     if (n.kind === 'empty') return r.empty
     if (n.kind === 'saved') return r.saved(n.path)
+    if (n.kind === 'cantContinue') return r.cantContinue
     return n.kind === 'fitFailed' ? r.fitFailed(n.error) : r.failed(n.error)
   }
 
   async check(): Promise<void> {
     this.found = (await window.cyclotron.rides.unfinished()) ?? undefined
+  }
+
+  /** Carries on with the ride; false when its workout or route no longer exists. */
+  async continue(): Promise<boolean> {
+    const found = this.found
+    if (!found || this.busy) return false
+    this.busy = true
+    try {
+      const ok = await ride.continueRide(found.ride, found.samples)
+      if (ok) {
+        this.found = undefined
+        this.notice = undefined
+      } else {
+        this.notice = { kind: 'cantContinue' }
+      }
+      return ok
+    } finally {
+      this.busy = false
+    }
   }
 
   async save(): Promise<void> {

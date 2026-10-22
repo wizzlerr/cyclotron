@@ -60,6 +60,7 @@ export const en = {
     routeFinished: (route: string) => `You made it to the end of ${route}.`,
     rampDone: 'Ramp done: power dropped below the target. Cooling down; end the ride any time.',
     recordingFailed: (why: string) => `Recording failed: ${why}`,
+    continued: 'Continuing your interrupted ride. Resume when you are pedalling.',
     savingFailed: (why: string) => `Saving the ride failed: ${why}`,
   },
 
@@ -188,6 +189,7 @@ export const pl: typeof en = {
     rampDone:
       'Rampa zakończona: moc spadła poniżej celu. Schłodzenie; możesz zakończyć jazdę w każdej chwili.',
     recordingFailed: (why: string) => `Nagrywanie nie powiodło się: ${why}`,
+    continued: 'Kontynuujesz przerwaną jazdę. Wznów, gdy zaczniesz pedałować.',
     savingFailed: (why: string) => `Nie udało się zapisać jazdy: ${why}`,
   },
 

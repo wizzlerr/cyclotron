@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { masonry } from '../lib/masonry'
   import { GOALS, PLAYER_TEST_WORKOUT, type Goal } from '@cyclotron/core'
   import GarminCard from '../components/GarminCard.svelte'
   import { devices } from '../devices/devices.svelte'
@@ -9,6 +10,7 @@
   import { go } from '../nav.svelte'
   import { profile } from '../profile.svelte'
   import { ride } from '../ride/session.svelte'
+  import { worldPrefs } from '../world/prefs.svelte'
   import { rideTiles, TILES } from '../ride/tiles.svelte'
 
   let fitFolder = $state('')
@@ -38,7 +40,7 @@
 
 <h1>{s.title}</h1>
 
-<div class="cards">
+<div class="cards" use:masonry>
   <section class="card">
     <h2>{s.language}</h2>
     <select
@@ -287,6 +289,26 @@
       </select>
     </label>
     <p class="muted">{s.uiSizeHelp}</p>
+    <h3>{t().world.settings.title}</h3>
+    <label class="block">
+      <input
+        type="checkbox"
+        checked={worldPrefs.enabled}
+        onchange={(e) => worldPrefs.setEnabled(e.currentTarget.checked)}
+      />
+      {t().world.settings.show}
+    </label>
+    <label class="block">
+      {t().world.settings.quality}
+      <select
+        value={worldPrefs.quality}
+        onchange={(e) => worldPrefs.setQuality(e.currentTarget.value as 'low' | 'high')}
+      >
+        <option value="high">{t().world.settings.high}</option>
+        <option value="low">{t().world.settings.low}</option>
+      </select>
+    </label>
+    <p class="muted">{t().world.settings.help}</p>
   </section>
 
   <section class="card">
@@ -311,6 +333,10 @@
 </div>
 
 <style>
+  label.block {
+    display: block;
+    margin: 0.35rem 0 0;
+  }
   .days {
     display: flex;
     flex-wrap: wrap;

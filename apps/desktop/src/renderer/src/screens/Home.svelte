@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { masonry } from '../lib/masonry'
   import TodayCard from '../components/TodayCard.svelte'
   import WeekPlanCard from '../components/WeekPlanCard.svelte'
   import { devices } from '../devices/devices.svelte'
@@ -12,7 +13,7 @@
 
 <h1>{h.title}</h1>
 
-<div class="cards">
+<div class="cards" use:masonry>
   {#if recovery.found}
     <section class="card">
       <h2>{h.unfinishedTitle}</h2>
@@ -23,6 +24,13 @@
           recovery.found.samples.length,
         )}
       </p>
+      <button
+        class="primary"
+        onclick={async () => {
+          if (await recovery.continue()) go('ride')
+        }}
+        disabled={recovery.busy}>{h.continueRide}</button
+      >
       <button onclick={() => recovery.save()} disabled={recovery.busy}>{h.saveRide}</button>
       <button onclick={() => recovery.discard()} disabled={recovery.busy}>{h.discard}</button>
     </section>

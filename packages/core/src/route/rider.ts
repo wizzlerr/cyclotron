@@ -40,6 +40,18 @@ export class RouteRider {
       : Math.max(0, this.route.distanceM - this.distanceM)
   }
 
+  /** Puts the rider back where an interrupted ride left off (standing still). */
+  placeAt(distanceM: number, climbedM: number): void {
+    this.distanceM = Math.max(0, distanceM)
+    if (!this.options.wrap) this.distanceM = Math.min(this.distanceM, this.route.distanceM)
+    this.climbedM = Math.max(0, climbedM)
+    this.speedMps = 0
+    this.pos = routeAt(
+      this.route,
+      this.options.wrap ? this.distanceM % this.route.distanceM : this.distanceM,
+    )
+  }
+
   /** Rides `dtS` seconds at `powerW`. */
   step(powerW: number, dtS: number): void {
     if (this.finished || dtS <= 0) return

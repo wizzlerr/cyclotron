@@ -166,6 +166,21 @@ describe('RouteRider', () => {
   })
 })
 
+describe('RouteRider.placeAt', () => {
+  it('continues an interrupted ride from where it stopped', () => {
+    const route = buildRoute(meta, straight(1000, 5))
+    const rider = new RouteRider(route, physics, { wrap: false })
+    rider.placeAt(400, 20)
+    expect(rider.distanceM).toBe(400)
+    expect(rider.climbedM).toBe(20)
+    expect(rider.position.d).toBeCloseTo(400)
+    expect(rider.speedMps).toBe(0)
+    rider.step(250, 10)
+    expect(rider.distanceM).toBeGreaterThan(400)
+    expect(rider.climbedM).toBeGreaterThan(20)
+  })
+})
+
 describe('trainerGradePct', () => {
   it('scales by difficulty and rounds to 0.1 %', () => {
     expect(trainerGradePct(8.04, 0.5)).toBe(4)

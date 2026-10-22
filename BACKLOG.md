@@ -88,7 +88,7 @@ cyclotron/                (pnpm monorepo, TypeScript everywhere)
 
 | ID | Task | Size |
 |---|---|---|
-| ~~E5-1~~ | ✅ (2026-10-21) crash recovery saves or discards the partial ride; resuming the workout itself isn't supported. Record 1 Hz samples to SQLite during a ride; resume after a crash or app restart | M |
+| ~~E5-1~~ | ✅ (2026-10-21) crash recovery saves or discards the partial ride; since 2026-10-22 it can also **continue** it (same ride and recording, workout/route position restored, starts paused). Record 1 Hz samples to SQLite during a ride; resume after a crash or app restart | M |
 | ~~E5-2~~ | ✅ (2026-10-21) Encode `.FIT` activity with `@garmin/fitsdk` (laps per workout step) | M |
 | E5-3 | ✅ done 2026-10-21 (a real ride imported cleanly into Garmin Connect; Strava not checked separately). Auto-save FIT to a chosen folder + "Show in folder"; validate import into Garmin Connect and Strava | S |
 | ~~E5-4~~ | ✅ (2026-10-21) with laps and feedback (Too easy … Couldn't finish); plus a local ride list on History. Ride summary screen after finishing | M |
@@ -222,14 +222,14 @@ The app stays numbers-first: tiles and workout steps you can read while watching
 
 | ID | Task | Size |
 |---|---|---|
-| E16-1 | Spike: Three.js, lazy-loaded only when the world is on; 30 fps cap; measure CPU/GPU and that ride ticks, BLE and recording are unaffected | S |
-| E16-2 | Road from the route: ribbon along the route points (local metres from lat/lon, smoothed), elevation, ground, sky and fog | M |
-| E16-3 | No route: endless straight flat road built from recycled segments, with distance markers | S |
-| E16-4 | Rider: low-poly cyclist, legs turn with cadence; position from the route rider (route rides) or trainer speed (other rides) | M |
-| E16-5 | Chase camera, smoothed, following grade changes | S |
-| E16-6 | Ride screen: "World" toggle (default in Settings, off) and a layout where the world sits behind or beside the tiles; workout strip and next-step cue stay visible | M |
-| E16-7 | Performance guard: pause rendering when the window is hidden or minimised, quality setting (low/high), renderer never blocks the ride loop | S |
-| E16-8 | Simple scenery: roadside trees/posts, gradient signs on climbs, km markers (procedural, no assets to download) | S |
+| E16-1 | ✅ done 2026-10-22 (three 0.186.1, separate `scene` chunk loaded on demand; 30 fps cap; ≈16 % of one core with the world on vs 3 % off on the dev PC). Spike: Three.js, lazy-loaded only when the world is on; 30 fps cap; measure CPU/GPU and that ride ticks, BLE and recording are unaffected | S |
+| E16-2 | ✅ done 2026-10-22 (`core/world/geometry.ts`: local metres, Catmull-Rom smoothing, ground grid that never rises over another stretch of road). Road from the route: ribbon along the route points (local metres from lat/lon, smoothed), elevation, ground, sky and fog | M |
+| E16-3 | ✅ done 2026-10-22 (240 m period; trees, dashes and hills repeat with it so the wrap is invisible). No route: endless straight flat road built from recycled segments, with distance markers | S |
+| E16-4 | ✅ done 2026-10-22 (`core/world/rider.ts` two-bone leg solve; eases toward the 1 Hz ride position). Rider: low-poly cyclist, legs turn with cadence; position from the route rider (route rides) or trainer speed (other rides) | M |
+| E16-5 | ✅ done 2026-10-22. Chase camera, smoothed, following grade changes | S |
+| E16-6 | ✅ done 2026-10-22 ("World" button on the Ride screen, Settings → Display → Virtual world, grade badge). Ride screen: "World" toggle (default in Settings, off) and a layout where the world sits behind or beside the tiles; workout strip and next-step cue stay visible | M |
+| E16-7 | ✅ done 2026-10-22 (skips frames when the window is hidden, quality low/high). Performance guard: pause rendering when the window is hidden or minimised, quality setting (low/high), renderer never blocks the ride loop | S |
+| E16-8 | 🔧 2026-10-22: trees and km markers done; gradient signs on climbs not yet. Simple scenery: roadside trees/posts, gradient signs on climbs, km markers (procedural, no assets to download) | S |
 
 ## E13 — Virtual routes (requested 2026-10-21)
 

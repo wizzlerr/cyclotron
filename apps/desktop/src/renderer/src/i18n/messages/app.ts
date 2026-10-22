@@ -34,7 +34,8 @@ export const en = {
     title: 'Home',
     unfinishedTitle: 'Unfinished ride',
     unfinished: (name: string, date: string, seconds: number) =>
-      `${name} from ${date} wasn't finished (${seconds} s recorded). Save what was recorded?`,
+      `${name} from ${date} wasn't finished (${seconds} s recorded). Carry on riding it, or save what was recorded?`,
+    continueRide: 'Continue ride',
     saveRide: 'Save ride',
     discard: 'Discard',
     quickStart: 'Quick start',
@@ -46,6 +47,8 @@ export const en = {
   },
   recovery: {
     empty: 'The unfinished ride had no data and was removed.',
+    cantContinue:
+      "This ride's workout or route is no longer in the library, so it can't be continued. You can still save it.",
     saved: (path: string) => `Saved ${path}`,
     fitFailed: (error: string) => `Saved, but the FIT file failed: ${error}`,
     failed: (error: string) => `Saving failed: ${error}`,
@@ -139,7 +142,8 @@ export const pl: typeof en = {
     title: 'Start',
     unfinishedTitle: 'Niedokończona jazda',
     unfinished: (name: string, date: string, seconds: number) =>
-      `${name} z ${date} nie została zakończona (zapisano ${seconds} s). Zapisać to, co nagrano?`,
+      `${name} z ${date} nie została zakończona (zapisano ${seconds} s). Kontynuować jazdę czy zapisać to, co nagrano?`,
+    continueRide: 'Kontynuuj jazdę',
     saveRide: 'Zapisz jazdę',
     discard: 'Odrzuć',
     quickStart: 'Szybki start',
@@ -151,6 +155,8 @@ export const pl: typeof en = {
   },
   recovery: {
     empty: 'Niedokończona jazda nie miała danych i została usunięta.',
+    cantContinue:
+      'Trening albo trasa tej jazdy nie jest już w bibliotece, więc nie da się jej kontynuować. Nadal możesz ją zapisać.',
     saved: (path: string) => `Zapisano ${path}`,
     fitFailed: (error: string) => `Zapisano, ale nie udało się utworzyć pliku FIT: ${error}`,
     failed: (error: string) => `Nie udało się zapisać: ${error}`,

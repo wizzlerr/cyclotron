@@ -41,6 +41,13 @@ export class RideRecorder {
     return new RideRecorder(await window.cyclotron.rides.start(info), info)
   }
 
+  /** Carries on recording into a ride that was interrupted (crash, app closed). */
+  static resume(rideId: number, info: RideStartInfo, samples: readonly RideSample[]): RideRecorder {
+    const r = new RideRecorder(rideId, info)
+    r.samples.push(...samples)
+    return r
+  }
+
   /** Adds one sample; samples must move forward in time. */
   add(sample: RideSample): void {
     const last = this.samples.at(-1)

@@ -2,6 +2,7 @@ import {
   DEFAULT_PHYSICS,
   FREE_RIDE_ID,
   FREE_RIDE_WORKOUT,
+  FTP_TESTS,
   LiveRideMetrics,
   RampFailureDetector,
   routeAt,
@@ -21,6 +22,9 @@ import { routeName, workoutName } from '../i18n/content'
 import { t } from '../i18n/t'
 import { profile } from '../profile.svelte'
 import { countdownCue, finishCue, stepCue } from './cues'
+import type { StoredRide } from '../../../shared/api'
+import { routeLibrary } from '../routes/library.svelte'
+import { library } from '../workouts/library.svelte'
 import { RideRecorder, type FinishedRide } from './recorder'
 
 const TICK_MS = 1000
@@ -144,6 +148,82 @@ class RideSession {
       remainingM: route.distanceM,
       climbedM: 0,
     }
+    return true
+  }
+
+  /**
+   * Picks up a ride that was interrupted (the app crashed or was closed): same ride, same
+   * recording, the workout or route where it stopped. Starts paused; the rider resumes when ready.
+   * Returns false when the ride's workout or route no longer exists.
+   */
+  async continueRide(ride: StoredRide, samples: readonly RideSample[]): Promise<boolean> {
+    if (this.active || this.saving) return false
+    await Promise.all([library.load(), routeLibrary.load()])
+    const route = ride.routeId ? routeLibrary.find(ride.routeId) : undefined
+    if (ride.routeId && !route) return false
+    const workout =
+      ride.workoutId === FREE_RIDE_ID
+        ? FREE_RIDE_WORKOUT
+        : ride.workoutId === ROUTE_RIDE_ID
+          ? undefined
+          : (library.find(ride.workoutId) ?? FTP_TESTS.find((w) => w.id === ride.workoutId))
+    if (!workout && !(route && ride.workoutId === ROUTE_RIDE_ID)) return false
+    if (!(route ? this.loadRoute(route, workout) : this.load(workout!))) return false
+    const player = this.player!
+
+    // Back to where the workout was: the seconds actually ridden (pauses don't move it).
+    const riddenS = samples.filter((s) => !s.paused).length
+    player.start()
+    player.advance(riddenS)
+    player.pause()
+    void window.cyclotron.ride.keepAwake(true)
+    // Sample times stay wall-clock seconds since the ride's start, so the break shows as a gap.
+    const now = performance.now()
+    this.startedAtPerf = now - (Date.now() - ride.startedAt)
+    this.lastTickAt = now
+    this.nextTickAt = now
+
+    this.live = new LiveRideMetrics(player.ftpW, profile.weightKg)
+    const [t0, power, target, hr, cadence] = this.chart
+    for (const s of samples) {
+      this.live.add(s)
+      t0.push(s.t)
+      power.push(s.paused ? null : (s.powerW ?? null))
+      target.push(s.targetW ?? null)
+      hr.push(s.heartRateBpm ?? null)
+      cadence.push(s.cadenceRpm ?? null)
+    }
+    this.metrics = this.live.snapshot()
+    this.chartVersion++
+
+    if (route) {
+      this.rider = new RouteRider(
+        route,
+        { ...DEFAULT_PHYSICS, massKg: profile.systemMassKg },
+        { wrap: player.workout.id !== ROUTE_RIDE_ID },
+      )
+      const last = samples.findLast((s) => s.distanceM !== undefined)
+      let climbed = 0
+      let prev: number | undefined
+      for (const s of samples) {
+        if (s.altitudeM === undefined) continue
+        if (prev !== undefined && s.altitudeM > prev) climbed += s.altitudeM - prev
+        prev = s.altitudeM
+      }
+      this.rider.placeAt(last?.distanceM ?? 0, climbed)
+      this.routeState = {
+        position: this.rider.position,
+        speedKmh: 0,
+        distanceM: this.rider.distanceM,
+        remainingM: this.rider.remainingM,
+        climbedM: this.rider.climbedM,
+      }
+    }
+    this.recorder = RideRecorder.resume(ride.id, ride, samples)
+    this.notice = () => t().ride.notices.continued
+    this.pausedBySuspend = true
+    this.scheduleTick()
+    this.refresh()
     return true
   }
 
