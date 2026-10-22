@@ -1,15 +1,17 @@
 <script lang="ts">
   // E9-2…E9-4, E9-6: power curve, fitness/fatigue/form, weekly time in zones, FTP estimate.
   // Everything is computed on this computer from local rides (D19).
+  import { WORKOUT_TYPES } from '@cyclotron/core'
   import uPlot from 'uplot'
   import type { BestPower, DailyLoad, FtpEstimate, WeekZones } from '../../../shared/api'
   import Chart from '../components/Chart.svelte'
   import Tile from '../components/Tile.svelte'
-  import { formatDate } from '../i18n/i18n.svelte'
+  import { formatDate, formatNumber } from '../i18n/i18n.svelte'
   import { t } from '../i18n/t'
   import { axis, dateAxis, durationAxis, line, series } from '../lib/chart'
   import { durationLabel } from '../lib/format'
   import { profile } from '../profile.svelte'
+  import { today as reco } from '../reco/today.svelte'
 
   let load = $state.raw<DailyLoad[]>([])
   let curves = $state.raw<{ all: BestPower[]; d90: BestPower[]; d42: BestPower[] }>({
@@ -21,6 +23,10 @@
   let estimate = $state.raw<FtpEstimate | null>(null)
   let loaded = $state(false)
   let rangeDays = $state(90)
+
+  $effect(() => {
+    void reco.refresh()
+  })
 
   $effect(() => {
     const a = window.cyclotron.analytics
@@ -273,10 +279,58 @@
       </div>
       <p class="muted">{t().history.progress.zonesText}</p>
     </section>
+
+    {#if reco.result}
+      {@const levels = reco.result.levels}
+      <section class="card">
+        <h2>{t().reco.levels.title}</h2>
+        <ul class="levels">
+          {#each WORKOUT_TYPES as type (type)}
+            <li title="{t().common.workoutTypes[type]}: {formatNumber(levels[type], 1)} / 10">
+              <span class="level-name">{t().common.workoutTypes[type]}</span>
+              <span class="level-track">
+                <span class="level-bar" style:width="{levels[type] * 10}%"></span>
+              </span>
+              <span class="level-value">{formatNumber(levels[type], 1)}</span>
+            </li>
+          {/each}
+        </ul>
+        <p class="muted">{t().reco.levels.hint}</p>
+      </section>
+    {/if}
   </div>
 {/if}
 
 <style>
+  .levels {
+    list-style: none;
+    margin: 0 0 0.5rem;
+    padding: 0;
+    display: grid;
+    gap: 0.4rem;
+  }
+  .levels li {
+    display: grid;
+    grid-template-columns: 8rem 1fr 2.5rem;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .level-track {
+    height: 0.6rem;
+    background: var(--grid);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .level-bar {
+    display: block;
+    height: 100%;
+    background: var(--series-1);
+    border-radius: 0 4px 4px 0;
+  }
+  .level-value {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
   .tiles {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(clamp(12rem, 10vw, 22rem), 1fr));

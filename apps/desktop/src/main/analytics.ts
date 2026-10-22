@@ -7,6 +7,7 @@ import {
   localDate,
   powerCurve,
   summarizeRide,
+  targetHit,
   zoneTimes,
   type DailyLoad,
   type RideSample,
@@ -17,7 +18,9 @@ import {
   type BestPower,
   type FtpEstimate,
   type ImportResult,
+  type RecoRide,
   type RideDetail,
+  type RideFeedback,
   type WeekZones,
 } from '../shared/api'
 import { getDb, getSetting, transaction } from './db'
@@ -38,11 +41,15 @@ export function computeAggregates(rideId: number): void {
   const ride = rideRow(rideId)
   if (!ride) return
   const rows = db
-    .prepare('select power, paused from ride_samples where ride_id = ? order by t')
-    .all(rideId) as { power: number | null; paused: number }[]
+    .prepare('select power, target, paused from ride_samples where ride_id = ? order by t')
+    .all(rideId) as { power: number | null; target: number | null; paused: number }[]
   const power = rows.filter((r) => r.paused !== 1).map((r) => r.power ?? 0)
   const curve = powerCurve(power)
   const zones = zoneTimes(power, ride.ftp_at_ride)
+  const hit = targetHit(
+    rows.map((r) => ({ power: r.power, target: r.target, paused: r.paused === 1 })),
+    ride.ftp_at_ride,
+  )
   transaction(db, () => {
     db.prepare('delete from ride_power_curve where ride_id = ?').run(rideId)
     db.prepare('delete from ride_zone_time where ride_id = ?').run(rideId)
@@ -52,7 +59,11 @@ export function computeAggregates(rideId: number): void {
     for (const p of curve) c.run(rideId, p.durationS, p.watts)
     const z = db.prepare('insert into ride_zone_time (ride_id, zone, seconds) values (?, ?, ?)')
     zones.forEach((s, i) => z.run(rideId, i + 1, s))
-    db.prepare('update rides set aggregates_at = ? where id = ?').run(Date.now(), rideId)
+    db.prepare('update rides set aggregates_at = ?, target_hit = ? where id = ?').run(
+      Date.now(),
+      hit ?? null,
+      rideId,
+    )
   })
 }
 
@@ -107,6 +118,50 @@ export function registerAnalyticsIpc(): void {
           order by duration_s`,
       )
       .all(since) as unknown as BestPower[]
+  })
+
+  ipcMain.handle(IPC.analyticsRecoRides, (_event, days: number): RecoRide[] => {
+    const since = Date.now() - Math.max(1, Math.min(400, Math.floor(days))) * 86_400_000
+    const db = getDb()
+    const rows = db
+      .prepare(
+        `select id, started_at, utc_offset_min, workout_id, tss, intensity, timer_s, feedback,
+                target_hit
+           from rides where status = 'finished' and started_at >= ? order by started_at`,
+      )
+      .all(since) as {
+      id: number
+      started_at: number
+      utc_offset_min: number
+      workout_id: string | null
+      tss: number | null
+      intensity: number | null
+      timer_s: number | null
+      feedback: RideFeedback | null
+      target_hit: number | null
+    }[]
+    const zones = new Map<number, number[]>()
+    const zoneRows = db
+      .prepare(
+        `select z.ride_id, z.zone, z.seconds from ride_zone_time z join rides r on r.id = z.ride_id
+          where r.status = 'finished' and r.started_at >= ?`,
+      )
+      .all(since) as { ride_id: number; zone: number; seconds: number }[]
+    for (const z of zoneRows) {
+      const list = zones.get(z.ride_id) ?? [0, 0, 0, 0, 0, 0, 0]
+      list[z.zone - 1] = z.seconds
+      zones.set(z.ride_id, list)
+    }
+    return rows.map((r) => ({
+      date: localDate(r.started_at, r.utc_offset_min),
+      workoutId: r.workout_id ?? undefined,
+      tss: r.tss ?? 0,
+      intensity: r.intensity ?? 0,
+      timerS: r.timer_s ?? 0,
+      feedback: r.feedback ?? undefined,
+      targetHit: r.target_hit ?? undefined,
+      zoneS: zones.get(r.id) ?? [0, 0, 0, 0, 0, 0, 0],
+    }))
   })
 
   ipcMain.handle(IPC.analyticsLoad, (): DailyLoad[] => {

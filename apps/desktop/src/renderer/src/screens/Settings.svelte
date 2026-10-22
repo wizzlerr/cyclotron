@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { PLAYER_TEST_WORKOUT } from '@cyclotron/core'
+  import { GOALS, PLAYER_TEST_WORKOUT, type Goal } from '@cyclotron/core'
   import { devices } from '../devices/devices.svelte'
   import type { FtpEntry } from '../../../shared/api'
   import { formatDate, i18n, LANGUAGES, type Lang } from '../i18n/i18n.svelte'
@@ -17,6 +17,7 @@
     void window.cyclotron.ftp.history(10).then((h) => (ftpHistory = h))
   })
   const s = $derived(t().app.settings)
+  const tr = $derived(t().reco.settings)
   let version = $state('')
   $effect(() => {
     void window.cyclotron.app.getVersion().then((v) => (version = v))
@@ -46,6 +47,43 @@
     >
       {#each LANGUAGES as l (l.id)}<option value={l.id}>{l.name}</option>{/each}
     </select>
+  </section>
+
+  <section class="card">
+    <h2>{tr.title}</h2>
+    <label>
+      {tr.goal}
+      <select value={profile.goal} onchange={(e) => profile.setGoal(e.currentTarget.value as Goal)}>
+        {#each GOALS as g (g)}<option value={g}>{tr.goals[g]}</option>{/each}
+      </select>
+    </label>
+    <label>
+      {tr.weeklyHours}
+      <input
+        type="number"
+        min="1"
+        max="30"
+        step="0.5"
+        value={profile.weeklyHours}
+        onchange={(e) => profile.setWeeklyHours(e.currentTarget.valueAsNumber)}
+      />
+      h
+    </label>
+    <div class="days" role="group" aria-label={tr.rideDays}>
+      <span>{tr.rideDays}</span>
+      {#each [1, 2, 3, 4, 5, 6, 0] as d (d)}
+        <label class="day">
+          <input
+            type="checkbox"
+            checked={profile.rideDays.includes(d)}
+            onchange={() => profile.toggleRideDay(d)}
+          />
+          {tr.days[d]}
+        </label>
+      {/each}
+    </div>
+    {#if profile.rideDays.length === 0}<p class="muted">{tr.anyDay}</p>{/if}
+    <p class="muted">{tr.hint}</p>
   </section>
 
   <section class="card">
@@ -270,6 +308,16 @@
 </div>
 
 <style>
+  .days {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.75rem;
+    margin: 0.5rem 0;
+  }
+  .days .day {
+    margin-left: 0;
+  }
   input[type='number'] {
     width: 5rem;
     margin: 0 0.25rem;

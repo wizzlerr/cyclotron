@@ -338,6 +338,12 @@ Goal: open the app and see **one recommended workout for today, two alternatives
   - Levels slowly decay if a type isn't trained for several weeks.
   - An FTP change rescales levels (new FTP → old workouts become easier).
 
+**Built (E11, 2026-10-22):** `core/reco/` (`readiness.ts`, `levels.ts`, `recommend.ts`, `target-hit.ts`, `types.ts`). Decisions taken while building:
+- Levels are **replayed from the ride history** every time (like E10's metadata), not stored: nothing to migrate when the rules change. Start levels differ per type (recovery/endurance 5, tempo 4, sweet spot 3.5, others 3, because endurance difficulty mostly grows with duration) and are raised by up to 3 when current CTL is above 30, so a fit rider new to the app isn't offered beginner workouts. A completed workout moves the level 60 % of the way to its difficulty plus a feedback bonus (easy +0.5, right +0.2, hard −0.2, none +0.1); failed: −0.5 (−0.3 if it was above the level); after 14 idle days −0.02/day.
+- Failed (E11-8) = feedback "failed", or `target_hit` < 0.8 (share of work seconds, target ≥ 80 % FTP, ridden at ≥ 85 % of target; stored per ride, migration 5), or < 80 % of the planned time ridden. Rides under 5 min are false starts and ignored.
+- Choosing: type scores as §7.2; then the workout closest to level + stretch (overshoot ×1.5), with mild penalties for leaving > 20 % of the chosen time unused and for repeats within 14 days. Recovery is the last resort when nothing fits. Easier = same type ≥ 0.5 below, else the next easier type; shorter = ≤ 75 % of the time, same type or at most two types easier.
+- Output is codes (`Reason`), worded by the UI in English/Polish (D21). The desktop computes it in the renderer from `analytics.recoRides` + `analytics.load`.
+
 ### 7.4 Where it runs
 
 The engine is pure code in `core`. **The desktop runs it** (D19) after each ride and when the app opens on a new day, from its local rides. Once the server exists (E8, last), it can run the same engine after ingestion and the desktop caches the result.

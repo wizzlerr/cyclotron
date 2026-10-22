@@ -51,6 +51,7 @@ const api: CyclotronApi = {
     load: () => ipcRenderer.invoke(IPC.analyticsLoad),
     zonesByWeek: (weeks) => ipcRenderer.invoke(IPC.analyticsZonesByWeek, weeks),
     ftpEstimate: () => ipcRenderer.invoke(IPC.analyticsFtpEstimate),
+    recoRides: (days) => ipcRenderer.invoke(IPC.analyticsRecoRides, days),
   },
   ftp: {
     history: (limit) => ipcRenderer.invoke(IPC.ftpHistory, limit),

@@ -63,6 +63,21 @@ export interface WeekZones {
   seconds: number[]
 }
 
+/** A finished ride as the recommendation engine needs it (E11). */
+export interface RecoRide {
+  /** Local date, YYYY-MM-DD. */
+  date: string
+  workoutId?: string
+  tss: number
+  intensity: number
+  timerS: number
+  feedback?: RideFeedback
+  /** Share of work seconds on target (E11-8). */
+  targetHit?: number
+  /** Seconds in Z1…Z7. */
+  zoneS: number[]
+}
+
 /** FTP suggested from recent rides (E9-6). */
 export interface FtpEstimate {
   ftpW: number
@@ -192,6 +207,8 @@ export interface CyclotronApi {
     zonesByWeek(weeks: number): Promise<WeekZones[]>
     /** 95 % of the best 20 minutes in the last 90 days, if there is one. */
     ftpEstimate(): Promise<FtpEstimate | null>
+    /** Finished rides of the last `days` days, oldest first, for recommendations (E11). */
+    recoRides(days: number): Promise<RecoRide[]>
   }
   ftp: {
     /** Newest first. */
@@ -243,6 +260,7 @@ export const IPC = {
   analyticsLoad: 'analytics:load',
   analyticsZonesByWeek: 'analytics:zonesByWeek',
   analyticsFtpEstimate: 'analytics:ftpEstimate',
+  analyticsRecoRides: 'analytics:recoRides',
   ftpHistory: 'ftp:history',
   ftpRecord: 'ftp:record',
   routesList: 'routes:list',

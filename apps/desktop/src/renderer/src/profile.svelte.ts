@@ -1,3 +1,4 @@
+import { GOALS, type Goal } from '@cyclotron/core'
 import type { FtpSource } from '../../shared/api'
 import { loadPref, savePref } from './lib/prefs'
 
@@ -7,6 +8,7 @@ const DEFAULT_BIKE_KG = 9
 /** Used for route physics when no weight is set. */
 const DEFAULT_RIDER_KG = 75
 const DEFAULT_DIFFICULTY = 0.5
+const DEFAULT_WEEKLY_HOURS = 5
 
 interface Stored {
   ftpW?: number
@@ -14,6 +16,9 @@ interface Stored {
   maxHr?: number
   bikeKg?: number
   difficulty?: number
+  goal?: Goal
+  weeklyHours?: number
+  rideDays?: number[]
 }
 
 const stored = loadPref<Stored>(KEY) ?? {}
@@ -29,6 +34,11 @@ class Profile {
   bikeKg = $state(stored.bikeKg ?? DEFAULT_BIKE_KG)
   /** Share of a route's grade the trainer applies (0–1), like Zwift's trainer difficulty. */
   difficulty = $state(stored.difficulty ?? DEFAULT_DIFFICULTY)
+  /** Training goal for recommendations (E11-1). */
+  goal = $state<Goal>(stored.goal ?? 'fitness')
+  weeklyHours = $state(stored.weeklyHours ?? DEFAULT_WEEKLY_HOURS)
+  /** Days the rider trains, 0 = Sunday … 6 = Saturday; empty = any day. */
+  rideDays = $state.raw<number[]>(stored.rideDays ?? [])
   /** Bumped when an FTP is recorded, so the history list reloads. */
   ftpVersion = $state(0)
 
@@ -75,6 +85,32 @@ class Profile {
     this.save()
   }
 
+  setGoal(goal: Goal): void {
+    if (!GOALS.includes(goal)) return
+    this.goal = goal
+    this.save()
+  }
+
+  setWeeklyHours(h: number): void {
+    if (!(h >= 1 && h <= 30)) return
+    this.weeklyHours = Math.round(h * 2) / 2
+    this.save()
+  }
+
+  toggleRideDay(day: number): void {
+    const days = this.rideDays.includes(day)
+      ? this.rideDays.filter((d) => d !== day)
+      : [...this.rideDays, day].sort()
+    this.rideDays = days
+    this.save()
+  }
+
+  /** Time for one ride: weekly hours over the ride days (4 when any day), in 15 min steps. */
+  get minutesPerRide(): number {
+    const days = this.rideDays.length || 4
+    return Math.min(180, Math.max(30, Math.round((this.weeklyHours * 60) / days / 15) * 15))
+  }
+
   private save(): void {
     const value: Stored = {
       ftpW: this.ftpW,
@@ -82,6 +118,9 @@ class Profile {
       maxHr: this.maxHr,
       bikeKg: this.bikeKg,
       difficulty: this.difficulty,
+      goal: this.goal,
+      weeklyHours: this.weeklyHours,
+      rideDays: this.rideDays,
     }
     savePref(KEY, value)
   }

@@ -93,6 +93,11 @@ const MIGRATIONS = [
   alter table rides add column source text not null default 'recorded';
   alter table rides add column aggregates_at integer;  -- when the rows above were computed
   `,
+  // E11-8: how well the ride held its ERG targets; recompute aggregates to fill it in.
+  `
+  alter table rides add column target_hit real;           -- share of work seconds on target
+  update rides set aggregates_at = null;
+  `,
 ]
 
 let db: DatabaseSync | undefined

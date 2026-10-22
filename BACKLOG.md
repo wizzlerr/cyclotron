@@ -165,17 +165,17 @@ Zwift-style "what should I ride today?". Logic lives in `core` and runs on the d
 
 | ID | Task | Size |
 |---|---|---|
-| E11-1 | Training goal in profile (general fitness / raise FTP / endurance / VO2) and weekly time available | S |
-| E11-2 | Readiness from TSB + days since last hard workout (fresh / normal / fatigued) | M |
-| E11-3 | Progression levels per zone (like TrainerRoad): level goes up when a workout of that type is completed | L |
-| E11-4 | Rule engine: pick workout type from goal, readiness, weekly zone distribution (e.g. 80/20 balance) and what was done recently | L |
-| E11-5 | Pick a concrete workout: matches type, fits time available, difficulty ≈ current level (+ small stretch) | M |
-| E11-6 | "Today" card on Home: 1 main recommendation + 2 alternatives (easier / shorter), with a short "why" explanation | M |
-| E11-7 | Post-ride feedback (Easy / Moderate / Hard / Very hard / Failed) adjusts progression levels | M |
-| E11-8 | Detect a failed workout (big drop below target) and adjust the next recommendation | M |
+| E11-1 | ✅ done 2026-10-22 (Settings → Training: goal, hours/week, training days). Training goal in profile (general fitness / raise FTP / endurance / VO2) and weekly time available | S |
+| E11-2 | ✅ done 2026-10-22 (`core/reco/readiness.ts`). Readiness from TSB + days since last hard workout (fresh / normal / fatigued) | M |
+| E11-3 | ✅ done 2026-10-22 (`core/reco/levels.ts`, replayed from history, shown on Progress). Progression levels per zone (like TrainerRoad): level goes up when a workout of that type is completed | L |
+| E11-4 | ✅ done 2026-10-22 (`core/reco/recommend.ts`). Rule engine: pick workout type from goal, readiness, weekly zone distribution (e.g. 80/20 balance) and what was done recently | L |
+| E11-5 | ✅ done 2026-10-22 (also prefers using most of the time chosen). Pick a concrete workout: matches type, fits time available, difficulty ≈ current level (+ small stretch) | M |
+| E11-6 | ✅ done 2026-10-22 (`components/TodayCard.svelte`, time chips, reasons in en/pl). "Today" card on Home: 1 main recommendation + 2 alternatives (easier / shorter), with a short "why" explanation | M |
+| E11-7 | ✅ done 2026-10-22 (uses the existing feedback buttons: easy / right / hard / failed). Post-ride feedback (Easy / Moderate / Hard / Very hard / Failed) adjusts progression levels | M |
+| E11-8 | ✅ done 2026-10-22 (`target_hit` per ride, migration 5; cut-short workouts; rides < 5 min ignored). Detect a failed workout (big drop below target) and adjust the next recommendation | M |
 | E11-9 | Weekly plan view: suggest a balanced week (hard/easy days) based on available days | L |
 | E11-10 | Procedurally generated workouts at an exact target difficulty (when the library has no good fit) | L |
-| E11-11 | Pluggable readiness inputs: engine takes optional external signals (Garmin training load incl. other sports, VO2max trend, training readiness/HRV/sleep) and falls back to our own TSB when they're missing. Design the interface now; wire Garmin in E12-6 | M |
+| E11-11 | ✅ done 2026-10-22 (`ReadinessSignal` input, nothing wired yet). Pluggable readiness inputs: engine takes optional external signals (Garmin training load incl. other sports, VO2max trend, training readiness/HRV/sleep) and falls back to our own TSB when they're missing. Design the interface now; wire Garmin in E12-6 | M |
 
 ## E12 — Garmin Connect integration (R&D, last)
 

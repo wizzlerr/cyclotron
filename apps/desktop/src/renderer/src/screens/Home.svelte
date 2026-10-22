@@ -1,4 +1,5 @@
 <script lang="ts">
+  import TodayCard from '../components/TodayCard.svelte'
   import { devices } from '../devices/devices.svelte'
   import { go } from '../nav.svelte'
   import { formatDateTime } from '../i18n/i18n.svelte'
@@ -27,10 +28,7 @@
   {/if}
   {#if recovery.message}<p class="muted">{recovery.message}</p>{/if}
 
-  <section class="card">
-    <h2>{h.today}</h2>
-    <p class="muted">{h.todaySoon}</p>
-  </section>
+  <TodayCard />
 
   <section class="card">
     <h2>{h.quickStart}</h2>
