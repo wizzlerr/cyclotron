@@ -12,6 +12,10 @@ files:
   - out/**
   - package.json
 npmRebuild: false
+# The install folder comes from the package name: without this it's `@cyclotrondesktop`.
+# The data folder doesn't depend on it (main/user-data.ts fixes it to `Cyclotron`).
+extraMetadata:
+  name: Cyclotron
 asar: true
 
 # Auto-update (E7-5): the release workflow uploads the installers and latest*.yml here.
@@ -26,9 +30,12 @@ win:
   # Code signing (E7-4) switches on when the CSC_LINK / CSC_KEY_PASSWORD secrets exist; without
   # them the installer is unsigned and SmartScreen warns (README → Install).
 nsis:
-  oneClick: false
-  perMachine: false
-  allowToChangeInstallationDirectory: true
+  # One click, per machine, into C:\Program Files\Cyclotron (asks for admin rights, also on
+  # auto-updates). The assisted installer let a per-user install pick C:\Program Files, where it
+  # can't write: the 0.2.0 test install registered the app and its shortcuts but copied no files
+  # (D17).
+  oneClick: true
+  perMachine: true
   createDesktopShortcut: true
   # Rides and settings stay in %APPDATA%\Cyclotron when uninstalling.
   deleteAppDataOnUninstall: false
