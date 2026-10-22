@@ -271,6 +271,9 @@
     <button onclick={() => window.cyclotron.rides.showFit(ride.id)}
       >{t().history.detail.showFit}</button
     >
+    <button onclick={() => window.cyclotron.rides.sendToGarmin(ride.id)} title={t().garmin.sendHint}
+      >{t().garmin.send}</button
+    >
   {/if}
   {#if confirmDelete}
     <span class="warn">{t().history.detail.confirmDelete}</span>

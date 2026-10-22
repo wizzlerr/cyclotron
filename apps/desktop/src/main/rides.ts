@@ -18,6 +18,7 @@ import { strings } from './i18n'
 // FIT with core; main only stores rows and writes files.
 
 const FIT_FOLDER_KEY = 'fitFolder'
+const GARMIN_IMPORT_URL = 'https://connect.garmin.com/modern/import-data'
 const FEEDBACK = new Set<RideFeedback>(['easy', 'right', 'hard', 'failed'])
 
 export interface RideRow {
@@ -208,6 +209,14 @@ export function registerRidesIpc(): void {
       )
       .all(),
   )
+
+  // E12-4: Garmin has no upload for apps like ours (DESIGN.md D23), so hand the rider the file
+  // and Garmin's import page.
+  ipcMain.handle(IPC.ridesSendToGarmin, async (_event, rideId: number) => {
+    const path = rideRow(rideId)?.fit_path
+    if (path) shell.showItemInFolder(path)
+    await shell.openExternal(GARMIN_IMPORT_URL)
+  })
 
   ipcMain.handle(IPC.ridesShowFit, (_event, rideId: number) => {
     const path = rideRow(rideId)?.fit_path

@@ -4,6 +4,7 @@ import { IPC } from '../shared/api'
 import { backfillAggregates, registerAnalyticsIpc } from './analytics'
 import { attachBluetooth, registerBluetoothIpc } from './bluetooth'
 import { closeDb } from './db'
+import { registerGarminIpc } from './garmin'
 import { registerPrefsIpc } from './prefs'
 import { registerRideIpc } from './ride'
 import { registerRidesIpc } from './rides'
@@ -71,6 +72,7 @@ registerWorkoutsIpc()
 registerRidesIpc()
 registerRoutesIpc()
 registerAnalyticsIpc()
+registerGarminIpc()
 
 void app.whenReady().then(() => {
   createWindow()

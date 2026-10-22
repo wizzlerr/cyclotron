@@ -183,12 +183,13 @@ Runs from the desktop app (scheduled pulls while it's open); moves to the server
 
 | ID | Task | Size |
 |---|---|---|
-| E12-1 | Research: Garmin Connect Developer Program access for a personal app (Activity API for upload, Health API for metrics) | S |
-| E12-2 | Research: intervals.icu API as a bridge, Strava as a bridge, unofficial libs (risks) | S |
-| E12-3 | Research: which metrics are reachable per route: VO2max (cycling), acute/chronic training load, load focus, training status, training readiness, HRV status, resting HR, sleep, Body Battery | M |
-| E12-4 | Decide on an approach for upload; prototype it | M–L |
+| E12-1 | ✅ done 2026-10-22 (Garmin Personal API, launched 2026-10-21: self-service key, read-only; business program has no activity upload for new partners; DESIGN §9). Research: Garmin Connect Developer Program access for a personal app (Activity API for upload, Health API for metrics) | S |
+| E12-2 | ✅ done 2026-10-22 (intervals.icu and Strava both receive uploads but never forward to Garmin; intervals.icu is blocking Garmin data; unofficial SSO libs work but break often and are against Garmin terms). Research: intervals.icu API as a bridge, Strava as a bridge, unofficial libs (risks) | S |
+| E12-3 | ✅ done 2026-10-22 (Personal API: HRV, sleep, Body Battery, stress, daily summaries, HR, other activities + file download; VO2max/readiness/training status not listed: to confirm with a real key). Research: which metrics are reachable per route: VO2max (cycling), acute/chronic training load, load focus, training status, training readiness, HRV status, resting HR, sleep, Body Battery | M |
+| E12-4 | 🔧 decided 2026-10-22 (user): semi-manual "Send to Garmin" (opens Garmin import page + FIT file). Decide on an approach for upload; prototype it | M–L |
 | E12-5 | Prototype metrics import: scheduled pull (e.g. every few hours / after sync) into a small `external_metrics` table; must fit the NAS budget | M |
 | E12-6 | Feed Garmin metrics into recommendations (see E11-11) | M |
+| E12-7 | Optional, on demand: direct Strava upload (each rider registers a Strava API app; Strava does not forward to Garmin) | M |
 
 ## E14 — Cloud-folder sync (requested 2026-10-21, after E8)
 

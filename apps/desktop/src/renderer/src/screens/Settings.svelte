@@ -1,5 +1,6 @@
 <script lang="ts">
   import { GOALS, PLAYER_TEST_WORKOUT, type Goal } from '@cyclotron/core'
+  import GarminCard from '../components/GarminCard.svelte'
   import { devices } from '../devices/devices.svelte'
   import type { FtpEntry } from '../../../shared/api'
   import { formatDate, i18n, LANGUAGES, type Lang } from '../i18n/i18n.svelte'
@@ -85,6 +86,8 @@
     {#if profile.rideDays.length === 0}<p class="muted">{tr.anyDay}</p>{/if}
     <p class="muted">{tr.hint}</p>
   </section>
+
+  <GarminCard />
 
   <section class="card">
     <h2>{s.profile}</h2>

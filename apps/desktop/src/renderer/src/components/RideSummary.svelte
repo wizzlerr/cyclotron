@@ -148,6 +148,10 @@
       <button onclick={() => window.cyclotron.rides.showFit(result.rideId)}>
         {t().ride.summary.showInFolder}
       </button>
+      <button
+        onclick={() => window.cyclotron.rides.sendToGarmin(result.rideId)}
+        title={t().garmin.sendHint}>{t().garmin.send}</button
+      >
     {:else}
       <span class="error">{t().ride.summary.fitFailed(result.fitError ?? '')}</span>
     {/if}

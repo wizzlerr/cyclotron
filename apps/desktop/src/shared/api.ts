@@ -127,6 +127,24 @@ export interface StoredRoute {
   points: number[][]
 }
 
+/** Garmin Connect Personal API connection (E12). The key itself never reaches the renderer. */
+export interface GarminStatus {
+  connected: boolean
+  /** Last 4 characters of the saved key. */
+  keyHint?: string
+  savedAt?: number
+  /** Last successful call. */
+  lastOkAt?: number
+  /** OS key store available (needed to save the key). */
+  encryption: boolean
+  /** Set when the last action failed; worded by the UI. */
+  error?: 'noKey' | 'invalidKey' | 'network' | 'http' | 'encryption'
+  /** HTTP status for `http` errors. */
+  status?: number
+  /** Where "Save sample data" wrote its file. */
+  file?: string
+}
+
 export interface BluetoothDeviceInfo {
   id: string
   name: string
@@ -197,6 +215,8 @@ export interface CyclotronApi {
     importFit(): Promise<ImportResult>
     /** Finished rides per workout id. */
     workoutsDone(): Promise<WorkoutDone[]>
+    /** Shows the ride's FIT file and opens Garmin Connect's import page (E12-4, semi-manual). */
+    sendToGarmin(rideId: number): Promise<void>
   }
   analytics: {
     /** Best power per duration over the last `days` days, or all time when null. */
@@ -221,6 +241,15 @@ export interface CyclotronApi {
     remove(id: string): Promise<void>
     /** Asks for .gpx files and returns their contents; empty if cancelled. */
     pickGpx(): Promise<PickedFile[]>
+  }
+  garmin: {
+    status(): Promise<GarminStatus>
+    /** Checks the key with Garmin, then stores it encrypted. */
+    setKey(key: string): Promise<GarminStatus>
+    clearKey(): Promise<GarminStatus>
+    test(): Promise<GarminStatus>
+    /** Saves a week of every endpoint to a JSON file and shows it (E12-3). */
+    saveSample(): Promise<GarminStatus>
   }
   spike: {
     /** Asks where to save a BLE capture; returns the path, or null if cancelled. */
@@ -268,4 +297,10 @@ export const IPC = {
   routesRemove: 'routes:remove',
   routesPickGpx: 'routes:pickGpx',
   spikeSaveCapture: 'spike:saveCapture',
+  ridesSendToGarmin: 'rides:sendToGarmin',
+  garminStatus: 'garmin:status',
+  garminSetKey: 'garmin:setKey',
+  garminClearKey: 'garmin:clearKey',
+  garminTest: 'garmin:test',
+  garminSaveSample: 'garmin:saveSample',
 } as const

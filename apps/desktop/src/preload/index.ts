@@ -45,6 +45,7 @@ const api: CyclotronApi = {
     detail: (id) => ipcRenderer.invoke(IPC.ridesDetail, id),
     importFit: () => ipcRenderer.invoke(IPC.ridesImportFit),
     workoutsDone: () => ipcRenderer.invoke(IPC.ridesWorkoutsDone),
+    sendToGarmin: (id) => ipcRenderer.invoke(IPC.ridesSendToGarmin, id),
   },
   analytics: {
     powerCurve: (days) => ipcRenderer.invoke(IPC.analyticsPowerCurve, days),
@@ -62,6 +63,13 @@ const api: CyclotronApi = {
     save: (route) => ipcRenderer.invoke(IPC.routesSave, route),
     remove: (id) => ipcRenderer.invoke(IPC.routesRemove, id),
     pickGpx: () => ipcRenderer.invoke(IPC.routesPickGpx),
+  },
+  garmin: {
+    status: () => ipcRenderer.invoke(IPC.garminStatus),
+    setKey: (key) => ipcRenderer.invoke(IPC.garminSetKey, key),
+    clearKey: () => ipcRenderer.invoke(IPC.garminClearKey),
+    test: () => ipcRenderer.invoke(IPC.garminTest),
+    saveSample: () => ipcRenderer.invoke(IPC.garminSaveSample),
   },
   spike: {
     saveCapture: (json) => ipcRenderer.invoke(IPC.spikeSaveCapture, json),
