@@ -2,6 +2,7 @@ import { addDays, type DailyLoad } from '../metrics/load'
 import { generateWorkout } from '../workout/generate'
 import { workoutMeta, WORKOUT_TYPES, type WorkoutType } from '../workout/meta'
 import { daysBetween, progressionLevels, windowStart } from './levels'
+import type { PlanDay } from './plan'
 import { isHard, readinessFor } from './readiness'
 import type {
   Candidate,
@@ -30,6 +31,8 @@ export interface RecoInput {
   rides: readonly RideRecord[]
   candidates: readonly Candidate[]
   signals?: readonly ReadinessSignal[]
+  /** Today in the weekly plan (E11-9); the recommendation follows it, adjusted by readiness. */
+  planDay?: PlanDay
   /** Make a workout to measure when the library has nothing close (E11-10). Default true. */
   generate?: boolean
 }
@@ -118,7 +121,12 @@ export function recommend(input: RecoInput): Recommendation {
   // Rest: very tired, not a ride day, or the week's hours are already in.
   const weekHours = week.reduce((s, r) => s + r.durationS, 0) / 3600
   let rest = ready.readiness === 'very_fatigued'
-  if (profile.rideDays.length > 0 && !profile.rideDays.includes(input.weekday)) {
+  if (input.planDay) {
+    if (input.planDay.kind === 'rest') {
+      rest = true
+      reasons.push({ code: 'planRest' })
+    }
+  } else if (profile.rideDays.length > 0 && !profile.rideDays.includes(input.weekday)) {
     rest = true
     reasons.push({ code: 'restDay' })
   }
@@ -257,6 +265,19 @@ function scoreTypes(
   } else if (total >= 7200 && highPct < HIGH_MIN) {
     for (const t of HARD_TYPES) scores[t] += 0.2
     reasons.push({ code: 'roomForIntensity', highPct: Math.round(highPct * 100) })
+  }
+
+  // The weekly plan: a hard day favours its type, easy and long days keep intensity down.
+  const plan = input.planDay
+  if (plan && !rest && plan.kind !== 'rest') {
+    if (plan.kind === 'hard' && plan.type && scores[plan.type] > -Infinity) {
+      scores[plan.type] += 0.8
+      reasons.push({ code: 'planHard', type: plan.type })
+    } else if (plan.kind === 'easy' || plan.kind === 'long') {
+      for (const t of HARD_TYPES) if (scores[t] > -Infinity) scores[t] -= 0.8
+      scores.endurance += 0.4
+      reasons.push({ code: plan.kind === 'long' ? 'planLong' : 'planEasy' })
+    }
   }
 
   // Recency: don't repeat a hard type within 2 days; bring back types not done for a while.

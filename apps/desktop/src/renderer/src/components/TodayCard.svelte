@@ -14,6 +14,8 @@
   import WorkoutProfile from './WorkoutProfile.svelte'
 
   const TIMES = [30, 45, 60, 75, 90, 120, 150]
+  /** The plan's time for today joins the choices when it isn't one of them. */
+  const times = $derived([...new Set([...TIMES, today.minutes])].sort((a, b) => a - b))
 
   $effect(() => {
     void today.refresh()
@@ -36,7 +38,12 @@
       case 'twoHardDays':
       case 'recentFail':
       case 'restDay':
+      case 'planRest':
+      case 'planEasy':
+      case 'planLong':
         return w[reason.code]
+      case 'planHard':
+        return w.planHard(typeName(reason.type))
       case 'signal':
         return w.signal(reason.source, reason.shift)
       case 'goal':
@@ -115,12 +122,12 @@
 
   <div class="times" role="group" aria-label={tr.timeLabel}>
     <span class="muted">{tr.timeLabel}</span>
-    {#each TIMES as m (m)}
+    {#each times as m (m)}
       <button
         class="time"
         class:on={today.minutes === m}
         aria-pressed={today.minutes === m}
-        onclick={() => (today.minutes = m)}>{tr.minutes(m)}</button
+        onclick={() => (today.chosenMinutes = m)}>{tr.minutes(m)}</button
       >
     {/each}
   </div>

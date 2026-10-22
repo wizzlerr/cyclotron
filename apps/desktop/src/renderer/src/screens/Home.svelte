@@ -1,5 +1,6 @@
 <script lang="ts">
   import TodayCard from '../components/TodayCard.svelte'
+  import WeekPlanCard from '../components/WeekPlanCard.svelte'
   import { devices } from '../devices/devices.svelte'
   import { go } from '../nav.svelte'
   import { formatDateTime } from '../i18n/i18n.svelte'
@@ -41,4 +42,6 @@
       <button onclick={() => go('settings')}>{h.devices}</button>
     {/if}
   </section>
+
+  <WeekPlanCard />
 </div>

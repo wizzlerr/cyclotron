@@ -73,6 +73,10 @@ export type Reason =
   | { code: 'notDoneFor'; type: WorkoutType; days: number | null }
   | { code: 'weeklyDone'; hours: number; target: number }
   | { code: 'restDay' }
+  | { code: 'planRest' }
+  | { code: 'planHard'; type: WorkoutType }
+  | { code: 'planEasy' }
+  | { code: 'planLong' }
   | { code: 'level'; type: WorkoutType; level: number; difficulty: number }
   | { code: 'noFit'; type: WorkoutType; minutes: number }
 

@@ -350,9 +350,11 @@ Goal: open the app and see **one recommended workout for today, two alternatives
 
 The engine is pure code in `core`. **The desktop runs it** (D19) after each ride and when the app opens on a new day, from its local rides. Once the server exists (E8, last), it can run the same engine after ingestion and the desktop caches the result.
 
-### 7.5 Weekly plan (later, E11-9)
+### 7.5 Weekly plan (E11-9)
 
 Given ride days and weekly hours: place 2–3 hard days with easy/rest days between, fill the rest with endurance, cap weekly TSS ramp at ~+5–8 CTL/week. Today's recommendation then comes from the plan, adjusted by readiness.
+
+**Built (2026-10-22, `core/reco/plan.ts`):** weeks run Monday–Sunday. Training days from Settings, or 3–6 default days from weekly hours (flagged in the UI). The long ride is the last weekend training day (weeks of 3+ days); hard days (up to 3, 2 for the endurance goal, at most half the days) are placed to maximise the smallest gap between them, wrapping into next week, then kept off the days next to the long ride. Hard types rotate per goal (ftp: threshold → sweet spot → VO2max; fitness: sweet spot → VO2max → threshold; endurance: tempo → sweet spot; vo2: VO2max → threshold → anaerobic); other days are endurance. Time is shared hard 1 : easy 0.8 : long 1.6, in 15 min steps (30 min – 4 h). Planned TSS (minutes × typical session IF²) is capped at 7 × (CTL + 52), i.e. CTL +8 a week. The plan is recomputed from the profile and history (nothing stored). The recommendation gets today's plan day: rest → rest suggested; hard → +0.8 for the planned type; easy/long → hard types −0.8, endurance +0.4; readiness gates still apply. The Today card's time defaults to the planned minutes.
 
 ---
 

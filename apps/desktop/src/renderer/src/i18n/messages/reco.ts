@@ -55,6 +55,10 @@ export const en = {
     weeklyDone: (hours: string, target: string) =>
       `You've ridden ${hours} h this week, your target is ${target} h.`,
     restDay: "Today isn't one of your training days.",
+    planRest: 'Your plan has a rest day today.',
+    planHard: (type: string) => `Your plan has a hard day today: ${type}.`,
+    planEasy: 'Your plan has an easy day today.',
+    planLong: 'Your plan has the long ride today: steady endurance.',
     level: (type: string, level: string, difficulty: string) =>
       `${type} level ${level}: this workout is ${difficulty}.`,
     noFit: (type: string, minutes: number) => `No ${type} workout fits in ${minutes} min.`,
@@ -70,7 +74,7 @@ export const en = {
     } satisfies Record<Goal, string>,
     weeklyHours: 'Hours per week',
     rideDays: 'Training days',
-    anyDay: 'No days ticked: any day.',
+    anyDay: 'No days ticked: the weekly plan picks them from your hours.',
     /** Sunday first, as Date.getDay(). */
     days: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
     hint: 'Used for the recommended workout on Home. Levels go up as you complete workouts; your feedback after a ride tunes them.',
@@ -81,6 +85,18 @@ export const en = {
       `Made for your level: warm-up, ${span} at ${pct} % FTP, cool-down.`,
     intervals: (count: number, on: string, pct: string, off: string, fill: boolean) =>
       `Made for your level: ${count} × ${on} at ${pct} % FTP with ${off} easy between${fill ? ', then easy riding to use your time' : ''}.`,
+  },
+  plan: {
+    title: 'This week',
+    kinds: { rest: 'Rest', easy: 'Easy', hard: 'Hard', long: 'Long' },
+    done: 'Done',
+    missed: 'Missed',
+    extra: 'Extra ride',
+    todayTag: 'Today',
+    planned: (tss: number, done: number) => `Planned TSS ${tss} · done ${done}`,
+    capped: 'Load reduced to keep your fitness rising safely (about +8 a week).',
+    defaultDays: 'Training days picked for you. Choose your own in Settings → Training.',
+    settings: 'Settings…',
   },
   levels: {
     title: 'Training levels',
@@ -139,6 +155,10 @@ export const pl: typeof en = {
     weeklyDone: (hours: string, target: string) =>
       `W tym tygodniu masz już ${hours} h jazdy, cel to ${target} h.`,
     restDay: 'Dziś nie jest twój dzień treningowy.',
+    planRest: 'W planie na dziś jest odpoczynek.',
+    planHard: (type: string) => `W planie na dziś mocny dzień: ${type}.`,
+    planEasy: 'W planie na dziś spokojny dzień.',
+    planLong: 'W planie na dziś długa jazda: równa wytrzymałość.',
     level: (type: string, level: string, difficulty: string) =>
       `${type}: twój poziom ${level}, ten trening ma ${difficulty}.`,
     noFit: (type: string, minutes: number) =>
@@ -155,7 +175,7 @@ export const pl: typeof en = {
     },
     weeklyHours: 'Godzin w tygodniu',
     rideDays: 'Dni treningowe',
-    anyDay: 'Brak zaznaczonych dni: dowolny dzień.',
+    anyDay: 'Brak zaznaczonych dni: plan tygodnia dobierze je do twoich godzin.',
     days: ['Nd', 'Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb'],
     hint: 'Na tej podstawie wybieram polecany trening na stronie Start. Poziomy rosną, gdy kończysz treningi; twoja ocena po jeździe je dostraja.',
   },
@@ -165,6 +185,18 @@ export const pl: typeof en = {
       `Ułożony pod twój poziom: rozgrzewka, ${span} przy ${pct} % FTP, schłodzenie.`,
     intervals: (count: number, on: string, pct: string, off: string, fill: boolean) =>
       `Ułożony pod twój poziom: ${count} × ${on} przy ${pct} % FTP, ${off} luźno pomiędzy${fill ? ', potem spokojna jazda do końca czasu' : ''}.`,
+  },
+  plan: {
+    title: 'Ten tydzień',
+    kinds: { rest: 'Odpoczynek', easy: 'Spokojnie', hard: 'Mocno', long: 'Długa' },
+    done: 'Zrobione',
+    missed: 'Pominięte',
+    extra: 'Dodatkowa jazda',
+    todayTag: 'Dziś',
+    planned: (tss: number, done: number) => `Plan TSS ${tss} · zrobione ${done}`,
+    capped: 'Obciążenie zmniejszone, żeby kondycja rosła bezpiecznie (około +8 na tydzień).',
+    defaultDays: 'Dni treningowe dobrane automatycznie. Wybierz własne w Ustawienia → Trening.',
+    settings: 'Ustawienia…',
   },
   levels: {
     title: 'Poziomy treningowe',
