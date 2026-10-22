@@ -8,7 +8,7 @@
   import Tile from '../components/Tile.svelte'
   import { formatDate, formatNumber } from '../i18n/i18n.svelte'
   import { t } from '../i18n/t'
-  import { axis, dateAxis, durationAxis, line, series } from '../lib/chart'
+  import { axis, dateAxis, durationAxis, durationScale, line, series } from '../lib/chart'
   import { durationLabel } from '../lib/format'
   import { profile } from '../profile.svelte'
   import { today as reco } from '../reco/today.svelte'
@@ -54,12 +54,29 @@
   ] as const
 
   const today = $derived(load.at(-1))
-  const shown = $derived(rangeDays > 0 ? load.slice(-rangeDays) : load)
   /** Local midnight of a YYYY-MM-DD date, in seconds (uPlot's time unit). */
   const dayS = (date: string): number => {
     const [y, m, d] = date.split('-').map(Number)
     return new Date(y!, m! - 1, d!).getTime() / 1000
   }
+  /**
+   * Every day of the chosen range up to the last day, with its load where there is one. The axis
+   * then always spans the range (with a few days of data it used to span years) and the daily
+   * bars keep a day's width. "All" shows at least six weeks.
+   */
+  const shown = $derived.by(() => {
+    const last = load.at(-1)
+    if (!last) return []
+    const byDate = new Map(load.map((d) => [d.date, d]))
+    const [y, m, d] = last.date.split('-').map(Number)
+    const spanDays = Math.round((dayS(last.date) - dayS(load[0]!.date)) / 86400) + 1
+    const days = rangeDays > 0 ? rangeDays : Math.max(42, spanDays)
+    return Array.from({ length: days }, (_, i) => {
+      const day = new Date(y!, m! - 1, d! - (days - 1 - i))
+      const date = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`
+      return { s: day.getTime() / 1000, load: byDate.get(date) }
+    })
+  })
 
   // Chart options are derived from t(), so the charts rebuild when the language changes.
   type Options = Omit<uPlot.Options, 'width' | 'height'>
@@ -67,10 +84,10 @@
     v == null ? '–' : formatDate(v * 1000, { dateStyle: 'medium' })
 
   const loadData = $derived<uPlot.AlignedData>([
-    shown.map((d) => dayS(d.date)),
-    shown.map((d) => d.ctl),
-    shown.map((d) => d.atl),
-    shown.map((d) => d.tsb),
+    shown.map((d) => d.s),
+    shown.map((d) => d.load?.ctl ?? null),
+    shown.map((d) => d.load?.atl ?? null),
+    shown.map((d) => d.load?.tsb ?? null),
   ])
   const fmt1 = (_u: uPlot, v: number | null): string => (v == null ? '–' : String(Math.round(v)))
   const loadOptions = $derived<Options>({
@@ -84,8 +101,8 @@
     ],
   })
   const tssData = $derived<uPlot.AlignedData>([
-    shown.map((d) => dayS(d.date)),
-    shown.map((d) => (d.tss > 0 ? d.tss : null)),
+    shown.map((d) => d.s),
+    shown.map((d) => (d.load && d.load.tss > 0 ? d.load.tss : null)),
   ])
   const tssOptions = $derived<Options>({
     cursor: { sync: { key: 'load' }, drag: { x: false, y: false } },
@@ -117,7 +134,7 @@
   const w = (_u: uPlot, v: number | null): string => (v == null ? '–' : `${Math.round(v)} W`)
   const curveOptions = $derived<Options>({
     scales: {
-      x: { time: false, distr: 3, log: 10 },
+      x: durationScale,
       y: { range: (_u, _min, max) => [0, max * 1.1] },
     },
     axes: [

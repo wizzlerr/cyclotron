@@ -13,7 +13,7 @@
   import type { RideDetail } from '../../../shared/api'
   import { formatDate, formatNumber } from '../i18n/i18n.svelte'
   import { t } from '../i18n/t'
-  import { axis, cssVar, durationAxis, line, series } from '../lib/chart'
+  import { axis, cssVar, durationAxis, durationScale, line, series } from '../lib/chart'
   import { durationLabel, formatDuration, formatKm } from '../lib/format'
   import Chart from './Chart.svelte'
   import RouteMap from './RouteMap.svelte'
@@ -113,7 +113,7 @@
   ])
   const curveOptions = $derived<Options>({
     scales: {
-      x: { time: false, distr: 3, log: 10 },
+      x: durationScale,
       y: { range: (_u, _min, max) => [0, max * 1.1] },
     },
     axes: [

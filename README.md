@@ -61,11 +61,19 @@ that fits your training load and weekly plan, and tells you why.
 
 ![Ride screen with the 3D world on a route](docs/images/ride.png)
 
+![A workout in progress: live tiles, the workout profile and the live power and heart rate chart](docs/images/ride-workout.png)
+
 ![Home: today's recommendation and the weekly plan](docs/images/home.png)
 
 ![Workout library](docs/images/workouts.png)
 
+![Workout builder with nested repeats and a live profile](docs/images/builder.png)
+
 ![Routes](docs/images/routes.png)
+
+![Choosing a route for a workout](docs/images/route-picker.png)
+
+![Ride details: power, heart rate, power curve and time in zones](docs/images/ride-detail.png)
 
 ## How it compares
 

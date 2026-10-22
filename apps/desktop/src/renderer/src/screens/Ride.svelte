@@ -13,6 +13,7 @@
   import { workoutName } from '../i18n/content'
   import { formatNumber } from '../i18n/i18n.svelte'
   import { t } from '../i18n/t'
+  import { balancedColumns, shareSpace, type Elastic } from '../lib/fit'
   import { describeSegment as describe, formatDuration, formatKm, formatPct } from '../lib/format'
   import { go } from '../nav.svelte'
   import { profile } from '../profile.svelte'
@@ -22,13 +23,16 @@
 
   const STEP_W = 10
 
-  // Charts grow with the window, so a big or tall display isn't mostly empty space.
-  let windowHeight = $state(800)
-  const clamp = (v: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, v))
-  const chartHeight = $derived(Math.round(clamp(windowHeight * 0.24, 170, 520)))
-  const profileHeight = $derived(Math.round(clamp(windowHeight * 0.13, 100, 300)))
-  const mapSize = $derived(Math.round(clamp(windowHeight * 0.17, 150, 380)))
-  const worldMaxHeight = $derived(Math.round(Math.max(220, windowHeight * 0.6)))
+  // The ride screen fits the window, since nobody scrolls from the bike: tiles and controls take
+  // what they need and the charts share the rest (fit() below). Only when even their minimum
+  // sizes don't fit (a small window with the 3D world on) does the page scroll.
+  let pageEl: HTMLDivElement | undefined = $state()
+  let windowWidth = $state(1280)
+  let tilesWidth = $state(1000)
+  let profileHeight = $state(110)
+  let routeHeight = $state(110)
+  let chartHeight = $state(200)
+  let worldHeight = $state(300)
   let ergWatts = $state(150)
   /** Manual resistance (E2-3), 0–100 % of the trainer's range. */
   let resistancePct = $state(30)
@@ -184,9 +188,76 @@
       return !(ride.isFreeRide && (id === 'intervalLeft' || id === 'intervalAvg'))
     }),
   )
+
+  const rem = (): number => parseFloat(getComputedStyle(document.documentElement).fontSize) || 16
+  /** Wider tiles on big windows, to fit the bigger numbers (Tile.svelte); rows come out even. */
+  const tileColumns = $derived.by(() => {
+    void windowWidth
+    const r = rem()
+    const minTile = Math.min(22 * r, Math.max(10 * r, windowWidth * 0.1))
+    return balancedColumns(shownIds.length, tilesWidth, minTile, 0.75 * r)
+  })
+
+  type Part = 'profile' | 'route' | 'chart' | 'world'
+  const setters: Record<Part, (px: number) => void> = {
+    profile: (px) => (profileHeight = px),
+    route: (px) => (routeHeight = px),
+    chart: (px) => (chartHeight = px),
+    world: (px) => (worldHeight = px),
+  }
+
+  /**
+   * Sizes the charts so the page is exactly as tall as the window. Everything that isn't a chart
+   * keeps its height, so "fixed" = page height − current chart heights, and the charts share
+   * window − fixed. Re-runs whenever the page or the window changes size.
+   */
+  function fit(): void {
+    const page = pageEl
+    const main = page?.parentElement
+    const st = ride.state
+    if (!page || !main || !st || st.status === 'finished') return
+    const cs = getComputedStyle(main)
+    const room = main.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)
+    const r = rem()
+    const parts: { part: Part; now: number; spec: Elastic }[] = []
+    if (!ride.isFreeRide) {
+      parts.push({ part: 'profile', now: profileHeight, spec: { weight: 2, min: 60, max: 20 * r } })
+    }
+    if (ride.route && ride.routeState) {
+      parts.push({ part: 'route', now: routeHeight, spec: { weight: 2, min: 70, max: 20 * r } })
+    }
+    if (st.status !== 'ready') {
+      parts.push({ part: 'chart', now: chartHeight, spec: { weight: 3, min: 120 } })
+    }
+    const world = page.querySelector<HTMLElement>('.world')
+    if (worldPrefs.enabled && world) {
+      // The world keeps its wide shape (WorldView.svelte), so it never gets taller than that.
+      const max = Math.max(200, world.clientWidth / 2.35)
+      parts.push({ part: 'world', now: world.offsetHeight, spec: { weight: 5, min: 200, max } })
+    }
+    if (parts.length === 0) return
+    const fixed = page.offsetHeight - parts.reduce((a, p) => a + p.now, 0)
+    const sizes = shareSpace(
+      room - fixed,
+      parts.map((p) => p.spec),
+    )
+    parts.forEach((p, i) => {
+      const size = sizes[i] ?? p.now
+      if (Math.abs(size - p.now) > 1) setters[p.part](size)
+    })
+  }
+
+  $effect(() => {
+    const page = pageEl
+    if (!page?.parentElement) return
+    const observer = new ResizeObserver(() => fit())
+    observer.observe(page)
+    observer.observe(page.parentElement)
+    return () => observer.disconnect()
+  })
 </script>
 
-<svelte:window bind:innerHeight={windowHeight} />
+<svelte:window bind:innerWidth={windowWidth} />
 
 {#snippet ergControls()}
   {#if manualErgOn}
@@ -216,7 +287,11 @@
 {/snippet}
 
 {#snippet tileGrid()}
-  <div class="tiles">
+  <div
+    class="tiles"
+    bind:clientWidth={tilesWidth}
+    style:grid-template-columns="repeat({tileColumns}, minmax(0, 1fr))"
+  >
     {#each shownIds as id (id)}
       <Tile {...tiles[id]} />
     {/each}
@@ -236,165 +311,169 @@
 {/snippet}
 
 {#if ride.workout && ride.player && s}
-  <div class="head">
-    <h1>{workoutName(ride.workout)}</h1>
-    {#if !ride.isFreeRide}<span class="muted">{describe(s.segment)}</span>{/if}
-  </div>
+  <div class="ride-page" bind:this={pageEl}>
+    <div class="head">
+      <h1>{workoutName(ride.workout)}</h1>
+      {#if !ride.isFreeRide}<span class="muted">{describe(s.segment)}</span>{/if}
+    </div>
 
-  {#if s.status === 'finished'}
-    {#if ride.saving}
-      <p class="muted">{t().ride.saving}</p>
-    {:else if ride.result}
-      <RideSummary
-        result={ride.result}
-        onclose={() => ride.close()}
-        ondiscard={() => ride.discard()}
-      />
-    {:else}
-      <p class="muted">{t().ride.nothingRecorded}</p>
-      <button onclick={() => ride.close()}>{t().common.actions.close}</button>
-    {/if}
-  {:else}
-    {@render deviceWarnings()}
-
-    {@render tileGrid()}
-
-    <section class="controls">
-      {#if s.status === 'ready'}
-        <button class="primary" onclick={() => ride.start()} disabled={!devices.trainer}>
-          {t().common.actions.start}<PadHint button="a" />
-        </button>
-        <button onclick={() => ride.close()}>{t().common.actions.close}</button>
-      {:else}
-        {#if s.status === 'running'}
-          <button onclick={() => ride.pause()}
-            >{t().common.actions.pause}<PadHint button="a" /></button
-          >
-        {:else}
-          <button class="primary" onclick={() => ride.resume()}
-            >{t().common.actions.resume}<PadHint button="a" /></button
-          >
-        {/if}
-        {#if !ride.isFreeRide}<button onclick={() => ride.skip()}>{t().ride.skipStep}</button>{/if}
-        {#if confirmEnd}
-          <span class="warn">{t().ride.confirmEnd}</span>
-          <button class="primary" onclick={end}>{t().common.actions.end}</button>
-          <button onclick={() => (confirmEnd = false)}>{t().common.actions.cancel}</button>
-        {:else}
-          <button onclick={() => (confirmEnd = true)}>{t().ride.endEllipsis}</button>
-        {/if}
-
-        {#if !ride.isFreeRide}
-          <span class="sep"></span>
-          <button onclick={() => ride.adjustIntensity(-0.05)}>−5</button>
-          <button onclick={() => ride.adjustIntensity(-0.01)}>−1<PadHint button="minus" /></button>
-          <button
-            class="intensity"
-            onclick={() => ride.resetIntensity()}
-            title={t().ride.resetIntensity}
-          >
-            {formatPct(s.intensity)}
-          </button>
-          <button onclick={() => ride.adjustIntensity(0.01)}>+1<PadHint button="plus" /></button>
-          <button onclick={() => ride.adjustIntensity(0.05)}>+5</button>
-        {/if}
-      {/if}
-      <button
-        class="world-toggle"
-        class:on={worldPrefs.enabled}
-        aria-pressed={worldPrefs.enabled}
-        title={worldPrefs.enabled ? t().world.toggleOn : t().world.toggleOff}
-        onclick={() => worldPrefs.setEnabled(!worldPrefs.enabled)}
-        >{t().world.toggle}<PadHint button="z" /></button
-      >
-      <label class="mute"
-        ><input type="checkbox" bind:checked={ride.muted} />
-        {t().ride.mute}<PadHint button="y" /></label
-      >
-    </section>
-
-    {#if worldPrefs.enabled}
-      {#key ride.route?.id}<WorldView maxHeight={worldMaxHeight} />{/key}
-    {/if}
-
-    {#if inFreeStep}
-      <section class="controls">{@render ergControls()}</section>
-    {/if}
-
-    {#if ride.route && ride.routeState}
-      {@const r = ride.routeState}
-      {@const grade = r.position.gradePct}
-      <div class="card route">
-        <dl class="route-stats">
-          <div class="grade">
-            <dt>{t().ride.route.grade}</dt>
-            <dd>{formatNumber(grade, 1)} %</dd>
-          </div>
-          <div>
-            <dt>{t().ride.route.speed}</dt>
-            <dd>{formatNumber(r.speedKmh, 1)} km/h</dd>
-          </div>
-          <div>
-            <dt>{t().ride.route.distance}</dt>
-            <dd>{formatKm(r.distanceM)}</dd>
-          </div>
-          <div>
-            <dt>{t().ride.route.toGo}</dt>
-            <dd>{formatKm(r.remainingM)}</dd>
-          </div>
-          <div>
-            <dt>{t().ride.route.elevation}</dt>
-            <dd>{Math.round(r.position.ele)} m</dd>
-          </div>
-          <div>
-            <dt>{t().ride.route.climbed}</dt>
-            <dd>{Math.round(r.climbedM)} m</dd>
-          </div>
-        </dl>
-        <div class="route-view">
-          <div class="route-profile">
-            <RouteProfile route={ride.route} positionM={r.position.d} height={profileHeight} axes />
-          </div>
-          <RouteMap route={ride.route} position={r.position} size={mapSize} />
-        </div>
-        {#if ride.isFreeRide}
-          <p class="muted next">
-            {t().ride.route.trainerDifficulty(
-              Math.round(profile.difficulty * 100),
-              formatNumber(grade * profile.difficulty, 1),
-            )}
-          </p>
-        {/if}
-      </div>
-    {/if}
-
-    {#if !ride.isFreeRide}
-      <div class="profile card">
-        <WorkoutProfile
-          timeline={ride.player.timeline}
-          positionS={s.positionS}
-          ftpW={ride.player.ftpW * s.intensity}
-          height={profileHeight}
-          axes
+    {#if s.status === 'finished'}
+      {#if ride.saving}
+        <p class="muted">{t().ride.saving}</p>
+      {:else if ride.result}
+        <RideSummary
+          result={ride.result}
+          onclose={() => ride.close()}
+          ondiscard={() => ride.discard()}
         />
-        {#if s.next}
-          <p class="muted next">
-            {t().ride.nextIn(formatDuration(remaining), describe(s.next))}{s.nextTargetW
-              ? ` · ${s.nextTargetW} W`
-              : ''}
-          </p>
+      {:else}
+        <p class="muted">{t().ride.nothingRecorded}</p>
+        <button onclick={() => ride.close()}>{t().common.actions.close}</button>
+      {/if}
+    {:else}
+      {@render deviceWarnings()}
+
+      {@render tileGrid()}
+
+      <section class="controls">
+        {#if s.status === 'ready'}
+          <button class="primary" onclick={() => ride.start()} disabled={!devices.trainer}>
+            {t().common.actions.start}<PadHint button="a" />
+          </button>
+          <button onclick={() => ride.close()}>{t().common.actions.close}</button>
+        {:else}
+          {#if s.status === 'running'}
+            <button onclick={() => ride.pause()}
+              >{t().common.actions.pause}<PadHint button="a" /></button
+            >
+          {:else}
+            <button class="primary" onclick={() => ride.resume()}
+              >{t().common.actions.resume}<PadHint button="a" /></button
+            >
+          {/if}
+          {#if !ride.isFreeRide}<button onclick={() => ride.skip()}>{t().ride.skipStep}</button
+            >{/if}
+          {#if confirmEnd}
+            <span class="warn">{t().ride.confirmEnd}</span>
+            <button class="primary" onclick={end}>{t().common.actions.end}</button>
+            <button onclick={() => (confirmEnd = false)}>{t().common.actions.cancel}</button>
+          {:else}
+            <button onclick={() => (confirmEnd = true)}>{t().ride.endEllipsis}</button>
+          {/if}
+
+          {#if !ride.isFreeRide}
+            <span class="sep"></span>
+            <button onclick={() => ride.adjustIntensity(-0.05)}>−5</button>
+            <button onclick={() => ride.adjustIntensity(-0.01)}>−1<PadHint button="minus" /></button
+            >
+            <button
+              class="intensity"
+              onclick={() => ride.resetIntensity()}
+              title={t().ride.resetIntensity}
+            >
+              {formatPct(s.intensity)}
+            </button>
+            <button onclick={() => ride.adjustIntensity(0.01)}>+1<PadHint button="plus" /></button>
+            <button onclick={() => ride.adjustIntensity(0.05)}>+5</button>
+          {/if}
         {/if}
-      </div>
+        <button
+          class="world-toggle"
+          class:on={worldPrefs.enabled}
+          aria-pressed={worldPrefs.enabled}
+          title={worldPrefs.enabled ? t().world.toggleOn : t().world.toggleOff}
+          onclick={() => worldPrefs.setEnabled(!worldPrefs.enabled)}
+          >{t().world.toggle}<PadHint button="z" /></button
+        >
+        <label class="mute"
+          ><input type="checkbox" bind:checked={ride.muted} />
+          {t().ride.mute}<PadHint button="y" /></label
+        >
+      </section>
+
+      {#if worldPrefs.enabled}
+        {#key ride.route?.id}<WorldView maxHeight={worldHeight} />{/key}
+      {/if}
+
+      {#if inFreeStep}
+        <section class="controls">{@render ergControls()}</section>
+      {/if}
+
+      {#if ride.route && ride.routeState}
+        {@const r = ride.routeState}
+        {@const grade = r.position.gradePct}
+        <div class="card route">
+          <dl class="route-stats">
+            <div class="grade">
+              <dt>{t().ride.route.grade}</dt>
+              <dd>{formatNumber(grade, 1)} %</dd>
+            </div>
+            <div>
+              <dt>{t().ride.route.speed}</dt>
+              <dd>{formatNumber(r.speedKmh, 1)} km/h</dd>
+            </div>
+            <div>
+              <dt>{t().ride.route.distance}</dt>
+              <dd>{formatKm(r.distanceM)}</dd>
+            </div>
+            <div>
+              <dt>{t().ride.route.toGo}</dt>
+              <dd>{formatKm(r.remainingM)}</dd>
+            </div>
+            <div>
+              <dt>{t().ride.route.elevation}</dt>
+              <dd>{Math.round(r.position.ele)} m</dd>
+            </div>
+            <div>
+              <dt>{t().ride.route.climbed}</dt>
+              <dd>{Math.round(r.climbedM)} m</dd>
+            </div>
+          </dl>
+          <div class="route-view">
+            <div class="route-profile">
+              <RouteProfile route={ride.route} positionM={r.position.d} height={routeHeight} axes />
+            </div>
+            <RouteMap route={ride.route} position={r.position} size={routeHeight} />
+          </div>
+          {#if ride.isFreeRide}
+            <p class="muted next">
+              {t().ride.route.trainerDifficulty(
+                Math.round(profile.difficulty * 100),
+                formatNumber(grade * profile.difficulty, 1),
+              )}
+            </p>
+          {/if}
+        </div>
+      {/if}
+
+      {#if !ride.isFreeRide}
+        <div class="profile card">
+          <WorkoutProfile
+            timeline={ride.player.timeline}
+            positionS={s.positionS}
+            ftpW={ride.player.ftpW * s.intensity}
+            height={profileHeight}
+            axes
+          />
+          {#if s.next}
+            <p class="muted next">
+              {t().ride.nextIn(formatDuration(remaining), describe(s.next))}{s.nextTargetW
+                ? ` · ${s.nextTargetW} W`
+                : ''}
+            </p>
+          {/if}
+        </div>
+      {/if}
+
+      {#if s.status !== 'ready'}
+        <div class="card chart"><LiveChart height={chartHeight} /></div>
+      {/if}
     {/if}
 
-    {#if s.status !== 'ready'}
-      <div class="card chart"><LiveChart height={chartHeight} /></div>
-    {/if}
-  {/if}
-
-  {#if ride.notice && s.status !== 'finished'}<p class="warn">{ride.notice()}</p>{/if}
-  {#if ride.error}<p class="error">{ride.error()}</p>{/if}
-  {#if devices.error}<p class="error">{devices.error}</p>{/if}
+    {#if ride.notice && s.status !== 'finished'}<p class="warn">{ride.notice()}</p>{/if}
+    {#if ride.error}<p class="error">{ride.error()}</p>{/if}
+    {#if devices.error}<p class="error">{devices.error}</p>{/if}
+  </div>
 {:else}
   <h1>{t().ride.title}</h1>
 
@@ -437,8 +516,6 @@
   }
   .tiles {
     display: grid;
-    /* Wider tiles on big windows, to fit the bigger numbers (Tile.svelte). */
-    grid-template-columns: repeat(auto-fill, minmax(clamp(12rem, 10vw, 22rem), 1fr));
     gap: 0.75rem;
   }
   .chart {
@@ -517,5 +594,16 @@
     min-width: 7rem;
     text-align: center;
     font-weight: 600;
+  }
+  /* A column with even gaps, so its height is the sum of its parts (fit()). Last, so it wins
+     over the margins above. */
+  .ride-page {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .ride-page > :global(*) {
+    margin-top: 0;
+    margin-bottom: 0;
   }
 </style>

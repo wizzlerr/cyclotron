@@ -41,7 +41,7 @@ export const MAX_DURATION_S = 12 * 3600
  * entries for a step inside a repeat). The UI words it (core has no language, DESIGN.md D21).
  */
 export interface WorkoutProblem {
-  code: 'noName' | 'noSteps' | 'repeatCount' | 'emptyRepeat' | 'nestedRepeat' | 'duration' | 'power'
+  code: 'noName' | 'noSteps' | 'repeatCount' | 'emptyRepeat' | 'duration' | 'power'
   path?: number[]
 }
 
@@ -58,7 +58,6 @@ export function validateWorkout(w: Workout): WorkoutProblem[] {
           problems.push({ code: 'repeatCount', path })
         }
         if (s.steps.length === 0) problems.push({ code: 'emptyRepeat', path })
-        if (s.steps.some((x) => x.kind === 'repeat')) problems.push({ code: 'nestedRepeat', path })
         check(s.steps, path)
         return
       }

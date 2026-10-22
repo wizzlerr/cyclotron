@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  BUILTIN_WORKOUTS,
   buildTimeline,
   newStep,
   parseDuration,
@@ -84,6 +85,10 @@ describe('validateWorkout', () => {
       { code: 'emptyRepeat', path: [2] },
     ])
     expect(validateWorkout({ id: 'e', name: 'Empty', steps: [] })).toEqual([{ code: 'noSteps' }])
+  })
+
+  it('accepts every built-in workout, so a duplicate can be saved (nested repeats included)', () => {
+    for (const w of BUILTIN_WORKOUTS) expect(validateWorkout(w), w.name).toEqual([])
   })
 })
 

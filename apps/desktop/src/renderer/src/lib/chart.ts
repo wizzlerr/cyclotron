@@ -26,13 +26,18 @@ export function line(
   return { label, stroke, width: 2, points: { show: false }, ...extra }
 }
 
-/** Day ticks for a time-scaled x axis, in the UI's locale (uPlot's own are English). */
+/** Day ticks for a time-scaled x axis, in the UI's locale (uPlot's own are English). Over more
+ * than about a year the ticks are months, so they show the year instead of the day. */
 export function dateAxis(): uPlot.Axis {
   return axis({
-    values: (_u, splits) =>
-      splits.map((s) =>
-        s == null ? '' : formatDate(s * 1000, { day: 'numeric', month: 'short' }),
-      ),
+    values: (u, splits) => {
+      const { min = 0, max = 0 } = u.scales['x'] ?? {}
+      const style: Intl.DateTimeFormatOptions =
+        max - min > 330 * 86400
+          ? { month: 'short', year: 'numeric' }
+          : { day: 'numeric', month: 'short' }
+      return splits.map((s) => (s == null ? '' : formatDate(s * 1000, style)))
+    },
   })
 }
 
@@ -47,7 +52,17 @@ export function durationAxis(label: (s: number) => string, title: string): uPlot
       const { min = 1, max = 3600 } = u.scales['x'] ?? {}
       return DURATION_TICKS.filter((t) => t >= min && t <= max)
     },
-    // uPlot passes null for ticks it hides to avoid overlap.
+    // uPlot's log-axis filter would hide all but 1, 10, 100…; these few ticks don't collide.
+    filter: (_u, splits) => splits,
     values: (_u, splits) => splits.map((s) => (s == null ? '' : label(s))),
   })
+}
+
+/** x scale for a power curve: log, ending at the longest duration (uPlot would round it up to
+ * the next power of 10, leaving the right part of the chart empty). */
+export const durationScale: uPlot.Scale = {
+  time: false,
+  distr: 3,
+  log: 10,
+  range: (_u, min, max) => [min, max],
 }
