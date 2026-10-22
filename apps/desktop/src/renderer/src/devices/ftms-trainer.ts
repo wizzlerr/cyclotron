@@ -6,18 +6,33 @@ import {
   GATT,
   parseControlPointResponse,
   parseFtmsFeatures,
+  parseResistanceRange,
   parseHeartRateMeasurement,
   parseIndoorBikeData,
   type ControlPointResponse,
   type FtmsFeatures,
+  type ResistanceRange,
 } from '@cyclotron/core'
-import { BleLink } from './ble-link'
+import { logEvent, traceBle } from '../lib/diag'
+import { BleLink, withTimeout } from './ble-link'
 import { Emitter } from './emitter'
-import type { HeartRateSource, LinkStatus, Trainer, TrainerControl, TrainerData } from './types'
+import type {
+  HeartRateSource,
+  LinkStatus,
+  Trainer,
+  TrainerCapabilities,
+  TrainerControl,
+  TrainerData,
+} from './types'
 import { t } from '../i18n/t'
 
 /** Services the trainer connection asks for. Kept lean: E1-0 saw ~70 s connects with everything. */
-export const TRAINER_SERVICES: BluetoothServiceUUID[] = [GATT.fitnessMachine, GATT.heartRate]
+export const TRAINER_SERVICES: BluetoothServiceUUID[] = [
+  GATT.fitnessMachine,
+  GATT.heartRate,
+  // E1-3: power meters and older trainers without FTMS (read-only).
+  GATT.cyclingPower,
+]
 
 // E1-0 saw a ~10 s Control Point response from across the house.
 const RESPONSE_TIMEOUT_MS = 15_000
@@ -34,6 +49,10 @@ export class FtmsTrainer implements Trainer {
   readonly name: string
   heartRate: HeartRateSource | undefined
   features: FtmsFeatures | undefined
+  /** The trainer's Supported Resistance Level Range (E2-3), when it publishes one. */
+  resistanceRange: ResistanceRange | undefined
+  private rangeTried = false
+  private ftms: BluetoothRemoteGATTService | undefined
 
   private link: BleLink
   private queue = new FtmsCommandQueue((bytes) => this.send(bytes))
@@ -95,6 +114,8 @@ export class FtmsTrainer implements Trainer {
       const feature = await ftms.getCharacteristic(GATT.ftmsFeature)
       this.features = parseFtmsFeatures(await feature.readValue())
     }
+    this.ftms = ftms
+    logEvent('info', `${this.name}: FTMS ${JSON.stringify(this.features)}`)
 
     // Subscribe to the Control Point before writing so no response is missed.
     const cp = await ftms.getCharacteristic(GATT.ftmsControlPoint)
@@ -132,18 +153,48 @@ export class FtmsTrainer implements Trainer {
     }
   }
 
+  capabilities(): TrainerCapabilities {
+    const f = this.features
+    return {
+      erg: f?.supportsPowerTarget ?? true,
+      resistance: f?.supportsResistanceTarget ?? false,
+      simulation: f?.supportsSimulation ?? true,
+      calibration: f?.supportsSpinDown ?? false,
+    }
+  }
+
+  /**
+   * The Supported Resistance Level Range, read the first time resistance mode is used rather
+   * than on connect, so a ride that never uses it doesn't pay for an extra GATT read.
+   */
+  private async readResistanceRange(): Promise<void> {
+    if (this.resistanceRange || this.rangeTried || !this.features?.supportsResistanceTarget) return
+    this.rangeTried = true
+    try {
+      const range = await this.ftms!.getCharacteristic(GATT.supportedResistanceLevelRange)
+      this.resistanceRange = parseResistanceRange(
+        await withTimeout(range.readValue(), 5_000, 'resistance range'),
+      )
+      logEvent('info', `${this.name}: resistance range ${JSON.stringify(this.resistanceRange)}`)
+    } catch (e) {
+      // Optional: without it, resistance uses the full FTMS range.
+      logEvent('warn', `${this.name}: no resistance range (${describe(e)})`)
+    }
+  }
+
   private async takeControl(): Promise<void> {
     try {
       await this.expectOk(encodeRequestControl(), 'request control')
       await this.expectOk(encodeStartOrResume(), 'start')
       if (this.control) await this.apply(this.control)
     } catch (e) {
-      console.warn(`${this.name}: taking control failed`, e)
+      logEvent('warn', `${this.name}: taking control failed: ${describe(e)}`)
     }
   }
 
   private async apply(control: TrainerControl): Promise<void> {
-    const command = controlCommand(control)
+    if (control.kind === 'resistance') await this.readResistanceRange()
+    const command = controlCommand(control, this.resistanceRange)
     await this.expectOk(command.bytes, command.label, command.slot)
   }
 
@@ -170,6 +221,7 @@ export class FtmsTrainer implements Trainer {
         resolve: (r) => (done(), resolve(r)),
         reject: (e) => (done(), reject(e)),
       }
+      traceBle(this.name, 'cp>', bytes)
       cp.writeValueWithResponse(bytes as Uint8Array<ArrayBuffer>).catch((e: unknown) =>
         this.pending?.reject(e),
       )
@@ -177,11 +229,15 @@ export class FtmsTrainer implements Trainer {
   }
 
   private onResponse(dv: DataView): void {
+    traceBle(this.name, 'cp<', dv)
     const r = parseControlPointResponse(dv)
+    if (r && !r.ok)
+      logEvent('warn', `${this.name}: command 0x${r.requestOp.toString(16)} refused (${r.result})`)
     if (r && r.requestOp === this.pending?.op) this.pending.resolve(r)
   }
 
   private onBikeData(dv: DataView): void {
+    traceBle(this.name, 'bike', dv)
     const d = parseIndoorBikeData(dv)
     this.latest = {
       powerW: d.powerW ?? this.latest.powerW,
@@ -198,4 +254,8 @@ export class FtmsTrainer implements Trainer {
     this.pending?.reject(error)
     this.queue.clear(error)
   }
+}
+
+function describe(e: unknown): string {
+  return e instanceof Error ? `${e.name}: ${e.message}` : String(e)
 }

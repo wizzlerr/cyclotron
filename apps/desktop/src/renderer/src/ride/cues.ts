@@ -1,14 +1,19 @@
 // E3-6: short beeps before and at step changes. Web Audio, so no sound files to ship.
+import { sound } from './sound.svelte'
 
 let ctx: AudioContext | undefined
+/** Gain at 100 %; the old fixed level (0.2) is 60 %. */
+const MAX_GAIN = 0.33
 
 function tone(freqHz: number, durationMs: number, delayMs = 0): void {
+  const level = (sound.volume / 100) * MAX_GAIN
+  if (level <= 0) return
   ctx ??= new AudioContext()
   const at = ctx.currentTime + delayMs / 1000
   const osc = ctx.createOscillator()
   const gain = ctx.createGain()
   osc.frequency.value = freqHz
-  gain.gain.setValueAtTime(0.2, at)
+  gain.gain.setValueAtTime(level, at)
   gain.gain.exponentialRampToValueAtTime(0.001, at + durationMs / 1000)
   osc.connect(gain).connect(ctx.destination)
   osc.start(at)

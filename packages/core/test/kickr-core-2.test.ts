@@ -5,6 +5,9 @@ import {
   fromHex,
   parseControlPointResponse,
   parseFtmsFeatures,
+  parseResistanceRange,
+  resistanceLevel,
+  controlCommand,
   parseIndoorBikeData,
   parsePowerRange,
   shortUuid,
@@ -34,6 +37,23 @@ describe('KICKR CORE 2 capture', () => {
     expect(f.supportsResistanceTarget).toBe(true)
     expect(f.supportsSimulation).toBe(true)
     expect(f.machine).toEqual(['Average Speed', 'Cadence', 'Power Measurement'])
+  })
+
+  it('publishes a resistance range of 0–10.0 in 0.1 steps; 0–100 % maps onto it', () => {
+    const range = parseResistanceRange(read(GATT.supportedResistanceLevelRange))
+    expect(range).toEqual({ min: 0, max: 10, increment: 0.1 })
+    expect(resistanceLevel(0, range)).toBe(0)
+    expect(resistanceLevel(50, range)).toBe(5)
+    expect(resistanceLevel(100, range)).toBe(10)
+    expect(resistanceLevel(33, range)).toBe(3.3)
+    // The command byte stays within the trainer's max (10.0 → 100).
+    expect([...controlCommand({ kind: 'resistance', level: 100 }, range).bytes]).toEqual([
+      0x04, 100,
+    ])
+  })
+
+  it("doesn't offer spin-down calibration over FTMS", () => {
+    expect(parseFtmsFeatures(read(GATT.ftmsFeature)).supportsSpinDown).toBe(false)
   })
 
   it('supports 0–2000 W in 1 W steps', () => {

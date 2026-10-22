@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, webFrame, type IpcRendererEvent } from 'electron'
-import { IPC, type BluetoothDeviceInfo, type CyclotronApi } from '../shared/api'
+import { IPC, type BluetoothDeviceInfo, type CyclotronApi, type UpdateStatus } from '../shared/api'
 
 const api: CyclotronApi = {
   app: {
@@ -20,7 +20,8 @@ const api: CyclotronApi = {
     },
     selectDevice: (id) => ipcRenderer.invoke(IPC.btSelect, id),
     cancelSelection: () => ipcRenderer.invoke(IPC.btCancel),
-    preferDevice: (name) => ipcRenderer.invoke(IPC.btPrefer, name),
+    preferDevice: (nameOrAddress) => ipcRenderer.invoke(IPC.btPrefer, nameOrAddress),
+    lastPicked: () => ipcRenderer.invoke(IPC.btLastPicked),
   },
   ride: {
     keepAwake: (on) => ipcRenderer.invoke(IPC.rideKeepAwake, on),
@@ -77,6 +78,32 @@ const api: CyclotronApi = {
       ipcRenderer.on(IPC.garminSynced, handler)
       return () => ipcRenderer.removeListener(IPC.garminSynced, handler)
     },
+  },
+  update: {
+    status: () => ipcRenderer.invoke(IPC.updateStatus),
+    check: () => ipcRenderer.invoke(IPC.updateCheck),
+    setAuto: (on) => ipcRenderer.invoke(IPC.updateSetAuto, on),
+    install: () => ipcRenderer.invoke(IPC.updateInstall),
+    onChange: (listener) => {
+      const handler = (_event: IpcRendererEvent, s: UpdateStatus): void => listener(s)
+      ipcRenderer.on(IPC.updateChanged, handler)
+      return () => ipcRenderer.removeListener(IPC.updateChanged, handler)
+    },
+  },
+  strava: {
+    status: () => ipcRenderer.invoke(IPC.stravaStatus),
+    setApp: (id, secret) => ipcRenderer.invoke(IPC.stravaSetApp, id, secret),
+    connect: () => ipcRenderer.invoke(IPC.stravaConnect),
+    disconnect: () => ipcRenderer.invoke(IPC.stravaDisconnect),
+    setAuto: (on) => ipcRenderer.invoke(IPC.stravaSetAuto, on),
+    upload: (id) => ipcRenderer.invoke(IPC.stravaUpload, id),
+    openActivity: (id) => ipcRenderer.invoke(IPC.stravaOpenActivity, id),
+  },
+  diag: {
+    log: (level, message) => ipcRenderer.send(IPC.diagLog, level, message),
+    saveReport: (input) => ipcRenderer.invoke(IPC.diagSave, input),
+    openLogs: () => ipcRenderer.invoke(IPC.diagOpenLogs),
+    reportIssue: () => ipcRenderer.invoke(IPC.diagReportIssue),
   },
   spike: {
     saveCapture: (json) => ipcRenderer.invoke(IPC.spikeSaveCapture, json),

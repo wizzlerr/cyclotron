@@ -121,6 +121,10 @@ const MIGRATIONS = [
     primary key (date, source)
   ) without rowid;
   `,
+  // E12-7: the Strava activity a ride was uploaded as.
+  `
+  alter table rides add column strava_id integer;
+  `,
 ]
 
 let db: DatabaseSync | undefined

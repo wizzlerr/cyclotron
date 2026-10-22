@@ -3,14 +3,28 @@
 import * as app from './messages/app'
 import * as common from './messages/common'
 import * as content from './messages/content'
+import * as controllers from './messages/controllers'
 import * as garmin from './messages/garmin'
 import * as history from './messages/history'
 import * as library from './messages/library'
 import * as reco from './messages/reco'
+import * as strava from './messages/strava'
 import * as world from './messages/world'
 import * as ride from './messages/ride'
 
-const AREAS = { common, app, ride, library, history, content, reco, garmin, world }
+const AREAS = {
+  common,
+  app,
+  ride,
+  library,
+  history,
+  content,
+  reco,
+  garmin,
+  world,
+  strava,
+  controllers,
+}
 
 type Catalogue = { [K in keyof typeof AREAS]: (typeof AREAS)[K]['en'] }
 export type Messages = Catalogue

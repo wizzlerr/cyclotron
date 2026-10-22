@@ -16,7 +16,7 @@ export interface TrainerData {
  * (E1-2/E2). Implementations handle protocol details such as FTMS Request Control.
  */
 export interface Trainer {
-  readonly kind: 'simulated' | 'ftms'
+  readonly kind: 'simulated' | 'ftms' | 'cps'
   readonly name: string
   /** Live data, roughly 1 Hz. Returns an unsubscribe function. */
   onData(listener: (data: TrainerData) => void): () => void
@@ -27,7 +27,17 @@ export interface Trainer {
   readonly heartRate?: HeartRateSource
   /** Applied again after a reconnect. Rejects if the trainer refuses the command. */
   setControl(control: TrainerControl): Promise<void>
+  /** What the trainer can do; known once connected. */
+  capabilities(): TrainerCapabilities
   disconnect(): Promise<void>
+}
+
+export interface TrainerCapabilities {
+  erg: boolean
+  resistance: boolean
+  simulation: boolean
+  /** Spin-down calibration over Bluetooth (FTMS). The KICKR CORE 2 doesn't offer it (E2-6). */
+  calibration: boolean
 }
 
 export interface HeartRateSource {

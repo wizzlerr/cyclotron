@@ -1,0 +1,88 @@
+// Strings for Zwift controllers (buttons). See common.ts for the glossary; `pl` must match `en`.
+import type { ZwiftButton } from '@cyclotron/core'
+
+export const en = {
+  title: 'Controllers',
+  intro:
+    'Zwift Play, Click or Ride buttons can run the Ride screen. A Zwift Play is two devices (left and right): add both.',
+  add: 'Add controller…',
+  connect: (name: string) => `Connect ${name}`,
+  disconnect: 'Disconnect',
+  forget: 'Forget',
+  pressAny: 'Press any button to test.',
+  lastPress: (button: string, from: string) => `${button} (${from})`,
+  hint: (button: string) => `Controller button ${button}`,
+  mappingTitle: 'What the buttons do',
+  mapping: [
+    'D-pad: move the highlight around the app; A: press the highlighted button or tab; B: back (closes a dialog, drops the highlight)',
+    'Ride screen, nothing highlighted: A start / pause / resume, B ERG on/off in a free ride, Y mute, Z virtual world',
+    '+ / − (side buttons, Click, paddles): more or less (ERG ±10 W, workout ±1 %, resistance ±5 %)',
+    'On the Ride screen the highlight fades after 5 s without a press.',
+  ],
+  notTrainer: (name: string) =>
+    `${name} is your trainer or heart rate strap, not a controller. Pick the Zwift Play, Click or Ride itself.`,
+  help: "Newer Zwift Ride and Click v2 firmware is locked to Zwift and may stop sending after a minute. If buttons don't arrive, save a diagnostic report (Settings → Problem?).",
+  buttons: {
+    up: 'Up',
+    down: 'Down',
+    left: 'Left',
+    right: 'Right',
+    a: 'A',
+    b: 'B',
+    y: 'Y',
+    z: 'Z',
+    shiftUpL: 'Left shift up',
+    shiftDownL: 'Left shift down',
+    shiftUpR: 'Right shift up',
+    shiftDownR: 'Right shift down',
+    powerUpL: 'Left power-up',
+    powerUpR: 'Right power-up',
+    onOffL: 'Left on/off',
+    onOffR: 'Right on/off',
+    paddleL: 'Left paddle',
+    paddleR: 'Right paddle',
+  } satisfies Record<ZwiftButton, string>,
+}
+
+export const pl: typeof en = {
+  title: 'Kontrolery',
+  intro:
+    'Przyciski Zwift Play, Click albo Ride mogą sterować ekranem jazdy. Zwift Play to dwa urządzenia (lewe i prawe): dodaj oba.',
+  add: 'Dodaj kontroler…',
+  connect: (name: string) => `Połącz ${name}`,
+  disconnect: 'Rozłącz',
+  forget: 'Zapomnij',
+  pressAny: 'Naciśnij dowolny przycisk, żeby sprawdzić.',
+  lastPress: (button: string, from: string) => `${button} (${from})`,
+  hint: (button: string) => `Przycisk kontrolera ${button}`,
+  mappingTitle: 'Co robią przyciski',
+  mapping: [
+    'Krzyżak: przesuwa podświetlenie po aplikacji; A: naciska podświetlony przycisk lub zakładkę; B: wstecz (zamyka okno, zdejmuje podświetlenie)',
+    'Ekran jazdy, nic niepodświetlone: A start / pauza / wznowienie, B ERG wł./wył. w jeździe swobodnej, Y wycisz, Z wirtualny świat',
+    '+ / − (przyciski boczne, Click, łopatki): więcej lub mniej (ERG ±10 W, trening ±1 %, opór ±5 %)',
+    'Na ekranie jazdy podświetlenie znika po 5 s bez naciśnięcia.',
+  ],
+  notTrainer: (name: string) =>
+    `${name} to twój trenażer lub pas tętna, nie kontroler. Wybierz sam Zwift Play, Click lub Ride.`,
+  help: 'Nowsze oprogramowanie Zwift Ride i Click v2 jest zablokowane dla Zwifta i może przestać wysyłać po minucie. Jeśli przyciski nie działają, zapisz raport diagnostyczny (Ustawienia → Problem?).',
+  buttons: {
+    up: 'Góra',
+    down: 'Dół',
+    left: 'Lewo',
+    right: 'Prawo',
+    a: 'A',
+    b: 'B',
+    y: 'Y',
+    z: 'Z',
+    shiftUpL: 'Lewa zmiana w górę',
+    shiftDownL: 'Lewa zmiana w dół',
+    shiftUpR: 'Prawa zmiana w górę',
+    shiftDownR: 'Prawa zmiana w dół',
+    powerUpL: 'Lewy power-up',
+    powerUpR: 'Prawy power-up',
+    onOffL: 'Lewy wł./wył.',
+    onOffR: 'Prawy wł./wył.',
+    paddleL: 'Lewa łopatka',
+    paddleR: 'Prawa łopatka',
+  },
+}

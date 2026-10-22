@@ -83,6 +83,35 @@ export function parsePowerRange(dv: DataView): PowerRange {
   }
 }
 
+/** Supported Resistance Level Range (0x2AD6): sint16 min, max, increment in 0.1 units. */
+export interface ResistanceRange {
+  min: number
+  max: number
+  increment: number
+}
+
+export function parseResistanceRange(dv: DataView): ResistanceRange {
+  return {
+    min: dv.getInt16(0, true) / 10,
+    max: dv.getInt16(2, true) / 10,
+    increment: dv.getUint16(4, true) / 10,
+  }
+}
+
+/** Used when the trainer doesn't publish its range: the whole FTMS v1.0 uint8 parameter. */
+export const DEFAULT_RESISTANCE_RANGE: ResistanceRange = { min: 0, max: 25.5, increment: 0.1 }
+
+/** A 0–100 % resistance choice as a level in the trainer's own range, on its increment. */
+export function resistanceLevel(
+  pct: number,
+  range: ResistanceRange = DEFAULT_RESISTANCE_RANGE,
+): number {
+  const p = Math.min(100, Math.max(0, pct)) / 100
+  const raw = range.min + (range.max - range.min) * p
+  const step = range.increment > 0 ? range.increment : 0.1
+  return Math.round(Math.round(raw / step) * step * 10) / 10
+}
+
 export interface IndoorBikeData {
   speedKmh?: number
   avgSpeedKmh?: number

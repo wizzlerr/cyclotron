@@ -39,6 +39,8 @@ export interface StoredRide extends RideStartInfo {
   fitPath?: string
   /** 'import' for rides brought in from FIT files (E9-5). */
   source: 'recorded' | 'import'
+  /** Strava activity it was uploaded as (E12-7). */
+  stravaId?: number
 }
 
 /** One ride with everything the detail view needs (E9-1). */
@@ -151,6 +153,56 @@ export interface GarminStatus {
   file?: string
 }
 
+/** Auto-update (E7-5). */
+export interface UpdateStatus {
+  state: 'dev' | 'idle' | 'checking' | 'latest' | 'available' | 'downloading' | 'ready' | 'error'
+  current: string
+  /** The new version, when there is one. */
+  version?: string
+  percent?: number
+  error?: string
+  /** Check automatically on start and every few hours. */
+  auto?: boolean
+}
+
+/** Strava upload (E12-7). Secret and tokens never reach the renderer. */
+export interface StravaStatus {
+  /** The rider's own Strava API app (Client ID + Secret) is saved. */
+  hasApp: boolean
+  clientId?: string
+  connected: boolean
+  athlete?: string
+  /** Upload every finished ride automatically. */
+  auto: boolean
+  encryption: boolean
+  error?:
+    | 'noApp'
+    | 'notConnected'
+    | 'denied'
+    | 'timeout'
+    | 'network'
+    | 'http'
+    | 'encryption'
+    | 'noFit'
+    | 'rejected'
+  /** Technical detail for the error, shown small. */
+  detail?: string
+  /** After an upload. */
+  activityUrl?: string
+}
+
+/** What the renderer adds to a diagnostic report (main adds version, system and the log). */
+export interface DiagnosticInput {
+  /** Connected devices, their capabilities and what they published (FTMS features, ranges). */
+  devices: unknown
+  /** Non-sensitive settings (no keys or tokens). */
+  settings: unknown
+  /** Recent Bluetooth packets and events, oldest first. */
+  bleTrace: string[]
+  /** What the rider was doing / the screen they were on. */
+  context: unknown
+}
+
 export interface BluetoothDeviceInfo {
   id: string
   name: string
@@ -179,8 +231,10 @@ export interface CyclotronApi {
     selectDevice(id: string): Promise<void>
     /** Rejects the pending `requestDevice()` (NotFoundError). */
     cancelSelection(): Promise<void>
-    /** Picks the device with this name as soon as a scan finds it (remembered devices). */
-    preferDevice(name: string | null): Promise<void>
+    /** Picks the device with this name or address as soon as a scan finds it (remembered devices). */
+    preferDevice(nameOrAddress: string | null): Promise<void>
+    /** Address of the device the last `requestDevice()` picked (Windows: the MAC address). */
+    lastPicked(): Promise<string | null>
   }
   ride: {
     /** Prevents display sleep while a ride runs (E3-7). */
@@ -263,6 +317,32 @@ export interface CyclotronApi {
     /** Called after every completed sync (also the scheduled ones). Returns an unsubscribe. */
     onSynced(listener: () => void): () => void
   }
+  update: {
+    status(): Promise<UpdateStatus>
+    check(): Promise<UpdateStatus>
+    setAuto(on: boolean): Promise<UpdateStatus>
+    /** Restarts into a downloaded update, or opens the release page (macOS, not signed). */
+    install(): Promise<void>
+    onChange(listener: (s: UpdateStatus) => void): () => void
+  }
+  strava: {
+    status(): Promise<StravaStatus>
+    setApp(clientId: string, clientSecret: string): Promise<StravaStatus>
+    /** Opens Strava in the browser to authorise; resolves when done (or failed). */
+    connect(): Promise<StravaStatus>
+    disconnect(): Promise<StravaStatus>
+    setAuto(on: boolean): Promise<StravaStatus>
+    upload(rideId: number): Promise<StravaStatus>
+    openActivity(id: number): Promise<void>
+  }
+  diag: {
+    /** Adds a line to the log file. */
+    log(level: 'info' | 'warn' | 'error', message: string): void
+    /** Asks where to save a diagnostic report; returns the path, or null if cancelled. */
+    saveReport(input: DiagnosticInput): Promise<string | null>
+    openLogs(): Promise<void>
+    reportIssue(): Promise<void>
+  }
   spike: {
     /** Asks where to save a BLE capture; returns the path, or null if cancelled. */
     saveCapture(json: string): Promise<string | null>
@@ -279,6 +359,7 @@ export const IPC = {
   btSelect: 'bt:select',
   btCancel: 'bt:cancel',
   btPrefer: 'bt:prefer',
+  btLastPicked: 'bt:lastPicked',
   rideKeepAwake: 'ride:keepAwake',
   workoutsLoad: 'workouts:load',
   workoutsSave: 'workouts:save',
@@ -309,6 +390,22 @@ export const IPC = {
   routesRemove: 'routes:remove',
   routesPickGpx: 'routes:pickGpx',
   spikeSaveCapture: 'spike:saveCapture',
+  diagLog: 'diag:log',
+  stravaStatus: 'strava:status',
+  updateStatus: 'update:status',
+  updateCheck: 'update:check',
+  updateSetAuto: 'update:setAuto',
+  updateInstall: 'update:install',
+  updateChanged: 'update:changed',
+  stravaSetApp: 'strava:setApp',
+  stravaConnect: 'strava:connect',
+  stravaDisconnect: 'strava:disconnect',
+  stravaSetAuto: 'strava:setAuto',
+  stravaUpload: 'strava:upload',
+  stravaOpenActivity: 'strava:openActivity',
+  diagSave: 'diag:save',
+  diagOpenLogs: 'diag:openLogs',
+  diagReportIssue: 'diag:reportIssue',
   ridesSendToGarmin: 'rides:sendToGarmin',
   garminStatus: 'garmin:status',
   garminSetKey: 'garmin:setKey',

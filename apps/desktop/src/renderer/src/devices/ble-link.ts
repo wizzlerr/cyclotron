@@ -1,3 +1,4 @@
+import { logEvent } from '../lib/diag'
 import { Emitter } from './emitter'
 import type { LinkStatus } from './types'
 
@@ -5,6 +6,8 @@ import type { LinkStatus } from './types'
 const CONNECT_TIMEOUT_MS = 45_000
 const RETRY_MIN_MS = 1_000
 const RETRY_MAX_MS = 10_000
+// Windows often fails the first GATT connect ("Connection attempt failed"); a retry usually works.
+const OPEN_ATTEMPTS = 3
 
 /**
  * One GATT connection that re-establishes itself when it drops (E1-5). `setup` runs after every
@@ -24,12 +27,19 @@ export class BleLink {
 
   /** First connect. Rejects (and leaves the device disconnected) if it fails. */
   async open(): Promise<void> {
-    try {
-      await this.connectOnce()
-    } catch (e) {
-      this.device.gatt?.disconnect()
-      throw e
+    const name = this.device.name ?? 'device'
+    for (let attempt = 1; ; attempt++) {
+      try {
+        await this.connectOnce()
+        break
+      } catch (e) {
+        this.device.gatt?.disconnect()
+        logEvent('warn', `${name}: connect attempt ${attempt} failed: ${String(e)}`)
+        if (attempt >= OPEN_ATTEMPTS || !isConnectFailure(e)) throw e
+        await new Promise((r) => setTimeout(r, RETRY_MIN_MS * attempt))
+      }
     }
+    logEvent('info', `${name}: connected`)
     this.device.addEventListener('gattserverdisconnected', this.handleDisconnect)
   }
 
@@ -50,6 +60,7 @@ export class BleLink {
   private handleDisconnect = (): void => {
     if (this.closed || this.reconnecting) return
     this.onLost()
+    logEvent('warn', `${this.device.name ?? 'device'}: connection lost, reconnecting`)
     this.status.emit('reconnecting')
     void this.reconnect()
   }
@@ -62,6 +73,7 @@ export class BleLink {
         await this.connectOnce()
         if (this.closed) break
         this.reconnecting = false
+        logEvent('info', `${this.device.name ?? 'device'}: reconnected`)
         this.status.emit('connected')
         return
       } catch {
@@ -76,7 +88,12 @@ export class BleLink {
   }
 }
 
-function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise<T> {
+/** The link itself failed (not a missing service or a refused command): worth another try. */
+function isConnectFailure(e: unknown): boolean {
+  return e instanceof DOMException && (e.name === 'NetworkError' || e.name === 'NotSupportedError')
+}
+
+export function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined
   const timeout = new Promise<never>((_, reject) => {
     timer = setTimeout(() => reject(new Error(`${what} timed out after ${ms / 1000} s`)), ms)

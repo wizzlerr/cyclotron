@@ -1,5 +1,6 @@
 // Strings for the app area (E15): shell, Home, Settings, devices. See common.ts for the glossary;
 // `pl` must match `en` key for key.
+import type { UpdateStatus } from '../../../../shared/api'
 
 export const en = {
   nav: {
@@ -29,6 +30,26 @@ export const en = {
     simulatedHr: 'Simulated HR',
     trainer: 'Trainer',
     heartRate: 'Heart rate',
+  },
+  update: {
+    title: 'Updates',
+    auto: 'Check for updates automatically',
+    check: 'Check now',
+    ready: (v: string) => `Cyclotron ${v} is downloaded.`,
+    available: (v: string) => `Cyclotron ${v} is available.`,
+    restart: 'Restart to update',
+    download: 'Download…',
+    state: (s: UpdateStatus): string =>
+      ({
+        dev: 'Development build: updates are off.',
+        idle: '',
+        checking: 'Checking…',
+        latest: `You have the latest version (${s.current}).`,
+        available: `Version ${s.version ?? ''} is available: download it from the release page.`,
+        downloading: `Downloading ${s.version ?? ''}… ${s.percent ?? 0} %`,
+        ready: `Version ${s.version ?? ''} is ready: restart to install.`,
+        error: `Update check failed: ${s.error ?? ''}`,
+      })[s.state],
   },
   home: {
     title: 'Home',
@@ -74,10 +95,30 @@ export const en = {
     difficultyHelp:
       "How much of the road's grade the trainer applies, like Zwift: at 50 % a 10 % climb feels like 5 %. Your speed and the recorded ride always use the real grade.",
     rideScreen: 'Ride screen',
+    problemTitle: 'Problem?',
+    problemHelp:
+      "If your trainer isn't supported, reads wrong numbers or something breaks: save a diagnostic report and attach it to an issue on GitHub. Best right after the problem happens (with the trainer still connected).",
+    saveReport: 'Save diagnostic report…',
+    openLogs: 'Open log folder',
+    reportIssue: 'Report a problem…',
+    reportSaved: (path: string) => `Saved ${path}`,
+    reportPrivacy:
+      'The report has the app version, your system, connected devices, the last Bluetooth packets and the log. No passwords, keys or rides.',
+    cueVolume: 'Beep volume',
+    cueOff: 'off',
+    cueTest: 'Test',
+    cueVolumeHelp:
+      'Countdown and step-change beeps during workouts. "Mute" on the Ride screen silences them for one ride.',
     resetTiles: 'Reset to default',
     trainer: 'Trainer',
     reconnecting: '· reconnecting…',
     disconnect: 'Disconnect',
+    capabilities: (list: string) => `Supports: ${list}.`,
+    capResistance: 'resistance',
+    capSimulation: 'grade (routes)',
+    calibrationAvailable: 'Spin-down calibration is available over Bluetooth.',
+    calibrationNone:
+      "No calibration over Bluetooth: use the maker's app if needed (KICKR CORE 2 is factory calibrated).",
     connectingSlow: 'Connecting… on Windows this can take up to a minute.',
     connecting: 'Connecting…',
     connect: (name: string) => `Connect ${name}`,
@@ -138,6 +179,26 @@ export const pl: typeof en = {
     trainer: 'Trenażer',
     heartRate: 'Tętno',
   },
+  update: {
+    title: 'Aktualizacje',
+    auto: 'Sprawdzaj aktualizacje automatycznie',
+    check: 'Sprawdź teraz',
+    ready: (v: string) => `Cyclotron ${v} jest pobrany.`,
+    available: (v: string) => `Dostępny jest Cyclotron ${v}.`,
+    restart: 'Uruchom ponownie, aby zaktualizować',
+    download: 'Pobierz…',
+    state: (s: UpdateStatus): string =>
+      ({
+        dev: 'Wersja deweloperska: aktualizacje są wyłączone.',
+        idle: '',
+        checking: 'Sprawdzam…',
+        latest: `Masz najnowszą wersję (${s.current}).`,
+        available: `Dostępna jest wersja ${s.version ?? ''}: pobierz ją ze strony wydania.`,
+        downloading: `Pobieram ${s.version ?? ''}… ${s.percent ?? 0} %`,
+        ready: `Wersja ${s.version ?? ''} jest gotowa: uruchom ponownie, aby zainstalować.`,
+        error: `Sprawdzanie aktualizacji nie powiodło się: ${s.error ?? ''}`,
+      })[s.state],
+  },
   home: {
     title: 'Start',
     unfinishedTitle: 'Niedokończona jazda',
@@ -182,10 +243,30 @@ export const pl: typeof en = {
     difficultyHelp:
       'Jaką część nachylenia drogi odwzorowuje trenażer, jak w Zwift: przy 50 % podjazd 10 % odczujesz jak 5 %. Prędkość i zapisana jazda zawsze używają prawdziwego nachylenia.',
     rideScreen: 'Ekran jazdy',
+    problemTitle: 'Problem?',
+    problemHelp:
+      'Jeśli twój trenażer nie działa, podaje złe wartości albo coś się psuje: zapisz raport diagnostyczny i dołącz go do zgłoszenia na GitHubie. Najlepiej zaraz po wystąpieniu problemu (z podłączonym trenażerem).',
+    saveReport: 'Zapisz raport diagnostyczny…',
+    openLogs: 'Otwórz folder logów',
+    reportIssue: 'Zgłoś problem…',
+    reportSaved: (path: string) => `Zapisano ${path}`,
+    reportPrivacy:
+      'Raport zawiera wersję aplikacji, informacje o systemie, podłączone urządzenia, ostatnie pakiety Bluetooth i log. Bez haseł, kluczy i jazd.',
+    cueVolume: 'Głośność sygnałów',
+    cueOff: 'wyłączone',
+    cueTest: 'Sprawdź',
+    cueVolumeHelp:
+      'Sygnały odliczania i zmiany kroku w trakcie treningu. „Wycisz” na ekranie jazdy wycisza je na jedną jazdę.',
     resetTiles: 'Przywróć domyślne',
     trainer: 'Trenażer',
     reconnecting: '· ponowne łączenie…',
     disconnect: 'Rozłącz',
+    capabilities: (list: string) => `Obsługuje: ${list}.`,
+    capResistance: 'opór',
+    capSimulation: 'nachylenie (trasy)',
+    calibrationAvailable: 'Kalibracja (spin-down) dostępna przez Bluetooth.',
+    calibrationNone:
+      'Brak kalibracji przez Bluetooth: w razie potrzeby użyj aplikacji producenta (KICKR CORE 2 jest skalibrowany fabrycznie).',
     connectingSlow: 'Łączenie… w Windows może to potrwać nawet minutę.',
     connecting: 'Łączenie…',
     connect: (name: string) => `Połącz ${name}`,

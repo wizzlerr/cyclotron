@@ -1,7 +1,9 @@
 <script lang="ts">
   import { masonry } from '../lib/masonry'
   import { GOALS, PLAYER_TEST_WORKOUT, type Goal } from '@cyclotron/core'
+  import ControllersCard from '../components/ControllersCard.svelte'
   import GarminCard from '../components/GarminCard.svelte'
+  import StravaCard from '../components/StravaCard.svelte'
   import { devices } from '../devices/devices.svelte'
   import type { FtpEntry } from '../../../shared/api'
   import { formatDate, i18n, LANGUAGES, type Lang } from '../i18n/i18n.svelte'
@@ -9,7 +11,11 @@
   import { display, UI_SCALES } from '../lib/display.svelte'
   import { go } from '../nav.svelte'
   import { profile } from '../profile.svelte'
+  import { saveDiagnosticReport } from '../lib/report'
+  import { updates } from '../lib/updates.svelte'
+  import { stepCue } from '../ride/cues'
   import { ride } from '../ride/session.svelte'
+  import { sound } from '../ride/sound.svelte'
   import { worldPrefs } from '../world/prefs.svelte'
   import { rideTiles, TILES } from '../ride/tiles.svelte'
 
@@ -21,6 +27,7 @@
   })
   const s = $derived(t().app.settings)
   const tr = $derived(t().reco.settings)
+  let diagPath = $state<string | undefined>()
   let version = $state('')
   $effect(() => {
     void window.cyclotron.app.getVersion().then((v) => (version = v))
@@ -90,6 +97,8 @@
   </section>
 
   <GarminCard />
+  <StravaCard />
+  <ControllersCard />
 
   <section class="card">
     <h2>{s.profile}</h2>
@@ -185,6 +194,21 @@
       {/each}
     </div>
     <button onclick={() => rideTiles.reset()}>{s.resetTiles}</button>
+    <h3>{s.cueVolume}</h3>
+    <label class="volume">
+      <input
+        type="range"
+        min="0"
+        max="100"
+        step="5"
+        value={sound.volume}
+        oninput={(e) => sound.setVolume(e.currentTarget.valueAsNumber)}
+        aria-label={s.cueVolume}
+      />
+      {sound.volume === 0 ? s.cueOff : `${sound.volume} %`}
+    </label>
+    <button onclick={() => stepCue()} disabled={sound.volume === 0}>{s.cueTest}</button>
+    <p class="muted">{s.cueVolumeHelp}</p>
   </section>
 
   <section class="card">
@@ -194,6 +218,19 @@
         <b>{devices.trainer.name}</b>
         {#if devices.trainerStatus === 'reconnecting'}<span class="warn">{s.reconnecting}</span
           >{/if}
+      </p>
+      {@const caps = devices.trainer.capabilities()}
+      <p class="muted">
+        {s.capabilities(
+          [
+            caps.erg ? 'ERG' : '',
+            caps.resistance ? s.capResistance : '',
+            caps.simulation ? s.capSimulation : '',
+          ]
+            .filter(Boolean)
+            .join(', '),
+        )}
+        {caps.calibration ? s.calibrationAvailable : s.calibrationNone}
       </p>
       <button onclick={() => devices.disconnectTrainer()}>{s.disconnect}</button>
     {:else if devices.connecting === 'trainer'}
@@ -319,10 +356,41 @@
   </section>
 
   <section class="card">
+    <h2>{s.problemTitle}</h2>
+    <p class="muted">{s.problemHelp}</p>
+    <div class="row">
+      <button
+        onclick={async () => {
+          diagPath = (await saveDiagnosticReport()) ?? diagPath
+        }}>{s.saveReport}</button
+      >
+      <button onclick={() => window.cyclotron.diag.openLogs()}>{s.openLogs}</button>
+      <button onclick={() => window.cyclotron.diag.reportIssue()}>{s.reportIssue}</button>
+    </div>
+    {#if diagPath}<p class="muted">{s.reportSaved(diagPath)}</p>{/if}
+    <p class="muted">{s.reportPrivacy}</p>
+  </section>
+
+  <section class="card">
     <h2>{s.about}</h2>
     <p>{t().common.appName} {version}</p>
     <button onclick={() => window.cyclotron.app.showDataFolder()}>{s.showDataFolder}</button>
     <p class="muted">{s.dataFolderHelp}</p>
+    <h3>{t().app.update.title}</h3>
+    <label class="block">
+      <input
+        type="checkbox"
+        checked={updates.status?.auto ?? true}
+        onchange={(e) => updates.setAuto(e.currentTarget.checked)}
+      />
+      {t().app.update.auto}
+    </label>
+    <button
+      onclick={() => updates.check()}
+      disabled={updates.status?.state === 'checking' || updates.status?.state === 'dev'}
+      >{t().app.update.check}</button
+    >
+    {#if updates.status}<p class="muted">{t().app.update.state(updates.status)}</p>{/if}
   </section>
 
   <section class="card">
@@ -333,6 +401,10 @@
 </div>
 
 <style>
+  .volume input {
+    width: 12rem;
+    vertical-align: middle;
+  }
   label.block {
     display: block;
     margin: 0.35rem 0 0;

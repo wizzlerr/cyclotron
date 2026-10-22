@@ -6,11 +6,14 @@ import { IPC, type BluetoothDeviceInfo } from '../shared/api'
 // the UI and complete the request when the user picks a device (DESIGN.md §4.2).
 
 let pending: ((deviceId: string) => void) | undefined
-let preferredName: string | null = null
+let preferred: string | null = null
+/** Address (Electron's device id) of the last picked device, so the UI can tell twin units apart. */
+let lastPicked: string | null = null
 
 function finish(deviceId: string): void {
   const callback = pending
   pending = undefined
+  if (deviceId) lastPicked = deviceId
   callback?.(deviceId)
 }
 
@@ -18,19 +21,22 @@ export function registerBluetoothIpc(): void {
   ipcMain.handle(IPC.btSelect, (_event, id: string) => finish(id))
   // An empty id rejects requestDevice() with NotFoundError.
   ipcMain.handle(IPC.btCancel, () => finish(''))
-  ipcMain.handle(IPC.btPrefer, (_event, name: string | null) => {
-    preferredName = name
+  ipcMain.handle(IPC.btPrefer, (_event, nameOrAddress: string | null) => {
+    preferred = nameOrAddress
+    lastPicked = null
   })
+  ipcMain.handle(IPC.btLastPicked, () => lastPicked)
 }
 
 export function attachBluetooth(win: BrowserWindow): void {
   win.webContents.on('select-bluetooth-device', (event, devices, callback) => {
     event.preventDefault()
     pending = callback
-    const preferred = preferredName && devices.find((d) => d.deviceName === preferredName)
-    if (preferred) {
-      preferredName = null
-      finish(preferred.deviceId)
+    const match =
+      preferred && devices.find((d) => d.deviceId === preferred || d.deviceName === preferred)
+    if (match) {
+      preferred = null
+      finish(match.deviceId)
       return
     }
     const list: BluetoothDeviceInfo[] = devices.map((d) => ({ id: d.deviceId, name: d.deviceName }))

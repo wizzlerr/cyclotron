@@ -1,5 +1,7 @@
 <script lang="ts">
-  import { caloriesKcal, heartRateZone, powerZone } from '@cyclotron/core'
+  import PadHint from '../components/PadHint.svelte'
+  import { padnav } from '../lib/padnav.svelte'
+  import { buttonDirection, caloriesKcal, heartRateZone, powerZone } from '@cyclotron/core'
   import LiveChart from '../components/LiveChart.svelte'
   import RideSummary from '../components/RideSummary.svelte'
   import RouteMap from '../components/RouteMap.svelte'
@@ -28,6 +30,9 @@
   const mapSize = $derived(Math.round(clamp(windowHeight * 0.17, 150, 380)))
   const worldMaxHeight = $derived(Math.round(Math.max(220, windowHeight * 0.6)))
   let ergWatts = $state(150)
+  /** Manual resistance (E2-3), 0–100 % of the trainer's range. */
+  let resistancePct = $state(30)
+  const RESISTANCE_STEP = 5
   let confirmEnd = $state(false)
 
   const s = $derived(ride.state)
@@ -56,6 +61,46 @@
     if (ride.active) ride.setManual(undefined)
     else void devices.setControl({ kind: 'free' })
   }
+
+  const manualResistanceOn = $derived(
+    ride.active ? ride.manual?.kind === 'resistance' : devices.control.kind === 'resistance',
+  )
+  const canResistance = $derived(devices.trainer?.capabilities().resistance ?? false)
+
+  function setResistance(pct: number): void {
+    resistancePct = Math.min(100, Math.max(0, pct))
+    const control = { kind: 'resistance', level: resistancePct } as const
+    if (ride.active) ride.setManual(control)
+    else void devices.setControl(control)
+  }
+
+  // Zwift controller buttons navigation didn't use (lib/padnav.svelte.ts, Settings → Controllers).
+  $effect(() =>
+    padnav.unhandled.on((button) => {
+      const dir = buttonDirection(button)
+      const st = ride.state?.status
+      if (dir !== 0) {
+        if (manualErgOn) setErg(ergWatts + dir * STEP_W)
+        else if (manualResistanceOn) setResistance(resistancePct + dir * RESISTANCE_STEP)
+        else if (ride.active && !inFreeStep) ride.adjustIntensity(dir * 0.01)
+        // Free riding: + / − switch ERG on, a step up or down from the last target.
+        else setErg(ergWatts + dir * STEP_W)
+        return
+      }
+      if (button === 'a') {
+        if (st === 'ready' && devices.trainer) ride.start()
+        else if (st === 'running') ride.pause()
+        else if (st === 'paused') ride.resume()
+      } else if (button === 'b') {
+        if (manualErgOn) ergOff()
+        else if (!ride.active || inFreeStep) setErg(ergWatts)
+      } else if (button === 'y') {
+        ride.muted = !ride.muted
+      } else if (button === 'z') {
+        worldPrefs.setEnabled(!worldPrefs.enabled)
+      }
+    }),
+  )
 
   function end(): void {
     confirmEnd = false
@@ -145,12 +190,28 @@
 
 {#snippet ergControls()}
   {#if manualErgOn}
-    <button onclick={() => setErg(ergWatts - STEP_W)}>−{STEP_W} W</button>
+    <button onclick={() => setErg(ergWatts - STEP_W)}>−{STEP_W} W<PadHint button="minus" /></button>
     <span class="erg">ERG {ergWatts} W</span>
-    <button onclick={() => setErg(ergWatts + STEP_W)}>+{STEP_W} W</button>
-    <button onclick={ergOff}>{t().ride.ergOff}</button>
+    <button onclick={() => setErg(ergWatts + STEP_W)}>+{STEP_W} W<PadHint button="plus" /></button>
+    <button onclick={ergOff}
+      >{t().ride.ergOff}{#if inFreeStep || !ride.active}<PadHint button="b" />{/if}</button
+    >
+  {:else if manualResistanceOn}
+    <button onclick={() => setResistance(resistancePct - RESISTANCE_STEP)}
+      >−{RESISTANCE_STEP} %<PadHint button="minus" /></button
+    >
+    <span class="erg">{t().ride.resistance(resistancePct)}</span>
+    <button onclick={() => setResistance(resistancePct + RESISTANCE_STEP)}
+      >+{RESISTANCE_STEP} %<PadHint button="plus" /></button
+    >
+    <button onclick={ergOff}>{t().ride.resistanceOff}</button>
   {:else}
-    <button onclick={() => setErg(ergWatts)}>{t().ride.ergMode}</button>
+    <button onclick={() => setErg(ergWatts)}
+      >{t().ride.ergMode}{#if inFreeStep || !ride.active}<PadHint button="b" />{/if}</button
+    >
+    {#if canResistance}
+      <button onclick={() => setResistance(resistancePct)}>{t().ride.resistanceMode}</button>
+    {/if}
   {/if}
 {/snippet}
 
@@ -169,6 +230,8 @@
     </p>
   {:else if devices.trainerStatus === 'reconnecting'}
     <p class="warn">{t().ride.reconnecting}</p>
+  {:else if !devices.trainer.capabilities().erg}
+    <p class="muted">{t().ride.readOnlyTrainer}</p>
   {/if}
 {/snippet}
 
@@ -199,14 +262,18 @@
     <section class="controls">
       {#if s.status === 'ready'}
         <button class="primary" onclick={() => ride.start()} disabled={!devices.trainer}>
-          {t().common.actions.start}
+          {t().common.actions.start}<PadHint button="a" />
         </button>
         <button onclick={() => ride.close()}>{t().common.actions.close}</button>
       {:else}
         {#if s.status === 'running'}
-          <button onclick={() => ride.pause()}>{t().common.actions.pause}</button>
+          <button onclick={() => ride.pause()}
+            >{t().common.actions.pause}<PadHint button="a" /></button
+          >
         {:else}
-          <button class="primary" onclick={() => ride.resume()}>{t().common.actions.resume}</button>
+          <button class="primary" onclick={() => ride.resume()}
+            >{t().common.actions.resume}<PadHint button="a" /></button
+          >
         {/if}
         {#if !ride.isFreeRide}<button onclick={() => ride.skip()}>{t().ride.skipStep}</button>{/if}
         {#if confirmEnd}
@@ -220,7 +287,7 @@
         {#if !ride.isFreeRide}
           <span class="sep"></span>
           <button onclick={() => ride.adjustIntensity(-0.05)}>−5</button>
-          <button onclick={() => ride.adjustIntensity(-0.01)}>−1</button>
+          <button onclick={() => ride.adjustIntensity(-0.01)}>−1<PadHint button="minus" /></button>
           <button
             class="intensity"
             onclick={() => ride.resetIntensity()}
@@ -228,7 +295,7 @@
           >
             {formatPct(s.intensity)}
           </button>
-          <button onclick={() => ride.adjustIntensity(0.01)}>+1</button>
+          <button onclick={() => ride.adjustIntensity(0.01)}>+1<PadHint button="plus" /></button>
           <button onclick={() => ride.adjustIntensity(0.05)}>+5</button>
         {/if}
       {/if}
@@ -237,9 +304,12 @@
         class:on={worldPrefs.enabled}
         aria-pressed={worldPrefs.enabled}
         title={worldPrefs.enabled ? t().world.toggleOn : t().world.toggleOff}
-        onclick={() => worldPrefs.setEnabled(!worldPrefs.enabled)}>{t().world.toggle}</button
+        onclick={() => worldPrefs.setEnabled(!worldPrefs.enabled)}
+        >{t().world.toggle}<PadHint button="z" /></button
       >
-      <label class="mute"><input type="checkbox" bind:checked={ride.muted} /> {t().ride.mute}</label
+      <label class="mute"
+        ><input type="checkbox" bind:checked={ride.muted} />
+        {t().ride.mute}<PadHint button="y" /></label
       >
     </section>
 

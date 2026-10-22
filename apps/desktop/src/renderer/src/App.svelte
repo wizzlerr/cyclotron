@@ -4,6 +4,8 @@
   import { devices } from './devices/devices.svelte'
   import { nav, go, SCREENS } from './nav.svelte'
   import { t } from './i18n/t'
+  import { updates } from './lib/updates.svelte'
+  import './lib/padnav.svelte'
   import { recovery } from './ride/recovery.svelte'
   import Builder from './screens/Builder.svelte'
   import History from './screens/History.svelte'
@@ -37,6 +39,18 @@
   </nav>
 
   <main>
+    {#if updates.status?.state === 'ready' || updates.status?.state === 'available'}
+      <div class="update">
+        {updates.status.state === 'ready'
+          ? t().app.update.ready(updates.status.version ?? '')
+          : t().app.update.available(updates.status.version ?? '')}
+        <button class="primary" onclick={() => window.cyclotron.update.install()}
+          >{updates.status.state === 'ready'
+            ? t().app.update.restart
+            : t().app.update.download}</button
+        >
+      </div>
+    {/if}
     {#if nav.screen === 'home'}
       <Home />
     {:else if nav.screen === 'ride'}
@@ -60,6 +74,15 @@
 </div>
 
 <style>
+  .update {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 1rem;
+    border: 1px solid var(--series-1);
+    border-radius: 6px;
+  }
   .shell {
     display: grid;
     grid-template-columns: 11rem 1fr;

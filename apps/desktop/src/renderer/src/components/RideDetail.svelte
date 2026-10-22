@@ -1,4 +1,5 @@
 <script lang="ts">
+  import StravaButton from './StravaButton.svelte'
   // E9-1: one ride in full: stats, power/HR (and elevation) over time, power curve, zones, laps.
   import {
     buildRoute,
@@ -274,6 +275,7 @@
     <button onclick={() => window.cyclotron.rides.sendToGarmin(ride.id)} title={t().garmin.sendHint}
       >{t().garmin.send}</button
     >
+    <StravaButton rideId={ride.id} stravaId={ride.stravaId} />
   {/if}
   {#if confirmDelete}
     <span class="warn">{t().history.detail.confirmDelete}</span>

@@ -28,6 +28,11 @@ export const en = {
 
   ergOff: 'ERG off',
   ergMode: 'ERG mode',
+  readOnlyTrainer:
+    'This trainer only reports power (no ERG or resistance control): ride to the targets yourself.',
+  resistanceMode: 'Resistance mode',
+  resistance: (pct: number) => `Resistance ${pct} %`,
+  resistanceOff: 'Resistance off',
   noTrainer: 'No trainer connected.',
   devices: 'Devices…',
   reconnecting: "Trainer connection lost, reconnecting… The target is re-applied when it's back.",
@@ -155,6 +160,11 @@ export const pl: typeof en = {
 
   ergOff: 'Wyłącz ERG',
   ergMode: 'Tryb ERG',
+  readOnlyTrainer:
+    'Ten trenażer tylko podaje moc (bez sterowania ERG ani oporem): jedź według celów samodzielnie.',
+  resistanceMode: 'Tryb oporu',
+  resistance: (pct: number) => `Opór ${pct} %`,
+  resistanceOff: 'Wyłącz opór',
   noTrainer: 'Brak połączonego trenażera.',
   devices: 'Urządzenia…',
   reconnecting:

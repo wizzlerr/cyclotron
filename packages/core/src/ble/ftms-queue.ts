@@ -9,6 +9,8 @@ import {
   encodeSetTargetPower,
   encodeSetTargetResistance,
   FtmsOp,
+  resistanceLevel,
+  type ResistanceRange,
   type ControlPointResponse,
 } from './ftms'
 
@@ -100,8 +102,14 @@ export class FtmsCommandQueue {
   }
 }
 
-/** The Control Point command that puts the trainer into `control`. All share the "target" slot. */
-export function controlCommand(control: TrainerControl): FtmsCommand {
+/**
+ * The Control Point command that puts the trainer into `control`. All share the "target" slot.
+ * `resistanceRange` is the trainer's Supported Resistance Level Range, when it has one.
+ */
+export function controlCommand(
+  control: TrainerControl,
+  resistanceRange?: ResistanceRange,
+): FtmsCommand {
   switch (control.kind) {
     case 'erg':
       return {
@@ -123,11 +131,11 @@ export function controlCommand(control: TrainerControl): FtmsCommand {
         slot: 'target',
       }
     case 'resistance':
-      // 0–100 % mapped onto the FTMS v1.0 uint8 range (0–25.5). E2-3 should check this against
-      // the KICKR's Supported Resistance Level Range.
+      // 0–100 % onto the trainer's own range (the KICKR CORE 2 publishes 0–10.0 in 0.1 steps;
+      // values above its max are refused as invalid parameters).
       return {
         label: `resistance ${control.level} %`,
-        bytes: encodeSetTargetResistance(control.level * 0.255),
+        bytes: encodeSetTargetResistance(resistanceLevel(control.level, resistanceRange)),
         slot: 'target',
       }
   }

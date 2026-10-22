@@ -1,4 +1,5 @@
 import { GATT, parseHeartRateMeasurement } from '@cyclotron/core'
+import { traceBle } from '../lib/diag'
 import { BleLink } from './ble-link'
 import { Emitter } from './emitter'
 import type { HeartRateSource, LinkStatus } from './types'
@@ -44,7 +45,9 @@ export class BleHeartRate implements HeartRateSource {
     const service = await server.getPrimaryService(GATT.heartRate)
     const hrm = await service.getCharacteristic(GATT.heartRateMeasurement)
     hrm.oncharacteristicvaluechanged = () => {
-      if (hrm.value) this.hr.emit(parseHeartRateMeasurement(hrm.value).bpm)
+      if (!hrm.value) return
+      traceBle(this.name, 'hr', hrm.value)
+      this.hr.emit(parseHeartRateMeasurement(hrm.value).bpm)
     }
     await hrm.startNotifications()
   }

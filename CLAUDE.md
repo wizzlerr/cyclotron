@@ -7,7 +7,7 @@ Single-player indoor cycling training desktop app for a Wahoo KICKR ("Zwift with
 
 Read both before starting work. Refer to tasks by ID (e.g. "E1-0").
 
-## Current status (2026-10-21)
+## Current status (2026-10-22)
 
 - **E0-1 and E0-2 done** (2026-10-21): pnpm monorepo (`packages/core`, `apps/desktop`), Electron + electron-vite + Svelte 5 scaffold with secure defaults and a typed preload API (`window.cyclotron`, types in `apps/desktop/src/shared/api.ts`). `pnpm dev | test | typecheck | lint | format:check | build` all pass. Toolchain notes in DESIGN.md D15.
 - Git remote is `https://github.com/wizzlerr/cyclotron`. **The user handles all git commits/pushes; never commit.**
@@ -36,15 +36,17 @@ Read both before starting work. Refer to tasks by ID (e.g. "E1-0").
 - **E16 virtual world done** (2026-10-22; gradient signs added the same day, D22 decided: Three.js): `core/world/` (geometry, ground grid, rider pose; tested), `renderer/src/world/scene.ts` (lazy chunk), `components/WorldView.svelte`, "World"/"Świat" button on the Ride screen, Settings → Display → Virtual world (on/off, quality). Off by default. Driven on Alpe d'Huez and a no-route workout on the simulated trainer. Dev-only `window.__world` debug handle in the scene.
 - **2026-10-22 fixes:** world motion smoothed (position extrapolated between the 1 Hz ride ticks, speed eased; per-frame speed spread 2.2 → 0.34 m/s); **interrupted rides can be continued** from the Home card (`ride.continueRide`, `RideRecorder.resume`, `RouteRider.placeAt`): same ride row and samples, workout/route position restored, starts paused. Testing note: in-page `location.reload()` is blocked by the `will-navigate` guard; use CDP `Page.reload`.
 - **2026-10-22 world + layout fixes:** world panel full width, height from width (2.35:1, ≤ 60 % of the window), resize on any size/pixel-ratio change, wider FOV on narrow panels; ground blends between roads (no cliffs between switchbacks) and is carved under every road within 22 m; distant low-detail land to 2 km; terrain built in a Web Worker (`world/terrain.worker.ts`, main-thread fallback; works in the built file:// app); chase camera follows the road behind and aims at the rider; one-sided road/ground; short lead-in/run-out. Home and Settings cards use a masonry layout (`lib/masonry.ts`). Dev-only `window.__world.jump(d)` to inspect a stretch of route.
-- Next step: open items only — optional E12-7 (Strava upload), E7 (macOS build, signing, auto-update); E8/E14 on demand.
-- **Resume here (saved 2026-10-22):** E11 and E12 are uncommitted on top of the E10/E15 commit (the user commits); tests, typecheck, lint, format and build pass. Open checks for the user, none blocking: a real KICKR ride in grade (route) mode; rebuild the installer with `pnpm dist`; the macOS `.dmg` is untested.
+- **2026-10-22 batch (D24–D28, E17):** E0-6 Auuki is AGPL-3.0 (compatible); E2-3 resistance mode (range from 0x2AD6; KICKR 0–10.0), `Trainer.capabilities()` shown in Settings, E2-6 not on the KICKR; E1-3 read-only CPS fallback (`core/ble/cycling-power.ts`, `devices/cps-trainer.ts`); beep volume; diagnostics (`main/log.ts`, `lib/diag.ts`, `lib/report.ts`, Settings "Problem?"); E12-7 Strava (`main/strava.ts`, rider's own API app, migration 7); Zwift Play/Ride/Click controllers (`core/ble/zwift.ts`, `devices/zwift-controller.ts`, Settings → Controllers); E7 updater (`main/updater.ts`, electron-updater), CI + release workflows in `.github/workflows/`, mac universal dmg+zip config, v0.2.0; README rewritten with new screenshots (`docs/images/home|ride|workouts|routes.png`).
+- **2026-10-22 controllers + connect fixes:** first GATT connect retried 3× (`ble-link.ts`); resistance range read lazily; trainer/HR can't be added as a controller; Zwift parser ignores odd frames; controller navigation (`lib/padnav.svelte.ts`) + Ride button badges (`components/PadHint.svelte`), E17-4. Dev and installed builds share `%APPDATA%\Cyclotron\cyclotron.db`: test rides in the dev app land in the user's DB, so discard them and never touch rides you didn't create.
+- Next step: nothing planned. E8/E14 on demand.
+- **Resume here (saved 2026-10-22):** the batch above is uncommitted (the user commits). Open checks for the user: Zwift controllers on real devices; Strava with their own API app; KICKR resistance mode; a real KICKR ride in grade mode; push a `v0.2.0` tag to get a draft release (first macOS build, then try it on a Mac); signing certificates if wanted (E7-4).
 - Shell note: pnpm lives in `%APPDATA%\npm`; the Bash tool's PATH doesn't include Node, so run pnpm through PowerShell after refreshing `$env:Path` from the Machine+User values.
 
 ## Open questions to raise with the user
 
-1. **Auuki license** (E0-6): believed AGPL-3.0, unverified. Cyclotron is now AGPL-3.0-or-later (chosen 2026-10-21), so copying Auuki code would be license-compatible once verified; until then reuse formulas only and credit the source.
+None right now.
 
-Resolved 2026-10-21: trainer is a **KICKR CORE 2** (D14, FTMS expected); UI is **Svelte 5 + uPlot** (D12, D13); GitHub remote exists.
+Resolved 2026-10-22: Auuki is AGPL-3.0, compatible (D10). Resolved 2026-10-21: trainer is a **KICKR CORE 2** (D14, FTMS expected); UI is **Svelte 5 + uPlot** (D12, D13); GitHub remote exists.
 
 ## Key decisions (summary; details and reasons in DESIGN.md §2)
 

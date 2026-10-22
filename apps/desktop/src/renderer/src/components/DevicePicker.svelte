@@ -7,7 +7,12 @@
   let devices = $state<BluetoothDeviceInfo[]>([])
   let showUnnamed = $state(false)
 
-  $effect(() => window.cyclotron.bluetooth.onDeviceList((list) => (devices = list)))
+  // Braces matter: a callback returning the $state proxy fails to clone back across the bridge.
+  $effect(() =>
+    window.cyclotron.bluetooth.onDeviceList((list) => {
+      devices = list
+    }),
+  )
   $effect(() => {
     if (!open) devices = []
   })
@@ -18,6 +23,10 @@
       .toSorted((a, b) => (a.name || '~').localeCompare(b.name || '~')),
   )
 </script>
+
+<svelte:window
+  onkeydown={(e) => open && e.key === 'Escape' && window.cyclotron.bluetooth.cancelSelection()}
+/>
 
 {#if open}
   <div class="backdrop">

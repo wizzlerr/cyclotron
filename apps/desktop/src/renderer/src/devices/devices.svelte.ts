@@ -1,11 +1,17 @@
 import { TimeWindowAverage } from '@cyclotron/core'
+import { t } from '../i18n/t'
+import { logEvent } from '../lib/diag'
 import { loadPref, savePref } from '../lib/prefs'
 import { BleHeartRate, HEART_RATE_SERVICES } from './ble-heart-rate'
+import type { ZwiftButton } from '@cyclotron/core'
+import { CpsTrainer } from './cps-trainer'
+import { Emitter } from './emitter'
+import { CONTROLLER_SERVICES, controllerLabel, ZwiftController } from './zwift-controller'
 import { FtmsTrainer, TRAINER_SERVICES } from './ftms-trainer'
 import { SimulatedTrainer } from './simulated'
 import type { HeartRateSource, LinkStatus, Trainer, TrainerControl, TrainerData } from './types'
 
-type Role = 'trainer' | 'heartRate'
+type Role = 'trainer' | 'heartRate' | 'controller'
 
 const REMEMBERED_KEY = 'cyclotron.devices'
 
@@ -16,6 +22,38 @@ function loadRemembered(): Partial<Record<Role, string>> {
 }
 
 /** App-wide device state: the connected trainer and HR source, and their latest values. */
+
+const CONTROLLERS_KEY = 'cyclotron.controllers'
+
+/** A controller to reconnect: by address when known (a Play's two halves share one name). */
+export interface RememberedController {
+  name: string
+  address?: string
+}
+
+/** Older versions stored plain names. */
+function loadRememberedControllers(): RememberedController[] {
+  const raw = loadPref<(string | RememberedController)[]>(CONTROLLERS_KEY) ?? []
+  return raw.map((r) => (typeof r === 'string' ? { name: r } : r))
+}
+
+function sameController(a: RememberedController, b: RememberedController): boolean {
+  return a.address && b.address ? a.address === b.address : a.name === b.name
+}
+
+export const rememberedLabel = (r: RememberedController): string =>
+  controllerLabel(r.name, r.address)
+
+/** FTMS first; a device without it (a power meter, an older trainer) falls back to CPS. */
+async function connectTrainerDevice(device: BluetoothDevice): Promise<Trainer> {
+  try {
+    return await FtmsTrainer.connect(device)
+  } catch (e) {
+    if (!(e instanceof DOMException && e.name === 'NotFoundError')) throw e
+    return await CpsTrainer.connect(device)
+  }
+}
+
 class Devices {
   trainer = $state.raw<Trainer | undefined>()
   heartRate = $state.raw<HeartRateSource | undefined>()
@@ -29,6 +67,15 @@ class Devices {
   picking = $state(false)
   error = $state<string | undefined>()
   remembered = $state(loadRemembered())
+  /** Zwift Play / Click / Ride controllers (buttons); a Play is two devices. */
+  controllers = $state.raw<ZwiftController[]>([])
+  rememberedControllers = $state<RememberedController[]>(
+    loadRememberedControllers().filter((c) => !this.isTrainerOrStrap(c.name)),
+  )
+  /** Last button pressed, for the tester in Settings. */
+  lastPress = $state<{ button: ZwiftButton; from: string; at: number } | undefined>()
+  /** Every controller button press (the Ride screen listens). */
+  readonly presses = new Emitter<ZwiftButton>()
   /** `performance.now()` of the latest trainer data / heart rate, to spot stale values. */
   dataAt = 0
   bpmAt = 0
@@ -49,13 +96,62 @@ class Devices {
     this.attachHeartRate(sim.heartRate)
   }
 
-  /** Opens the device picker (auto-picking `name` if given) and connects the trainer over FTMS. */
+  /**
+   * Opens the device picker (auto-picking `name` if given) and connects the trainer: over FTMS,
+   * or read-only over the Cycling Power Service when it has no FTMS (E1-3).
+   */
   async connectTrainer(name?: string): Promise<void> {
     await this.connect('trainer', TRAINER_SERVICES, name, async (device) => {
-      const trainer = await FtmsTrainer.connect(device)
+      const trainer = await connectTrainerDevice(device)
       await this.disconnectTrainer()
       this.attachTrainer(trainer)
     })
+  }
+
+  /** Adds a controller (picker, or straight to a remembered one, by address when known). */
+  async connectController(known?: RememberedController): Promise<void> {
+    const prefer = known ? (known.address ?? known.name) : undefined
+    await this.connect('controller', CONTROLLER_SERVICES, prefer, async (device, address) => {
+      // The KICKR CORE 2 also has the Zwift service. One BLE device is one GATT link, so a
+      // controller on it would share (and on disconnect, drop) the trainer's connection.
+      if (device.name && this.isTrainerOrStrap(device.name)) {
+        throw new Error(t().controllers.notTrainer(device.name))
+      }
+      const c = await ZwiftController.connect(device, address)
+      // Reconnecting the same unit replaces it; a Play's other half (same name) is added.
+      const same = this.controllers.find((x) => sameController(x, c))
+      if (same) await this.disconnectController(same)
+      c.presses.on((button) => {
+        this.lastPress = { button, from: c.label, at: Date.now() }
+        this.presses.emit(button)
+      })
+      this.controllers = [...this.controllers, c]
+      const entry = { name: c.name, address: c.address }
+      this.rememberedControllers = [
+        ...this.rememberedControllers.filter((r) => !sameController(r, entry)),
+        entry,
+      ]
+      savePref(CONTROLLERS_KEY, this.rememberedControllers)
+    })
+  }
+
+  private isTrainerOrStrap(name: string): boolean {
+    return [
+      this.trainer?.name,
+      this.heartRate?.name,
+      this.remembered.trainer,
+      this.remembered.heartRate,
+    ].includes(name)
+  }
+
+  async disconnectController(c: ZwiftController): Promise<void> {
+    this.controllers = this.controllers.filter((x) => x !== c)
+    await c.disconnect()
+  }
+
+  forgetController(known: RememberedController): void {
+    this.rememberedControllers = this.rememberedControllers.filter((r) => !sameController(r, known))
+    savePref(CONTROLLERS_KEY, this.rememberedControllers)
   }
 
   async connectHeartRate(name?: string): Promise<void> {
@@ -73,6 +169,7 @@ class Devices {
       this.error = undefined
     } catch (e) {
       this.error = message(e)
+      logEvent('error', `devices: ${this.error}`)
     }
   }
 
@@ -110,7 +207,7 @@ class Devices {
     role: Role,
     optionalServices: BluetoothServiceUUID[],
     name: string | undefined,
-    open: (device: BluetoothDevice) => Promise<void>,
+    open: (device: BluetoothDevice, address: string | undefined) => Promise<void>,
   ): Promise<void> {
     if (this.connecting) return
     this.connecting = role
@@ -118,10 +215,14 @@ class Devices {
     try {
       const device = await this.pick(optionalServices, name)
       if (!device) return
-      await open(device)
-      if (device.name) this.remember({ ...this.remembered, [role]: device.name })
+      const address = (await window.cyclotron.bluetooth.lastPicked()) ?? undefined
+      await open(device, address)
+      if (device.name && role !== 'controller') {
+        this.remember({ ...this.remembered, [role]: device.name })
+      }
     } catch (e) {
       this.error = message(e)
+      logEvent('error', `devices: ${this.error}`)
     } finally {
       this.connecting = undefined
     }

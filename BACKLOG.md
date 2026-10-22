@@ -21,7 +21,7 @@ cyclotron/                (pnpm monorepo, TypeScript everywhere)
 
 **Sizes:** S ≈ ≤ half a day · M ≈ 1–2 days · L ≈ 3+ days
 
-**Auuki reuse:** We reuse the *math* (formulas aren't copyrightable) and use its code as a reference for BLE parsing. Auuki is (I believe) AGPL-3.0, so we don't copy code verbatim unless we accept AGPL for Cyclotron (see E0-6).
+**Auuki reuse:** We reuse the *math* (formulas aren't copyrightable) and use its code as a reference for BLE parsing. Auuki is AGPL-3.0 (checked 2026-10-22, E0-6) and Cyclotron is AGPL-3.0-or-later, so its code may be reused with credit.
 
 ---
 
@@ -32,9 +32,9 @@ cyclotron/                (pnpm monorepo, TypeScript everywhere)
 | ~~E0-1~~ | ✅ pnpm monorepo: `packages/core`, `apps/desktop`; shared tsconfig, ESLint/Prettier, Vitest | S |
 | ~~E0-2~~ | ✅ Electron + Vite scaffold (main, preload, renderer), dev hot reload, secure defaults (context isolation, no node in renderer) | M |
 | ~~E0-3~~ | ✅ App shell: screens (Home, Ride, Workouts, History, Settings) | M |
-| E0-4 | Local storage: SQLite in the main process (`better-sqlite3`), exposed to the UI through preload IPC; schema migrations | M |
-| E0-5 | User profile: weight, FTP, max HR, FTP history with dates | S |
-| E0-6 | Check Auuki license; decide whether to copy code or only reuse the math | S |
+| ~~E0-4~~ | ✅ (E5, `node:sqlite` instead of `better-sqlite3`, D17) Local storage: SQLite in the main process (`better-sqlite3`), exposed to the UI through preload IPC; schema migrations | M |
+| ~~E0-5~~ | ✅ (E5/E6/E7-3) User profile: weight, FTP, max HR, FTP history with dates | S |
+| ~~E0-6~~ | ✅ done 2026-10-22: Auuki is AGPL-3.0 (LICENSE in its repo), compatible with Cyclotron's AGPL-3.0-or-later; code may be reused with credit. Check Auuki license; decide whether to copy code or only reuse the math | S |
 | ~~E0-7~~ | ~~Settle UI framework and chart library~~ — done: Svelte 5 + uPlot (DESIGN.md D12, D13) | S |
 
 ## E1 — Device connectivity
@@ -44,7 +44,7 @@ cyclotron/                (pnpm monorepo, TypeScript everywhere)
 | ~~E1-0~~ | ✅ (2026-10-21, FTMS confirmed on fw 3.5.11; findings in DESIGN.md D14) **Spike first:** trainer is a KICKR CORE 2; confirm firmware; in Electron, connect and list its BLE services. Does it have FTMS (`0x1826`) or only Cycling Power + Wahoo proprietary control? Capture real packets for tests | S |
 | ~~E1-1~~ | ✅ (2026-10-21, tested on the KICKR) Device picker: handle Electron's `select-bluetooth-device` event and show our own scan list | M |
 | ~~E1-2~~ | ✅ (2026-10-21, tested on the KICKR) Connect to KICKR over FTMS: Indoor Bike Data parsing (power, cadence, speed) | M |
-| E1-3 | Fallback: Cycling Power Service (0x1818) parsing if FTMS is unavailable (low priority: KICKR CORE 2 has FTMS) | M |
+| ~~E1-3~~ | ✅ done 2026-10-22 (`core/ble/cycling-power.ts`, `devices/cps-trainer.ts`: read-only power/cadence/speed, used when the trainer has no FTMS; unit-tested, no CPS-only device to try). Fallback: Cycling Power Service (0x1818) parsing if FTMS is unavailable (low priority: KICKR CORE 2 has FTMS) | M |
 | ~~E1-4~~ | ✅ (2026-10-21, tested; also uses HR relayed by the KICKR) Heart rate strap connection (0x180D / 0x2A37) | S |
 | ~~E1-5~~ | ✅ (2026-10-21, reconnect tested; devices remembered by name; one click reconnects because Web Bluetooth needs a user gesture). Connection status UI, auto-reconnect on drop, remember devices. Connect lean: only FTMS + HR services and the characteristics a ride needs (E1-0 saw ~70 s to connect with everything subscribed on Windows) | M |
 | ~~E1-6~~ | ✅ Simulated trainer (fake device) for development without hardware | M |
@@ -55,10 +55,10 @@ cyclotron/                (pnpm monorepo, TypeScript everywhere)
 |---|---|---|
 | ~~E2-1~~ | ✅ (2026-10-21, tested on the KICKR) FTMS Control Point: Request Control, Start/Resume, response handling | M |
 | ~~E2-2~~ | ✅ (2026-10-21, ERG 150 and 200 W held steady on the KICKR) ERG mode: Set Target Power | S |
-| E2-3 | Resistance mode (manual % level) | S |
-| E2-4 | Simulation mode: set grade, for "free ride" without ERG | M |
+| ~~E2-3~~ | ✅ done 2026-10-22 (range read from 0x2AD6, KICKR CORE 2: 0–10.0 in 0.1 steps; Ride screen "Resistance mode" ±5 %; to try on the KICKR). Resistance mode (manual % level) | S |
+| ~~E2-4~~ | ✅ (E5 free ride, E13 routes) Simulation mode: set grade, for "free ride" without ERG | M |
 | ~~E2-5~~ | ✅ (2026-10-21, unit-tested; coalesces target changes, re-requests control on "not permitted") Command queue (one in-flight write at a time, retries) | S |
-| E2-6 | Spin-down calibration trigger (if exposed by the KICKR) | S |
+| ~~E2-6~~ | ~~Spin-down calibration trigger~~ — not on the KICKR CORE 2 (its FTMS features don't include spin-down; calibrate in the Wahoo app). Settings → Trainer shows what the trainer supports (2026-10-22) | S |
 | ~~E2-7~~ | ~~Fallback: Wahoo proprietary trainer control~~ — not needed: KICKR CORE 2 accepts FTMS control (E1-0) | M |
 
 ## E3 — Workout engine and player
@@ -105,11 +105,11 @@ cyclotron/                (pnpm monorepo, TypeScript everywhere)
 
 | ID | Task | Size |
 |---|---|---|
-| E7-1 | ✅ Windows done 2026-10-21 (`pnpm dist` → `apps/desktop/dist/Cyclotron-Setup-<v>.exe`, packaged app driven end to end); macOS `.dmg` configured (`pnpm dist:mac`), must be built and tried on a Mac. `electron-builder`: Windows installer (NSIS) and macOS `.dmg` | M |
+| E7-1 | ✅ Windows done 2026-10-21; 2026-10-22: macOS universal dmg + zip built by `.github/workflows/release.yml` on a `v*` tag, still untried on a Mac. Windows done 2026-10-21 (`pnpm dist` → `apps/desktop/dist/Cyclotron-Setup-<v>.exe`, packaged app driven end to end); macOS `.dmg` configured (`pnpm dist:mac`), must be built and tried on a Mac. `electron-builder`: Windows installer (NSIS) and macOS `.dmg` | M |
 | E7-2 | 🔧 usage description set in `electron-builder.yml`; permission prompt untested (needs a Mac). macOS: Bluetooth usage description (`NSBluetoothAlwaysUsageDescription`), test permission prompt | S |
 | E7-3 | ✅ done 2026-10-21 (icon `apps/desktop/build/icon.png`, name "Cyclotron", v0.1.0, Settings → About with "Show data folder"; also: settings moved to SQLite, single instance, D17). App icon, name, version shown in Settings | S |
-| E7-4 | Optional: macOS signing + notarization (needs Apple Developer account, $99/yr), Windows code signing | M |
-| E7-5 | Optional: auto-update (`electron-updater`, GitHub Releases) | M |
+| E7-4 | 🔧 hooks ready 2026-10-22 (release workflow signs when the WIN_CSC_* / MAC_CSC_* / APPLE_* secrets exist; hardened runtime + entitlements); needs certificates. Optional: macOS signing + notarization (needs Apple Developer account, $99/yr), Windows code signing | M |
+| ~~E7-5~~ | ✅ done 2026-10-22 (`main/updater.ts`, electron-updater from GitHub Releases: Windows downloads and installs on restart; unsigned macOS only notifies; Settings → About; v0.2.0). Optional: auto-update (`electron-updater`, GitHub Releases) | M |
 
 **↑ MVP: ride a workout in ERG mode on Windows/macOS, export FIT, run FTP tests.**
 
@@ -189,7 +189,7 @@ Runs from the desktop app (scheduled pulls while it's open); moves to the server
 | E12-4 | ✅ done 2026-10-22: semi-manual "Send to Garmin" (opens Garmin import page + FIT file). Decide on an approach for upload; prototype it | M–L |
 | E12-5 | ✅ done 2026-10-22 (`main/garmin.ts` sync on start + every 3 h + "Sync now"; other activities with source TSS or HR-based TSS into the load; own uploads skipped; migration 6). Prototype metrics import: scheduled pull (e.g. every few hours / after sync) into a small `external_metrics` table; must fit the NAS budget | M |
 | E12-6 | ✅ done 2026-10-22 (`core/reco/external.ts`: resting HR vs usual, Body Battery, short sleep → `ReadinessSignal`, only when the watch is worn day and night). Feed Garmin metrics into recommendations (see E11-11) | M |
-| E12-7 | Optional, on demand: direct Strava upload (each rider registers a Strava API app; Strava does not forward to Garmin) | M |
+| ~~E12-7~~ | ✅ built 2026-10-22 (`main/strava.ts`: rider's own API app, OAuth via a local 127.0.0.1 callback, upload with polling, auto-upload after a ride, migration 7; untested against Strava). Direct Strava upload (each rider registers a Strava API app; Strava does not forward to Garmin) | M |
 
 ## E14 — Cloud-folder sync (requested 2026-10-21, after E8)
 
@@ -230,6 +230,15 @@ The app stays numbers-first: tiles and workout steps you can read while watching
 | E16-6 | ✅ done 2026-10-22 ("World" button on the Ride screen, Settings → Display → Virtual world, grade badge). Ride screen: "World" toggle (default in Settings, off) and a layout where the world sits behind or beside the tiles; workout strip and next-step cue stay visible | M |
 | E16-7 | ✅ done 2026-10-22 (skips frames when the window is hidden, quality low/high). Performance guard: pause rendering when the window is hidden or minimised, quality setting (low/high), renderer never blocks the ride loop | S |
 | E16-8 | ✅ done 2026-10-22 (trees, km markers, gradient signs: `core/world/signs.ts`). Simple scenery: roadside trees/posts, gradient signs on climbs, km markers (procedural, no assets to download) | S |
+
+## E17 — Support and controls (2026-10-22)
+
+| ID | Task | Size |
+|---|---|---|
+| ~~E17-1~~ | ✅ Diagnostics: rotating log in `<userData>/logs`, BLE trace ring, "Problem?" card in Settings saves a report (no keys/tokens) and opens a GitHub issue | S |
+| ~~E17-2~~ | ✅ Beep volume slider + test button (Settings → Ride screen) | S |
+| E17-4 | ✅ done 2026-10-22: controller drives the whole app (`lib/padnav.svelte.ts`: D-pad moves a highlight, A presses, B backs out/closes dialogs; up/down stay in the sidebar or the screen; on the Ride screen the highlight fades after 5 s), coloured A/B/Y/Z and +/− badges on the Ride controls (`components/PadHint.svelte`), +/− = shift buttons, Click and paddles (D-pad no longer changes watts); +/− in a free ride switches ERG on. The trainer can't be added as a controller (KICKR CORE 2 also has the Zwift service). Several controllers with the same name (a Play's two halves): remembered by address, shown as "Zwift Play 0523" (last 4 address characters) | M |
+| E17-3 | ✅ tested 2026-10-22 with a Zwift Click by the user; Zwift Play / Ride / Click controllers (`core/ble/zwift.ts`, `devices/zwift-controller.ts`, Settings → Controllers with a button tester; ride mapping: start/pause, harder/easier, skip, ERG toggle, mute, world) | M |
 
 ## E13 — Virtual routes (requested 2026-10-21)
 

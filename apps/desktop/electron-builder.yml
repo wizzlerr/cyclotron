@@ -1,6 +1,7 @@
-# E7: installers. `pnpm dist` (Windows NSIS) / `pnpm dist:mac` (dmg, must run on a Mac).
-# Everything the app needs is bundled by electron-vite into out/, so the package has no
-# node_modules (all deps are devDependencies) and nothing native to rebuild.
+# E7: installers. `pnpm dist` (Windows NSIS) / `pnpm dist:mac` (dmg, must run on a Mac); releases
+# are built by .github/workflows/release.yml on a version tag. Everything the app needs is bundled
+# by electron-vite into out/, so the package has no node_modules (all deps are devDependencies)
+# and nothing native to rebuild.
 appId: io.github.wizzlerr.cyclotron
 productName: Cyclotron
 copyright: Copyright © 2026 adam.sabel
@@ -13,9 +14,17 @@ files:
 npmRebuild: false
 asar: true
 
+# Auto-update (E7-5): the release workflow uploads the installers and latest*.yml here.
+publish:
+  provider: github
+  owner: wizzlerr
+  repo: cyclotron
+
 win:
   target: nsis
   icon: build/icon.png
+  # Code signing (E7-4) switches on when the CSC_LINK / CSC_KEY_PASSWORD secrets exist; without
+  # them the installer is unsigned and SmartScreen warns (README → Install).
 nsis:
   oneClick: false
   perMachine: false
@@ -26,11 +35,21 @@ nsis:
   artifactName: Cyclotron-Setup-${version}.${ext}
 
 mac:
-  target: dmg
+  target:
+    - target: dmg
+      arch: [universal]
+    # The zip is what auto-update would use once the app is signed (Squirrel.Mac).
+    - target: zip
+      arch: [universal]
   icon: build/icon.png
   category: public.app-category.healthcare-fitness
-  # Unsigned for personal use (DESIGN.md risks); first launch needs right-click → Open.
-  identity: null
+  hardenedRuntime: true
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  # Signing and notarization (E7-4) switch on with the CSC_LINK + APPLE_ID /
+  # APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID secrets. Without them the release workflow sets
+  # CSC_IDENTITY_AUTO_DISCOVERY=false and the app is unsigned (first launch: right-click → Open).
+  notarize: true
   extendInfo:
     NSBluetoothAlwaysUsageDescription: Cyclotron connects to your smart trainer and heart rate strap over Bluetooth.
 dmg:

@@ -4,16 +4,20 @@ import { IPC } from '../shared/api'
 import { backfillAggregates, registerAnalyticsIpc } from './analytics'
 import { attachBluetooth, registerBluetoothIpc } from './bluetooth'
 import { closeDb } from './db'
+import { attachRendererLog, initLog, registerLogIpc } from './log'
 import { registerGarminIpc, scheduleGarminSync } from './garmin'
 import { registerPrefsIpc } from './prefs'
 import { registerRideIpc } from './ride'
 import { registerRidesIpc } from './rides'
 import { registerRoutesIpc } from './routes'
 import { registerSpikeIpc } from './spike'
+import { registerStravaIpc } from './strava'
+import { setupUpdater } from './updater'
 import { registerWorkoutsIpc } from './workouts'
 import { setupUserData } from './user-data'
 
 setupUserData()
+initLog()
 
 // One instance only: two would fight over the trainer and the database.
 if (!app.requestSingleInstanceLock()) app.exit(0)
@@ -44,6 +48,7 @@ function createWindow(): void {
 
   win.once('ready-to-show', () => win.show())
   attachBluetooth(win)
+  attachRendererLog(win)
 
   // No in-app navigation or popups: open external links in the system browser.
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -73,6 +78,9 @@ registerRidesIpc()
 registerRoutesIpc()
 registerAnalyticsIpc()
 registerGarminIpc()
+registerLogIpc()
+registerStravaIpc()
+setupUpdater()
 
 void app.whenReady().then(() => {
   createWindow()

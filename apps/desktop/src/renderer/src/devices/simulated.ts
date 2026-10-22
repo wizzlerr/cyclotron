@@ -8,7 +8,7 @@ import {
   type TrainerControl,
 } from '@cyclotron/core'
 import { Emitter } from './emitter'
-import type { HeartRateSource, Trainer, TrainerData } from './types'
+import type { HeartRateSource, Trainer, TrainerData, TrainerCapabilities } from './types'
 import { t } from '../i18n/t'
 
 const TICK_MS = 1000
@@ -57,6 +57,10 @@ export class SimulatedTrainer implements Trainer {
 
   async setControl(control: TrainerControl): Promise<void> {
     this.control = control
+  }
+
+  capabilities(): TrainerCapabilities {
+    return { erg: true, resistance: true, simulation: true, calibration: false }
   }
 
   async disconnect(): Promise<void> {

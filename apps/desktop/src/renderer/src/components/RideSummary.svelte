@@ -1,4 +1,5 @@
 <script lang="ts">
+  import StravaButton from './StravaButton.svelte'
   // E5-4: shown after a ride is saved.
   import { caloriesKcal } from '@cyclotron/core'
   import type { RideFeedback } from '../../../shared/api'
@@ -152,6 +153,7 @@
         onclick={() => window.cyclotron.rides.sendToGarmin(result.rideId)}
         title={t().garmin.sendHint}>{t().garmin.send}</button
       >
+      <StravaButton rideId={result.rideId} />
     {:else}
       <span class="error">{t().ride.summary.fitFailed(result.fitError ?? '')}</span>
     {/if}
