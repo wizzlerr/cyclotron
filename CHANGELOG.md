@@ -1,5 +1,7 @@
 # Changelog
 
+## Unreleased
+
 ## 0.3.0 (2026-10-23)
 
 - Start a route anywhere and ride it in reverse: pick the direction and the start kilometre (or
