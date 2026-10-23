@@ -1,8 +1,9 @@
 <script lang="ts">
   // E13-7/E13-9: route library and browser.
-  import type { Route, Workout } from '@cyclotron/core'
+  import { routeVariant, type Route, type RouteVariant, type Workout } from '@cyclotron/core'
   import RouteMap from '../components/RouteMap.svelte'
   import RouteProfile from '../components/RouteProfile.svelte'
+  import RouteStart from '../components/RouteStart.svelte'
   import WorkoutPicker from '../components/WorkoutPicker.svelte'
   import { routeDescription, routeName } from '../i18n/content'
   import { errorText } from '../i18n/errors'
@@ -46,7 +47,9 @@
   let grade = $state(0)
   let favouritesOnly = $state(false)
   /** Route waiting for a workout choice. */
-  let picking = $state<Route | undefined>()
+  let picking = $state.raw<Route | undefined>()
+  /** Direction and start point for `picking`. */
+  let variant = $state<RouteVariant>({ reverse: false, startM: 0 })
 
   const inRange = (v: number, r: { min: number; max: number }): boolean => v >= r.min && v < r.max
 
@@ -68,7 +71,7 @@
 
   function rideRoute(route: Route, workout: Workout | undefined): void {
     picking = undefined
-    if (ride.loadRoute(route, workout)) go('ride')
+    if (ride.loadRoute(routeVariant(route, variant), workout)) go('ride')
     else error = t().library.routes.rideBusy
   }
 
@@ -97,7 +100,9 @@
     title={routeName(route)}
     onpick={(workout) => rideRoute(route, workout)}
     oncancel={() => (picking = undefined)}
-  />
+  >
+    {#snippet intro()}<RouteStart {route} bind:variant />{/snippet}
+  </WorkoutPicker>
 {/if}
 
 <div class="filters">
@@ -150,7 +155,9 @@
       </div>
       {#if routeDescription(route)}<p class="muted desc">{routeDescription(route)}</p>{/if}
       <div class="actions">
-        <button onclick={() => (picking = route)}>{t().common.actions.ride}</button>
+        <button onclick={() => ((variant = { reverse: false, startM: 0 }), (picking = route))}
+          >{t().common.actions.ride}</button
+        >
         {#if route.source === 'gpx'}
           <button class="quiet" onclick={() => routeLibrary.remove(route.id)}
             >{t().common.actions.delete}</button

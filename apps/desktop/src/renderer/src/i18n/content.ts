@@ -41,7 +41,14 @@ function generatedDescription(s: GenSpec): string {
 const span = (seconds: number): string =>
   seconds < 60 ? `${seconds} s` : `${formatNumber(Math.round(seconds / 6) / 10)} min`
 
-export const routeName = (r: Route): string => t().content.routes[r.id]?.name ?? r.name
+/** The route's name, plus how it's ridden for a variant, e.g. "Alpe d'Huez (reverse, from km 5)". */
+export function routeName(r: Route): string {
+  const name = t().content.routes[r.id]?.name ?? r.name
+  const v = r.variant
+  if (!v) return name
+  const fromKm = v.startM > 0 ? formatNumber(v.startM / 1000, 1) : undefined
+  return `${name} (${t().library.routeStart.variant(v.reverse, fromKm)})`
+}
 
 export const routeDescription = (r: Route): string | undefined =>
   t().content.routes[r.id]?.description ?? r.description

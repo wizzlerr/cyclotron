@@ -9,14 +9,20 @@
     subtitle,
     oncancel,
     controls,
+    intro,
     children,
+    actions,
   }: {
     heading: string
     subtitle: string
     oncancel: () => void
     /** Search box and filters, shown top right. */
     controls?: Snippet
+    /** Shown between the heading and the tiles, e.g. route start options. */
+    intro?: Snippet
     children: Snippet
+    /** Extra buttons beside Cancel. */
+    actions?: Snippet
   } = $props()
 </script>
 
@@ -33,10 +39,13 @@
       {#if controls}<div class="controls">{@render controls()}</div>{/if}
     </div>
 
+    {#if intro}{@render intro()}{/if}
+
     <div class="grid">{@render children()}</div>
 
     <div class="actions">
       <button onclick={oncancel}>{t().common.actions.cancel}</button>
+      {#if actions}{@render actions()}{/if}
     </div>
   </div>
 </div>
@@ -106,6 +115,10 @@
   .grid :global(.tile:focus-visible) {
     border-color: var(--series-1);
   }
+  .grid :global(.tile.chosen) {
+    border-color: var(--series-1);
+    box-shadow: inset 0 0 0 1px var(--series-1);
+  }
   .grid :global(.tile.none) {
     justify-content: center;
   }
@@ -125,6 +138,8 @@
     font-size: 0.85rem;
   }
   .actions {
-    text-align: right;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
   }
 </style>

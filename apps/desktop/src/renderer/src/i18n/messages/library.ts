@@ -125,6 +125,21 @@ export const en = {
     noElevation: (file: string) => `${file}: no elevation in the file, so the route is flat.`,
     imported: (n: number) => `Imported ${pluralEn(n, 'route', 'routes')}.`,
   },
+  routeStart: {
+    direction: 'Direction',
+    forward: 'Forward',
+    reverse: 'Reverse',
+    startAt: 'Start at',
+    startLabel: 'Start point, km',
+    fromStart: 'From the start',
+    hint: 'Click the profile or the map, or drag the slider, to start part-way.',
+    loopHint: 'A loop started part-way goes all the way round.',
+    summary: (km: string, climbM: number) => `You'll ride ${km} · ${climbM} m climbing`,
+    ride: 'Ride',
+    /** Suffix of a route's name when ridden backwards and/or from part-way. */
+    variant: (reverse: boolean, fromKm: string | undefined) =>
+      [reverse ? 'reverse' : '', fromKm ? `from km ${fromKm}` : ''].filter(Boolean).join(', '),
+  },
   pickers: {
     routeHeading: 'Where do you want to ride?',
     routeSubtitle: (workout: string) =>
@@ -260,6 +275,20 @@ export const pl: typeof en = {
     loop: 'pętla',
     noElevation: (file: string) => `${file}: plik nie zawiera wysokości, więc trasa jest płaska.`,
     imported: (n: number) => `Zaimportowano ${pluralPl(n, 'trasę', 'trasy', 'tras')}.`,
+  },
+  routeStart: {
+    direction: 'Kierunek',
+    forward: 'Normalnie',
+    reverse: 'Odwrotnie',
+    startAt: 'Start od',
+    startLabel: 'Punkt startu, km',
+    fromStart: 'Od początku',
+    hint: 'Kliknij profil lub mapę albo przesuń suwak, żeby zacząć w połowie trasy.',
+    loopHint: 'Pętla zaczęta w połowie jest przejeżdżana w całości.',
+    summary: (km: string, climbM: number) => `Przejedziesz ${km} · ${climbM} m podjazdów`,
+    ride: 'Jedź',
+    variant: (reverse: boolean, fromKm: string | undefined) =>
+      [reverse ? 'odwrotnie' : '', fromKm ? `od km ${fromKm}` : ''].filter(Boolean).join(', '),
   },
   pickers: {
     routeHeading: 'Gdzie chcesz jechać?',

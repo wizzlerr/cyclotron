@@ -3,7 +3,9 @@ import {
   builtinRoutes,
   fromTriples,
   parseGpx,
+  parseRouteKey,
   routeTriples,
+  routeVariant,
   type Route,
 } from '@cyclotron/core'
 import type { StoredRoute } from '../../../shared/api'
@@ -27,6 +29,13 @@ class RouteLibrary {
 
   find(id: string): Route | undefined {
     return this.all.find((r) => r.id === id)
+  }
+
+  /** A route as ridden, from its `routeKey` (a stored ride's `routeId`). */
+  resolve(key: string): Route | undefined {
+    const { id, variant } = parseRouteKey(key)
+    const route = this.find(id)
+    return route && variant ? routeVariant(route, variant) : route
   }
 
   load(): Promise<void> {

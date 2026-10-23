@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Start a route anywhere and ride it in reverse: pick the direction and the start kilometre (or
+  click the profile or the route map) before riding; the map shows where you start and which way you go. A loop started part-way goes all the way round.
+
 ## 0.2.0 — first public release (2026-10-22)
 
 The first installer on the Releases page. Windows 10/11, tested on a Wahoo KICKR CORE 2. The

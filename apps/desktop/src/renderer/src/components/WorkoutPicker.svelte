@@ -1,6 +1,7 @@
 <script lang="ts">
   // Choose a workout for a route ride (E13-8), or none: a free ride following the grade.
   import { buildTimeline, WORKOUT_TYPES, type Workout } from '@cyclotron/core'
+  import type { Snippet } from 'svelte'
   import { workoutName } from '../i18n/content'
   import { formatNumber } from '../i18n/i18n.svelte'
   import { t } from '../i18n/t'
@@ -14,8 +15,11 @@
     title,
     onpick,
     oncancel,
+    intro,
   }: {
     title: string
+    /** Shown above the workouts (the route's start options). */
+    intro?: Snippet
     /** `undefined` = no workout. */
     onpick: (workout: Workout | undefined) => void
     oncancel: () => void
@@ -51,6 +55,7 @@
   heading={t().library.pickers.workoutHeading}
   subtitle={t().library.pickers.workoutSubtitle(title)}
   {oncancel}
+  {intro}
 >
   {#snippet controls()}
     <input

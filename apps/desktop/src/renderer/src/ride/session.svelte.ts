@@ -6,6 +6,7 @@ import {
   LiveRideMetrics,
   RampFailureDetector,
   routeAt,
+  routeKey,
   RouteRider,
   trainerGradePct,
   WorkoutPlayer,
@@ -159,7 +160,7 @@ class RideSession {
   async continueRide(ride: StoredRide, samples: readonly RideSample[]): Promise<boolean> {
     if (this.active || this.saving) return false
     await Promise.all([library.load(), routeLibrary.load()])
-    const route = ride.routeId ? routeLibrary.find(ride.routeId) : undefined
+    const route = ride.routeId ? routeLibrary.resolve(ride.routeId) : undefined
     if (ride.routeId && !route) return false
     const workout =
       ride.workoutId === FREE_RIDE_ID
@@ -277,7 +278,7 @@ class RideSession {
           ? `${workoutName(workout)} · ${routeName(route)}`
           : workoutName(workout),
       ftpW: this.player.ftpW,
-      routeId: route?.id,
+      routeId: route && routeKey(route),
     })
       .then((r) => (this.recorder = r))
       .catch((e: unknown) => (this.error = () => t().ride.notices.recordingFailed(message(e))))

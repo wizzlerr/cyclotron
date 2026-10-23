@@ -10,7 +10,15 @@
     positionM = undefined,
     height = 120,
     axes = false,
-  }: { route: Route; positionM?: number; height?: number; axes?: boolean } = $props()
+    onhover = undefined,
+  }: {
+    route: Route
+    positionM?: number
+    height?: number
+    axes?: boolean
+    /** The distance under the cursor, or `undefined` when it leaves. */
+    onhover?: (d: number | undefined) => void
+  } = $props()
 
   const W = 1000
   /** At most this many blocks are drawn, however long the route. */
@@ -77,6 +85,11 @@
     const rect = (e.currentTarget as Element).getBoundingClientRect()
     const px = e.clientX - rect.left
     hover = { x: px, d: (px / rect.width) * route.distanceM }
+    onhover?.(hover.d)
+  }
+  function onLeave(): void {
+    hover = undefined
+    onhover?.(undefined)
   }
   const tip = $derived(hover && routeAt(route, hover.d))
 </script>
@@ -96,7 +109,7 @@
     role="presentation"
     bind:clientWidth={plotWidth}
     onpointermove={onMove}
-    onpointerleave={() => (hover = undefined)}
+    onpointerleave={onLeave}
   >
     <svg
       viewBox="0 0 {W} {height}"

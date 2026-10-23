@@ -50,6 +50,14 @@ export interface Route extends RouteMeta {
   /** Steepest 200 m. */
   maxGradePct: number
   loop: boolean
+  /** Set on a route ridden backwards or from part-way along (see `routeVariant`). */
+  variant?: RouteVariant
+}
+
+/** How a route is ridden: backwards, and/or starting `startM` metres in (in that direction). */
+export interface RouteVariant {
+  reverse: boolean
+  startM: number
 }
 
 export interface RoutePosition {
@@ -74,27 +82,7 @@ export function buildRoute(meta: RouteMeta, raw: readonly GpxPoint[]): Route {
   const distanceM = pts.at(-1)?.d ?? 0
   if (pts.length < 2 || distanceM < ROUTE_STEP_M) throw new RangeError('route is too short')
 
-  // Resample every ROUTE_STEP_M along the path, plus the exact end.
-  const resampled: RoutePoint[] = []
-  let j = 0
-  for (let d = 0; ; d += ROUTE_STEP_M) {
-    const at = Math.min(d, distanceM)
-    while (j < pts.length - 2 && pts[j + 1]!.d < at) j++
-    const a = pts[j]!
-    const b = pts[j + 1]!
-    const f = b.d > a.d ? (at - a.d) / (b.d - a.d) : 0
-    resampled.push({
-      lat: a.lat + (b.lat - a.lat) * f,
-      lon: a.lon + (b.lon - a.lon) * f,
-      ele: a.ele + (b.ele - a.ele) * f,
-      d: at,
-    })
-    if (at >= distanceM) break
-  }
-  // A sliver of a last segment would turn rounding noise into a steep grade: merge it.
-  if (resampled.length > 2 && distanceM - resampled.at(-2)!.d < ROUTE_STEP_M / 2) {
-    resampled.splice(-2, 1)
-  }
+  const resampled = resample(pts, 0, distanceM)
 
   const half = Math.round(SMOOTH_M / ROUTE_STEP_M / 2)
   const ele = smooth(
@@ -107,7 +95,93 @@ export function buildRoute(meta: RouteMeta, raw: readonly GpxPoint[]): Route {
     ? smooth(limitGrades(ele, resampled, meta.gradeCapPct), half)
     : ele
   const points = resampled.map((p, i) => ({ ...p, ele: round1(capped[i]!) }))
+  return summarize(meta, points, distanceM)
+}
 
+/**
+ * The same road ridden backwards and/or from part-way along. A loop started part-way goes all
+ * the way round (back to where it started); any other route is cut short. Elevation is already
+ * smoothed, so the points are only re-spaced, not smoothed again.
+ */
+export function routeVariant(route: Route, variant: RouteVariant): Route {
+  const base = route.variant ? undefined : route
+  if (!base) throw new RangeError('route is already a variant')
+  const maxStart = Math.max(0, base.distanceM - MIN_VARIANT_M)
+  const startM = Math.min(maxStart, Math.max(0, Math.round(variant.startM)))
+  if (!variant.reverse && startM === 0) return base
+
+  let path: RoutePoint[] = variant.reverse
+    ? base.points.map((p) => ({ ...p, d: base.distanceM - p.d })).reverse()
+    : base.points
+  const from = startM
+  let to = base.distanceM
+  if (startM > 0 && base.loop) {
+    // Round the loop: the rest of it, the gap from finish to start, then the part skipped.
+    const end = path.at(-1)!
+    const gap = haversineM(end, path[0]!)
+    const tail = path
+      .filter((p) => p.d < startM + ROUTE_STEP_M)
+      .map((p) => ({ ...p, d: p.d + end.d + gap }))
+    path = [...path, ...(gap < 0.5 ? tail.slice(1) : tail)]
+    to = startM + end.d + gap
+  }
+  const resampled = resample(path, from, to).map((p) => ({ ...p, d: p.d - from }))
+  const points = resampled.map((p) => ({ ...p, ele: round1(p.ele) }))
+  return {
+    ...summarize(base, points, to - startM),
+    loop: base.loop,
+    variant: { reverse: variant.reverse, startM },
+  }
+}
+
+/** A variant leaves at least this much road to ride. */
+export const MIN_VARIANT_M = 1000
+
+/** Stable id of a route as ridden, e.g. `alpe-dhuez?reverse&start=5000` (stored with rides). */
+export function routeKey(route: Route): string {
+  const v = route.variant
+  if (!v) return route.id
+  const params = [v.reverse ? 'reverse' : '', v.startM > 0 ? `start=${v.startM}` : '']
+  return `${route.id}?${params.filter(Boolean).join('&')}`
+}
+
+/** Splits a `routeKey` into the route's id and how it's ridden. */
+export function parseRouteKey(key: string): { id: string; variant?: RouteVariant } {
+  const q = key.indexOf('?')
+  if (q < 0) return { id: key }
+  const params = key.slice(q + 1).split('&')
+  const start = Number(params.find((p) => p.startsWith('start='))?.slice(6) ?? 0)
+  return {
+    id: key.slice(0, q),
+    variant: { reverse: params.includes('reverse'), startM: Number.isFinite(start) ? start : 0 },
+  }
+}
+
+/** Points every ROUTE_STEP_M from `from` to `to` along `pts` (sorted by `d`), plus the end. */
+function resample(pts: readonly RoutePoint[], from: number, to: number): RoutePoint[] {
+  const out: RoutePoint[] = []
+  let j = 0
+  for (let d = from; ; d += ROUTE_STEP_M) {
+    const at = Math.min(d, to)
+    while (j < pts.length - 2 && pts[j + 1]!.d < at) j++
+    const a = pts[j]!
+    const b = pts[j + 1]!
+    const f = b.d > a.d ? (at - a.d) / (b.d - a.d) : 0
+    out.push({
+      lat: a.lat + (b.lat - a.lat) * f,
+      lon: a.lon + (b.lon - a.lon) * f,
+      ele: a.ele + (b.ele - a.ele) * f,
+      d: at,
+    })
+    if (at >= to) break
+  }
+  // A sliver of a last segment would turn rounding noise into a steep grade: merge it.
+  if (out.length > 2 && to - out.at(-2)!.d < ROUTE_STEP_M / 2) out.splice(-2, 1)
+  return out
+}
+
+/** Climbing, grades and loop detection for evenly spaced points. */
+function summarize(meta: RouteMeta, points: RoutePoint[], distanceM: number): Route {
   let ascentM = 0
   let descentM = 0
   for (let i = 1; i < points.length; i++) {

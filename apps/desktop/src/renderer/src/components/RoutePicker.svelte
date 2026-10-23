@@ -1,6 +1,6 @@
 <script lang="ts">
   // Choose where to ride a workout (E13-8): a route for the scenery, or none (ERG only).
-  import type { Route } from '@cyclotron/core'
+  import { routeVariant, type Route, type RouteVariant } from '@cyclotron/core'
   import { routeName } from '../i18n/content'
   import { formatNumber } from '../i18n/i18n.svelte'
   import { t } from '../i18n/t'
@@ -9,6 +9,7 @@
   import PickerDialog from './PickerDialog.svelte'
   import RouteMap from './RouteMap.svelte'
   import RouteProfile from './RouteProfile.svelte'
+  import RouteStart from './RouteStart.svelte'
 
   let {
     title,
@@ -23,6 +24,19 @@
 
   let search = $state('')
   let searchBox = $state<HTMLInputElement>()
+  /** The route clicked; its start options show until the rider presses Ride. */
+  let chosen = $state.raw<Route | undefined>()
+  let variant = $state<RouteVariant>({ reverse: false, startM: 0 })
+
+  function choose(route: Route): void {
+    if (chosen === route) return ride()
+    chosen = route
+    variant = { reverse: false, startM: 0 }
+  }
+
+  function ride(): void {
+    if (chosen) onpick(routeVariant(chosen, variant))
+  }
 
   $effect(() => {
     routeLibrary.load().catch(() => {})
@@ -52,6 +66,17 @@
       aria-label={t().library.routes.searchLabel}
     />
   {/snippet}
+  {#snippet intro()}
+    {#if chosen}
+      <div class="chosen-head">
+        <strong>{routeName(chosen)}</strong>
+      </div>
+      <RouteStart route={chosen} bind:variant />
+    {/if}
+  {/snippet}
+  {#snippet actions()}
+    {#if chosen}<button class="primary" onclick={ride}>{t().library.routeStart.ride}</button>{/if}
+  {/snippet}
 
   {#if !search.trim()}
     <button class="tile none" onclick={() => onpick(undefined)}>
@@ -60,7 +85,7 @@
     </button>
   {/if}
   {#each shown as route (route.id)}
-    <button class="tile" onclick={() => onpick(route)}>
+    <button class="tile" class:chosen={chosen === route} onclick={() => choose(route)}>
       <span class="name">
         {#if routeLibrary.isFavourite(route.id)}<span class="star">★</span>{/if}
         {routeName(route)}
@@ -83,6 +108,12 @@
 </PickerDialog>
 
 <style>
+  .primary {
+    font-weight: 600;
+  }
+  .chosen-head {
+    margin-bottom: -0.25rem;
+  }
   .shape {
     display: flex;
     align-items: flex-end;

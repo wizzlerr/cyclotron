@@ -9,8 +9,11 @@ import {
   haversineM,
   parseGpx,
   ROUTE_STEP_M,
+  parseRouteKey,
   routeAt,
+  routeKey,
   RouteRider,
+  routeVariant,
   routeTriples,
   steadySpeed,
   stepSpeed,
@@ -111,6 +114,99 @@ describe('buildRoute', () => {
     back.forEach((p, i) => {
       expect(p.lat).toBeCloseTo(pts[i]!.lat, 6)
       expect(p.ele).toBeCloseTo(pts[i]!.ele!, 1)
+    })
+  })
+})
+
+describe('routeVariant', () => {
+  // 5 km climbing at 5 %, then 5 km flat.
+  const climbThenFlat = (): GpxPoint[] => {
+    const up = straight(5000, 5)
+    const top = up.at(-1)!
+    const flat = straight(5000, 0).map((p) => ({ ...p, lat: p.lat + top.lat - 45, ele: top.ele }))
+    return [...up, ...flat.slice(1)]
+  }
+
+  it('rides backwards: same length and climbing swapped for descent', () => {
+    const route = buildRoute(meta, climbThenFlat())
+    const back = routeVariant(route, { reverse: true, startM: 0 })
+    expect(back.distanceM).toBeCloseTo(route.distanceM, 6)
+    expect(back.ascentM).toBe(route.descentM)
+    expect(back.descentM).toBe(route.ascentM)
+    expect(routeAt(back, 2000).gradePct).toBeCloseTo(0, 1)
+    expect(routeAt(back, 7500).gradePct).toBeCloseTo(-5, 1)
+    expect(back.points[0]!.lat).toBeCloseTo(route.points.at(-1)!.lat, 9)
+    expect(
+      back.points.every(
+        (p, i) => Math.abs(p.d - i * ROUTE_STEP_M) < 1e-6 || i === back.points.length - 1,
+      ),
+    ).toBe(true)
+  })
+
+  it('starts part-way, cutting a point-to-point route short', () => {
+    const route = buildRoute(meta, climbThenFlat())
+    const mid = routeVariant(route, { reverse: false, startM: 2500 })
+    expect(mid.distanceM).toBeCloseTo(route.distanceM - 2500, 6)
+    expect(mid.points[0]!.ele).toBeCloseTo(routeAt(route, 2500).ele, 1)
+    expect(routeAt(mid, 1000).gradePct).toBeCloseTo(5, 1)
+    expect(mid.ascentM).toBeCloseTo(125, -1)
+    // Backwards from 2 km in: 3 km of flat, then down the climb.
+    const backMid = routeVariant(route, { reverse: true, startM: 2000 })
+    expect(backMid.distanceM).toBeCloseTo(route.distanceM - 2000, 6)
+    expect(routeAt(backMid, 4000).gradePct).toBeCloseTo(-5, 1)
+  })
+
+  it('goes all the way round a loop started part-way', () => {
+    // A square loop of 4 × 1 km.
+    const side = 1000 / M_PER_DEG_LAT
+    const lonSide = side / Math.cos((45 * Math.PI) / 180)
+    const corners = [
+      [45, 6],
+      [45 + side, 6],
+      [45 + side, 6 + lonSide],
+      [45, 6 + lonSide],
+      [45, 6],
+    ] as const
+    const pts: GpxPoint[] = []
+    for (let c = 0; c < 4; c++) {
+      const [a, b] = [corners[c]!, corners[c + 1]!]
+      for (let k = 0; k < 20; k++) {
+        const f = k / 20
+        pts.push({
+          lat: a[0] + (b[0] - a[0]) * f,
+          lon: a[1] + (b[1] - a[1]) * f,
+          ele: 100 + c * 10,
+        })
+      }
+    }
+    pts.push({ lat: 45, lon: 6, ele: 100 })
+    const loop = buildRoute(meta, pts)
+    expect(loop.loop).toBe(true)
+    const v = routeVariant(loop, { reverse: false, startM: 1500 })
+    expect(v.loop).toBe(true)
+    expect(v.distanceM).toBeCloseTo(loop.distanceM, -1)
+    expect(v.points[0]!.lat).toBeCloseTo(routeAt(loop, 1500).lat, 7)
+    expect(v.points.at(-1)!.lat).toBeCloseTo(routeAt(loop, 1500).lat, 4)
+  })
+
+  it('keeps some road to ride and returns the route itself when nothing changes', () => {
+    const route = buildRoute(meta, climbThenFlat())
+    expect(routeVariant(route, { reverse: false, startM: 0 })).toBe(route)
+    const late = routeVariant(route, { reverse: false, startM: 99_999 })
+    expect(late.distanceM).toBeCloseTo(1000, 6)
+    expect(() => routeVariant(late, { reverse: true, startM: 0 })).toThrow()
+  })
+
+  it('round-trips through a route key', () => {
+    const route = buildRoute(meta, climbThenFlat())
+    expect(routeKey(route)).toBe('test')
+    expect(parseRouteKey('test')).toEqual({ id: 'test' })
+    const v = routeVariant(route, { reverse: true, startM: 2500 })
+    expect(routeKey(v)).toBe('test?reverse&start=2500')
+    expect(parseRouteKey(routeKey(v))).toEqual({ id: 'test', variant: v.variant })
+    expect(parseRouteKey('test?start=300')).toEqual({
+      id: 'test',
+      variant: { reverse: false, startM: 300 },
     })
   })
 })
