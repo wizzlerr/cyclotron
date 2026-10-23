@@ -110,6 +110,7 @@ cyclotron/                (pnpm monorepo, TypeScript everywhere)
 | E7-3 | ✅ done 2026-10-21 (icon `apps/desktop/build/icon.png`, name "Cyclotron", v0.1.0, Settings → About with "Show data folder"; also: settings moved to SQLite, single instance, D17). App icon, name, version shown in Settings | S |
 | E7-4 | 🔧 hooks ready 2026-10-22 (release workflow signs when the WIN_CSC_* / MAC_CSC_* / APPLE_* secrets exist; hardened runtime + entitlements); needs certificates. Optional: macOS signing + notarization (needs Apple Developer account, $99/yr), Windows code signing | M |
 | ~~E7-5~~ | ✅ done 2026-10-22 (`main/updater.ts`, electron-updater from GitHub Releases: Windows downloads and installs on restart; unsigned macOS only notifies; Settings → About; v0.2.0). Optional: auto-update (`electron-updater`, GitHub Releases) | M |
+| E7-6 | 🔧 built 2026-10-23 (D30): Linux AppImage + `.deb` (x64) in the release workflow, Web Bluetooth switch for Linux, AppImage auto-update, `pnpm dist:linux`; packaged app smoke-tested in Docker. Open: try it with a trainer on a real Linux machine. Linux support | M |
 
 **↑ MVP: ride a workout in ERG mode on Windows/macOS, export FIT, run FTP tests.**
 

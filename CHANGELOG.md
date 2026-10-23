@@ -2,13 +2,13 @@
 
 ## Unreleased
 
+- **Linux**: an AppImage (any distro, updates itself) and a `.deb` for Ubuntu, Debian and Mint
+  are now in every release. Bluetooth goes through BlueZ. Not yet tried with a trainer.
+- Connecting without Bluetooth (adapter off or missing) now says so instead of doing nothing.
+- README: a download link with a "which file do I need" table at the top, and what Cyclotron is
+  and isn't (not a Zwift/MyWhoosh replacement; why the 3D world is low-poly).
+
 ## 0.3.0 (2026-10-23)
-
-- Start a route anywhere and ride it in reverse: pick the direction and the start kilometre (or
-  click the profile or the route map) before riding. The map shows where you start and which way
-  you go. A loop started part-way goes all the way round.
-
-## 0.2.0 — first public release (2026-10-22)
 
 The first installer on the Releases page. Windows 10/11, tested on a Wahoo KICKR CORE 2. The
 macOS build is included but untested.
@@ -32,6 +32,9 @@ macOS build is included but untested.
 - An optional low-poly 3D view of the route.
 - Zwift Play and Click controllers: drive the whole app from the handlebars.
 - Live metrics (power, NP, IF, TSS, zones, calories), a live chart and countdown beeps.
+- Start a route anywhere and ride it in reverse: pick the direction and the start kilometre (or
+  click the profile or the route map) before riding. The map shows where you start and which way
+  you go. A loop started part-way goes all the way round.
 
 **After the ride**
 
@@ -51,3 +54,4 @@ macOS build is included but untested.
 
 - The installer isn't code-signed: Windows SmartScreen warns, choose More info → Run anyway.
 - Only the KICKR CORE 2 has been tested; reports from other FTMS trainers are welcome.
+- macOS build not tested

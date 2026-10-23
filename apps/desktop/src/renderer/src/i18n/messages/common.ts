@@ -83,6 +83,8 @@ export const en = {
     routeTooShort: 'the route is too short',
     notFit: 'not a FIT file',
     noRecords: 'no data records in the file',
+    noBluetooth:
+      'Bluetooth is off or not available. Turn it on (on Linux: check that BlueZ is installed and running) and try again.',
   },
 }
 
@@ -149,5 +151,7 @@ export const pl: typeof en = {
     routeTooShort: 'trasa jest za krótka',
     notFit: 'to nie jest plik FIT',
     noRecords: 'plik nie zawiera danych',
+    noBluetooth:
+      'Bluetooth jest wyłączony lub niedostępny. Włącz go (w Linuksie: sprawdź, czy BlueZ jest zainstalowany i uruchomiony) i spróbuj ponownie.',
   },
 }

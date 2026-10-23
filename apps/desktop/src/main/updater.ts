@@ -4,9 +4,10 @@ import { IPC, type UpdateStatus } from '../shared/api'
 import { getSetting, setSetting } from './db'
 import { logLine } from './log'
 
-// Auto-update from GitHub Releases (E7-5). Windows: downloads in the background and installs on
-// restart. macOS: the app isn't signed, and Squirrel.Mac only installs signed updates, so it only
-// says a new version exists and links to the release page. Development builds never check.
+// Auto-update from GitHub Releases (E7-5). Windows and the Linux AppImage: downloads in the
+// background and installs on restart. macOS: the app isn't signed, and Squirrel.Mac only installs
+// signed updates, so it only says a new version exists and links to the release page; the Linux
+// .deb does the same (its update would need a root password prompt). Development builds never check.
 
 const { autoUpdater } = electronUpdater
 const RELEASES_URL = 'https://github.com/wizzlerr/cyclotron/releases/latest'
@@ -14,7 +15,8 @@ const AUTO_KEY = 'updates.auto'
 const EVERY_MS = 6 * 3600_000
 
 let state: UpdateStatus = { state: 'idle', current: '' }
-const canInstall = process.platform === 'win32'
+const canInstall =
+  process.platform === 'win32' || (process.platform === 'linux' && !!process.env['APPIMAGE'])
 
 function set(next: Partial<UpdateStatus>): void {
   state = { ...state, ...next, current: app.getVersion(), auto: autoEnabled() }

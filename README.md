@@ -8,11 +8,36 @@ Cyclotron connects to a smart trainer and a heart rate strap over Bluetooth and 
 workouts in ERG mode: the trainer sets the resistance, you pedal. Every day it suggests a workout
 that fits your training load and weekly plan, and tells you why.
 
+### [⬇ Download the latest version](https://github.com/wizzlerr/cyclotron/releases/latest)
+
+On the release page, open **Assets** and pick the file for your computer:
+
+| Your computer         | Download                         |
+| --------------------- | -------------------------------- |
+| Windows 10/11         | `Cyclotron-Setup-<version>.exe`  |
+| Mac                   | `Cyclotron-<version>.dmg`        |
+| Linux (any distro)    | `Cyclotron-<version>.AppImage`   |
+| Ubuntu, Debian, Mint  | `cyclotron_<version>_amd64.deb`  |
+
+Then see [Install](#install) for the first start. No account or sign-up needed.
+
 ![Cyclotron: home, workouts, routes and a ride on Alpe d'Huez](docs/images/demo.gif)
 
-> **Status: early (v0.2).** It is used for real rides on a Wahoo KICKR CORE 2 on Windows. Other
-> FTMS trainers should work but haven't been tested. macOS builds are produced by CI but not yet
-> tried on a Mac. Expect rough edges.
+> **Status: early (v0.3).** It is used for real rides on a Wahoo KICKR CORE 2 on Windows. Other
+> FTMS trainers should work but haven't been tested. macOS and Linux builds are produced by CI
+> but not yet tried with a trainer. Expect rough edges.
+
+## What Cyclotron is (and isn't)
+
+Cyclotron is **not a replacement for Zwift or MyWhoosh**. There are no other riders, no races, no
+group rides, no avatars and no game. It is for riders who don't want to pay for Zwift, don't need
+a virtual world or a community, and just want to train: pick a good workout, ride it in ERG, see
+the numbers, and keep the history.
+
+That is also why the 3D world is simple and low-poly. On the bike the screen is mostly a set of
+indicators (power, heart rate, cadence, what's next), and the world is optional scenery behind
+them. Keeping it light means Cyclotron runs smoothly on old laptops and cheap mini PCs, with no
+gaming graphics card needed. You can turn the world off completely in Settings.
 
 ## Features
 
@@ -39,7 +64,7 @@ that fits your training load and weekly plan, and tells you why.
   The trainer follows the grade (scaled by a difficulty setting), speed comes from a physics
   model, and the ride is saved as a virtual ride with GPS. You can also ride a workout on a route.
 - **3D world**: an optional low-poly view of the route with terrain, trees, hairpins and gradient
-  signs on climbs.
+  signs on climbs. Deliberately simple, so it runs on slow computers too.
 - **Progress**: fitness/fatigue/form chart, power curve, time in zones per week, FTP estimate,
   and ride details with charts and laps.
 - **Zwift Play and Click controllers**: drive the whole app from the handlebars: the D-pad moves a
@@ -56,7 +81,8 @@ that fits your training load and weekly plan, and tells you why.
   ahead.
 - **Offline and private**: no account and no cloud. Everything stays on your computer in one SQLite
   database; Garmin and Strava keys are stored encrypted.
-- **English and Polish**, automatic updates on Windows, a diagnostic report for bug reports, and a
+- **Windows, macOS and Linux**. **English and Polish**, automatic updates (Windows and the Linux
+  AppImage), a diagnostic report for bug reports, and a
   **simulated trainer** for trying the app without a bike.
 
 ![Ride screen with the 3D world on a route](docs/images/ride.png)
@@ -80,7 +106,7 @@ that fits your training load and weekly plan, and tells you why.
 |         | Cyclotron                                       | Zwift                          | Auuki                              |
 | ------- | ----------------------------------------------- | ------------------------------ | ---------------------------------- |
 | Price   | Free, open source                               | Subscription                   | Free, open source                  |
-| Runs as | Desktop app (Windows, macOS)                    | Desktop/mobile app             | Web app in the browser             |
+| Runs as | Desktop app (Windows, macOS, Linux)             | Desktop/mobile app             | Web app in the browser             |
 | Focus   | Structured training, recommendations, FTP tests | Virtual worlds, racing, social | Structured training in the browser |
 | World   | Simple 3D view of real routes                   | Full 3D worlds, other riders   | None                               |
 
@@ -90,7 +116,8 @@ and is built around structured training and choosing the right workout for the d
 
 ## Install
 
-Download the installer from the [Releases](https://github.com/wizzlerr/cyclotron/releases) page.
+Download the file for your computer from the
+[latest release](https://github.com/wizzlerr/cyclotron/releases/latest) (under **Assets**).
 
 - **Windows 10/11**: run `Cyclotron-Setup-<version>.exe`. The installer is not code-signed yet, so
   SmartScreen warns: choose **More info → Run anyway**. Later versions install themselves on
@@ -98,6 +125,16 @@ Download the installer from the [Releases](https://github.com/wizzlerr/cyclotron
 - **macOS**: open the `.dmg` and drag Cyclotron to Applications. The app is unsigned, so the first
   time you right-click it and choose **Open**. Allow Bluetooth when asked. The app tells you when a
   new version is out; download it from the Releases page.
+- **Linux** (x64):
+  - **Ubuntu, Debian, Mint**: install the `.deb` (double-click it, or
+    `sudo apt install ./cyclotron_<version>_amd64.deb`) and start Cyclotron from the app menu. The
+    app tells you when a new version is out.
+  - **Any distro**: make the `.AppImage` executable (`chmod +x Cyclotron-*.AppImage`) and run it.
+    It updates itself on restart. On Ubuntu 24.04 and later the AppImage may not start because
+    of AppArmor; use the `.deb` there.
+  - Bluetooth goes through BlueZ, which desktop distros include. If connecting says Bluetooth is
+    not available, check `systemctl status bluetooth` and `bluetoothctl power on`. Your data is
+    in `~/.config/Cyclotron`.
 
 You need a computer with Bluetooth Low Energy (most laptops; on desktops a USB BLE dongle works).
 Keep it within a few metres of the trainer: connecting through walls is slow and unreliable.
@@ -175,7 +212,8 @@ pnpm test         # unit tests (Vitest)
 pnpm typecheck
 pnpm lint
 pnpm dist         # Windows installer → apps/desktop/dist/
-pnpm --filter @cyclotron/desktop dist:mac   # macOS .dmg (run on a Mac)
+pnpm --filter @cyclotron/desktop dist:mac     # macOS .dmg (run on a Mac)
+pnpm --filter @cyclotron/desktop dist:linux   # Linux AppImage + .deb (run on Linux)
 ```
 
 ### Releasing
@@ -194,8 +232,8 @@ section, commits "Release vX.Y.Z", tags it and pushes `master` and the tag toget
 have uncommitted changes, are behind GitHub, the tag exists or the release notes are empty
 (`--no-push` keeps everything local).
 
-The tag starts GitHub Actions (`.github/workflows/release.yml`), which builds the Windows and
-macOS installers into a draft release with the CHANGELOG notes; publish the draft when it's ready.
+The tag starts GitHub Actions (`.github/workflows/release.yml`), which builds the Windows,
+macOS and Linux installers into a draft release with the CHANGELOG notes; publish the draft when it's ready.
 Code signing switches on when the signing secrets are set.
 
 ## Project layout
@@ -214,7 +252,7 @@ The design and its decisions (with the alternatives that were rejected) are in
 
 ## Roadmap
 
-- **Mac testing and signed builds** for Windows and macOS.
+- **Mac and Linux testing with a trainer**, and signed builds for Windows and macOS.
 - **Self-hosted sync server** and **cloud-folder sync** between computers: planned, built when
   there is demand.
 

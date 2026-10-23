@@ -5,7 +5,8 @@
   "private": true,
   "license": "AGPL-3.0-or-later",
   "description": "Indoor cycling trainer",
-  "author": "adam.sabel",
+  "homepage": "https://github.com/wizzlerr/cyclotron",
+  "author": "wizzlerr",
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
@@ -13,7 +14,8 @@
     "preview": "electron-vite preview",
     "typecheck": "tsc -p tsconfig.node.json && svelte-check --tsconfig ./tsconfig.web.json --fail-on-warnings",
     "dist": "electron-vite build && electron-builder --win",
-    "dist:mac": "electron-vite build && electron-builder --mac"
+    "dist:mac": "electron-vite build && electron-builder --mac",
+    "dist:linux": "electron-vite build && electron-builder --linux"
   },
   "devDependencies": {
     "@cyclotron/core": "workspace:*",

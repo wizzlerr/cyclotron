@@ -2,7 +2,7 @@ import { join } from 'node:path'
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import { IPC } from '../shared/api'
 import { backfillAggregates, registerAnalyticsIpc } from './analytics'
-import { attachBluetooth, registerBluetoothIpc } from './bluetooth'
+import { attachBluetooth, enableWebBluetooth, registerBluetoothIpc } from './bluetooth'
 import { closeDb } from './db'
 import { attachRendererLog, initLog, registerLogIpc } from './log'
 import { registerGarminIpc, scheduleGarminSync } from './garmin'
@@ -17,6 +17,7 @@ import { registerWorkoutsIpc } from './workouts'
 import { setupUserData } from './user-data'
 
 setupUserData()
+enableWebBluetooth()
 initLog()
 
 // One instance only: two would fight over the trainer and the database.

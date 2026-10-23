@@ -119,7 +119,7 @@ export const en = {
     calibrationAvailable: 'Spin-down calibration is available over Bluetooth.',
     calibrationNone:
       "No calibration over Bluetooth: use the maker's app if needed (KICKR CORE 2 is factory calibrated).",
-    connectingSlow: 'Connecting… on Windows this can take up to a minute.',
+    connectingSlow: 'Connecting… this can take up to a minute.',
     connecting: 'Connecting…',
     connect: (name: string) => `Connect ${name}`,
     findTrainer: 'Find trainer…',
@@ -267,7 +267,7 @@ export const pl: typeof en = {
     calibrationAvailable: 'Kalibracja (spin-down) dostępna przez Bluetooth.',
     calibrationNone:
       'Brak kalibracji przez Bluetooth: w razie potrzeby użyj aplikacji producenta (KICKR CORE 2 jest skalibrowany fabrycznie).',
-    connectingSlow: 'Łączenie… w Windows może to potrwać nawet minutę.',
+    connectingSlow: 'Łączenie… może to potrwać nawet minutę.',
     connecting: 'Łączenie…',
     connect: (name: string) => `Połącz ${name}`,
     findTrainer: 'Znajdź trenażer…',
