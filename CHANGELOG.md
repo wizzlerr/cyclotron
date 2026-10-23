@@ -2,11 +2,28 @@
 
 ## Unreleased
 
-- **Linux**: an AppImage (any distro, updates itself) and a `.deb` for Ubuntu, Debian and Mint
-  are now in every release. Bluetooth goes through BlueZ. Not yet tried with a trainer.
-- Connecting without Bluetooth (adapter off or missing) now says so instead of doing nothing.
-- README: a download link with a "which file do I need" table at the top, and what Cyclotron is
-  and isn't (not a Zwift/MyWhoosh replacement; why the 3D world is low-poly).
+Cyclotron now runs on Linux too: Windows, macOS and Linux installers are on the release page.
+
+**New**
+
+- **Linux** (x64): an AppImage for any distro, which updates itself on restart, and a `.deb` for
+  Ubuntu, Debian and Mint. Bluetooth goes through BlueZ.
+
+**Fixed**
+
+- Connecting a device with Bluetooth turned off (or no adapter) now says Bluetooth isn't
+  available, instead of silently doing nothing.
+
+**Docs**
+
+- The README has a download link at the top with a table of which file to pick, and explains
+  what Cyclotron is and isn't: a training app, not a Zwift or MyWhoosh replacement.
+
+**Known limits**
+
+- Linux and macOS builds haven't been tried with a trainer yet; reports are welcome.
+- On Ubuntu 24.04 and later the AppImage may not start (AppArmor): use the `.deb`.
+- The installers aren't code-signed: Windows SmartScreen warns, choose More info → Run anyway.
 
 ## 0.3.0 (2026-10-23)
 
