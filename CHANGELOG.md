@@ -1,12 +1,31 @@
 # Changelog
 
+## Unreleased
+
+Cyclotron now runs on Linux too: Windows, macOS and Linux installers are on the release page.
+
+**New**
+
+- **Linux** (x64): an AppImage for any distro, which updates itself on restart, and a `.deb` for
+  Ubuntu, Debian and Mint. Bluetooth goes through BlueZ.
+
+**Fixed**
+
+- Connecting a device with Bluetooth turned off (or no adapter) now says Bluetooth isn't
+  available, instead of silently doing nothing.
+
+**Docs**
+
+- The README has a download link at the top with a table of which file to pick, and explains
+  what Cyclotron is and isn't: a training app, not a Zwift or MyWhoosh replacement.
+
+**Known limits**
+
+- Linux and macOS builds haven't been tried with a trainer yet; reports are welcome.
+- On Ubuntu 24.04 and later the AppImage may not start (AppArmor): use the `.deb`.
+- The installers aren't code-signed: Windows SmartScreen warns, choose More info → Run anyway.
+
 ## 0.3.0 (2026-10-23)
-
-- Start a route anywhere and ride it in reverse: pick the direction and the start kilometre (or
-  click the profile or the route map) before riding. The map shows where you start and which way
-  you go. A loop started part-way goes all the way round.
-
-## 0.2.0 — first public release (2026-10-22)
 
 The first installer on the Releases page. Windows 10/11, tested on a Wahoo KICKR CORE 2. The
 macOS build is included but untested.
@@ -30,6 +49,9 @@ macOS build is included but untested.
 - An optional low-poly 3D view of the route.
 - Zwift Play and Click controllers: drive the whole app from the handlebars.
 - Live metrics (power, NP, IF, TSS, zones, calories), a live chart and countdown beeps.
+- Start a route anywhere and ride it in reverse: pick the direction and the start kilometre (or
+  click the profile or the route map) before riding. The map shows where you start and which way
+  you go. A loop started part-way goes all the way round.
 
 **After the ride**
 
@@ -49,3 +71,4 @@ macOS build is included but untested.
 
 - The installer isn't code-signed: Windows SmartScreen warns, choose More info → Run anyway.
 - Only the KICKR CORE 2 has been tested; reports from other FTMS trainers are welcome.
+- macOS build not tested

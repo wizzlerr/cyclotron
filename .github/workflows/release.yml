@@ -1,5 +1,6 @@
-# Builds the Windows installer and the macOS dmg on a version tag (e.g. v0.2.0) and attaches them,
-# with the latest*.yml files auto-update reads, to a draft GitHub Release (E7).
+# Builds the Windows installer, the macOS dmg and the Linux AppImage + .deb on a version tag (e.g.
+# v0.2.0, pushed by `pnpm release`, see scripts/release.mjs) and attaches them, with the latest*.yml
+# files auto-update reads, to a draft GitHub Release (E7, D30).
 #
 # The draft is created once, up front, with the notes from CHANGELOG.md. The builds only upload
 # to it: when electron-builder published by itself, its parallel uploads each created a draft
@@ -24,7 +25,7 @@ jobs:
         run: |
           version=$(node -p "require('./apps/desktop/package.json').version")
           if [ "v$version" != "$GITHUB_REF_NAME" ]; then
-            echo "Tag $GITHUB_REF_NAME doesn't match apps/desktop/package.json version $version" >&2
+            echo "Tag $GITHUB_REF_NAME doesn't match apps/desktop/package.json version $version (tag releases with: pnpm release patch|minor|major)" >&2
             exit 1
           fi
       - name: Create the draft release
@@ -48,6 +49,8 @@ jobs:
             target: --win
           - os: macos-latest
             target: --mac
+          - os: ubuntu-latest
+            target: --linux
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -73,7 +76,7 @@ jobs:
           # Use the platform's certificate when there is one; otherwise build unsigned.
           if [ "${{ runner.os }}" = "Windows" ]; then
             export CSC_LINK="$WIN_CSC_LINK" CSC_KEY_PASSWORD="$WIN_CSC_KEY_PASSWORD"
-          else
+          elif [ "${{ runner.os }}" = "macOS" ]; then
             export CSC_LINK="$MAC_CSC_LINK" CSC_KEY_PASSWORD="$MAC_CSC_KEY_PASSWORD"
           fi
           if [ -z "$CSC_LINK" ]; then
@@ -89,6 +92,6 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           shopt -s nullglob
-          files=(*.exe *.dmg *.zip *.blockmap latest*.yml)
+          files=(*.exe *.dmg *.zip *.AppImage *.deb *.blockmap latest*.yml)
           printf 'Uploading %s\n' "${files[@]}"
           gh release upload "$GITHUB_REF_NAME" "${files[@]}" --repo "$GITHUB_REPOSITORY" --clobber

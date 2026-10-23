@@ -1,4 +1,4 @@
-import { ipcMain, type BrowserWindow } from 'electron'
+import { app, ipcMain, type BrowserWindow } from 'electron'
 import { IPC, type BluetoothDeviceInfo } from '../shared/api'
 
 // Electron has no built-in Web Bluetooth chooser: `requestDevice()` in the renderer fires
@@ -15,6 +15,16 @@ function finish(deviceId: string): void {
   pending = undefined
   if (deviceId) lastPicked = deviceId
   callback?.(deviceId)
+}
+
+/**
+ * Chromium ships Web Bluetooth enabled on Windows and macOS only; on Linux `navigator.bluetooth`
+ * doesn't exist without this Blink feature (checked with Electron 44). It talks to BlueZ over
+ * D-Bus. Must run before the app is ready.
+ */
+export function enableWebBluetooth(): void {
+  if (process.platform === 'linux')
+    app.commandLine.appendSwitch('enable-blink-features', 'WebBluetooth')
 }
 
 export function registerBluetoothIpc(): void {

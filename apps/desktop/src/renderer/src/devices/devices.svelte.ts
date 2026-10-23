@@ -1,4 +1,5 @@
 import { TimeWindowAverage } from '@cyclotron/core'
+import { errorText } from '../i18n/errors'
 import { t } from '../i18n/t'
 import { logEvent } from '../lib/diag'
 import { loadPref, savePref } from '../lib/prefs'
@@ -168,7 +169,7 @@ class Devices {
       await this.trainer?.setControl(control)
       this.error = undefined
     } catch (e) {
-      this.error = message(e)
+      this.error = errorText(e)
       logEvent('error', `devices: ${this.error}`)
     }
   }
@@ -221,7 +222,7 @@ class Devices {
         this.remember({ ...this.remembered, [role]: device.name })
       }
     } catch (e) {
-      this.error = message(e)
+      this.error = errorText(e)
       logEvent('error', `devices: ${this.error}`)
     } finally {
       this.connecting = undefined
@@ -238,8 +239,11 @@ class Devices {
     try {
       return await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices })
     } catch (e) {
-      if (e instanceof DOMException && e.name === 'NotFoundError') return undefined
-      throw e
+      if (!(e instanceof DOMException && e.name === 'NotFoundError')) throw e
+      // No adapter (or BlueZ not running on Linux) rejects the same way as a cancelled picker.
+      if (!(await navigator.bluetooth.getAvailability().catch(() => true)))
+        throw Object.assign(new Error('Bluetooth is not available'), { code: 'noBluetooth' })
+      return undefined
     } finally {
       this.picking = false
       void window.cyclotron.bluetooth.preferDevice(null)
@@ -300,10 +304,6 @@ class Devices {
     this.remembered = value
     savePref(REMEMBERED_KEY, value)
   }
-}
-
-function message(e: unknown): string {
-  return e instanceof Error ? e.message : String(e)
 }
 
 export const devices = new Devices()

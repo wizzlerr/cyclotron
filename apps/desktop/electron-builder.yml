@@ -1,10 +1,10 @@
-# E7: installers. `pnpm dist` (Windows NSIS) / `pnpm dist:mac` (dmg, must run on a Mac); releases
-# are built by .github/workflows/release.yml on a version tag. Everything the app needs is bundled
-# by electron-vite into out/, so the package has no node_modules (all deps are devDependencies)
-# and nothing native to rebuild.
+# E7: installers. `pnpm dist` (Windows NSIS) / `pnpm dist:mac` (dmg, on a Mac) / `pnpm dist:linux`
+# (AppImage + deb, on Linux); releases are built by .github/workflows/release.yml on a version tag.
+# Everything the app needs is bundled by electron-vite into out/, so the package has no
+# node_modules (all deps are devDependencies) and nothing native to rebuild.
 appId: io.github.wizzlerr.cyclotron
 productName: Cyclotron
-copyright: Copyright © 2026 adam.sabel
+copyright: Copyright © 2026 wizzlerr
 directories:
   output: dist
   buildResources: build
@@ -61,3 +61,28 @@ mac:
     NSBluetoothAlwaysUsageDescription: Cyclotron connects to your smart trainer and heart rate strap over Bluetooth.
 dmg:
   artifactName: Cyclotron-${version}.${ext}
+
+# Linux (D30): an AppImage (any distro; auto-updates itself) and a .deb (Debian/Ubuntu; installs
+# chrome-sandbox setuid, so it also starts where AppArmor blocks the AppImage's sandbox). x64 only.
+linux:
+  target:
+    - target: AppImage
+      arch: [x64]
+    - target: deb
+      arch: [x64]
+  icon: build/icon.png
+  category: Utility
+  synopsis: Indoor cycling trainer for smart trainers
+  # The .deb needs a maintainer with an email; the GitHub noreply address keeps it private.
+  maintainer: wizzlerr <9579589+wizzlerr@users.noreply.github.com>
+  executableName: cyclotron
+  desktop:
+    entry:
+      StartupWMClass: Cyclotron
+      Keywords: cycling;trainer;kickr;ftms;zwift;workout;
+appImage:
+  artifactName: Cyclotron-${version}.${ext}
+deb:
+  artifactName: cyclotron_${version}_amd64.${ext}
+  # Web Bluetooth on Linux talks to BlueZ over D-Bus.
+  recommends: [bluez]
