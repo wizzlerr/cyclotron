@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.4.0 (2026-10-23)
+
 Cyclotron now runs on Linux too: Windows, macOS and Linux installers are on the release page.
 
 **New**
