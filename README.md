@@ -178,7 +178,24 @@ pnpm dist         # Windows installer → apps/desktop/dist/
 pnpm --filter @cyclotron/desktop dist:mac   # macOS .dmg (run on a Mac)
 ```
 
-Releases are built by GitHub Actions when a `v*` tag is pushed (`.github/workflows/release.yml`).
+### Releasing
+
+Work happens on `development`, which is merged into `master` for a release. Write changes under
+`## Unreleased` in [CHANGELOG.md](CHANGELOG.md) as you go, then on `master`:
+
+```sh
+pnpm release patch            # or minor / major / an exact version like 1.0.0
+pnpm release minor --dry-run  # checks and shows what would happen, changes nothing
+```
+
+`scripts/release.mjs` bumps the version in `apps/desktop/package.json`, dates the Unreleased
+section, commits "Release vX.Y.Z", tags it and pushes `master` and the tag together, then merges
+`master` back into `development`. It stops before changing anything if you're not on `master`,
+have uncommitted changes, are behind GitHub, the tag exists or the release notes are empty
+(`--no-push` keeps everything local).
+
+The tag starts GitHub Actions (`.github/workflows/release.yml`), which builds the Windows and
+macOS installers into a draft release with the CHANGELOG notes; publish the draft when it's ready.
 Code signing switches on when the signing secrets are set.
 
 ## Project layout
@@ -211,8 +228,10 @@ funded by the European Union.
 
 ## Contributing
 
-Issues and pull requests are welcome. Trainer and controller compatibility reports (model,
-firmware, what worked) are especially useful. Before sending code:
+Issues and pull requests are welcome; please open pull requests against `development`, and add a
+line under `## Unreleased` in CHANGELOG.md for anything a rider would notice. Trainer and
+controller compatibility reports (model, firmware, what worked) are especially useful. Before
+sending code:
 
 ```sh
 pnpm test && pnpm typecheck && pnpm lint && pnpm format:check
