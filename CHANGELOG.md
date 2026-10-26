@@ -10,8 +10,11 @@
   A workout planned for today becomes the Today recommendation (with easier and shorter options),
   resting heart rate, HRV and sleep from intervals.icu count toward readiness, and the card shows
   when the FTP differs between the two, with a button to copy it either way.
-- **Settings in tabs**: Devices, Training, Ride, Connections and App, instead of one long page.
+- **Settings in tabs**: Devices, Profile, Ride, Connections and App, instead of one long page.
   Links such as "Devices" on the Ride screen open the right tab.
+- **Your data** (Settings → Profile): export everything to one backup file, import it (on this or
+  another computer), or delete all data. Service keys aren't in the backup; FIT files are never
+  deleted.
 
 ## 0.4.0 (2026-10-23)
 

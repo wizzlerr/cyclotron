@@ -109,7 +109,7 @@ export const en = {
     todayTag: 'Today',
     planned: (tss: number, done: number) => `Planned TSS ${tss} · done ${done}`,
     capped: 'Load reduced to keep your fitness rising safely (about +8 a week).',
-    defaultDays: 'Training days picked for you. Choose your own in Settings → Training.',
+    defaultDays: 'Training days picked for you. Choose your own in Settings → Profile.',
     settings: 'Settings…',
   },
   levels: {
@@ -223,7 +223,7 @@ export const pl: typeof en = {
     todayTag: 'Dziś',
     planned: (tss: number, done: number) => `Plan TSS ${tss} · zrobione ${done}`,
     capped: 'Obciążenie zmniejszone, żeby kondycja rosła bezpiecznie (około +8 na tydzień).',
-    defaultDays: 'Dni treningowe dobrane automatycznie. Wybierz własne w Ustawienia → Trening.',
+    defaultDays: 'Dni treningowe dobrane automatycznie. Wybierz własne w Ustawienia → Profil.',
     settings: 'Ustawienia…',
   },
   levels: {

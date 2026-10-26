@@ -79,7 +79,7 @@ export const en = {
     title: 'Settings',
     tabs: {
       devices: 'Devices',
-      training: 'Training',
+      profile: 'Profile',
       ride: 'Ride',
       connections: 'Connections',
       app: 'App',
@@ -150,10 +150,33 @@ export const en = {
     rideFilesIn: 'Each finished ride is saved as a FIT file in',
     changeFolder: 'Change folder…',
     rideFilesHelp:
-      'Upload them anywhere by hand, or connect intervals.icu or Strava above to send them automatically.',
+      'Upload them anywhere by hand, or connect intervals.icu or Strava (Settings → Connections) to send them automatically.',
+    data: {
+      title: 'Your data',
+      intro:
+        'Everything stays on this computer. A backup is one file with your rides, profile, settings, own workouts and routes. Service keys (Garmin, Strava, intervals.icu) are left out: connect them again after a restore.',
+      export: 'Export data…',
+      import: 'Import data…',
+      importConfirm:
+        'Importing replaces all your current data with the backup. Export first if you want to keep it.',
+      wipe: 'Delete all data…',
+      wipeConfirm:
+        'This deletes your rides, profile, settings, own workouts and routes, and disconnects all services. FIT files in the rides folder stay. This cannot be undone.',
+      confirmImport: 'Choose backup and replace',
+      confirmWipe: 'Delete everything',
+      cancel: 'Cancel',
+      exported: (path: string) => `Saved ${path}`,
+      duringRide: 'Not available during a ride.',
+      errors: {
+        notBackup: "That file isn't a Cyclotron backup.",
+        tooNew: 'That backup is from a newer Cyclotron. Update the app first.',
+        failed: 'Something went wrong. The details are in the log (Settings → App → Problem?).',
+      },
+    },
     about: 'About',
     showDataFolder: 'Show data folder…',
-    dataFolderHelp: 'Rides, workouts and settings live here. Copy the folder to back them up.',
+    dataFolderHelp:
+      'Rides, workouts and settings live here. To back them up, use Settings → Profile → Your data.',
     developer: 'Developer',
     playerTest: 'Ride player test',
   },
@@ -235,7 +258,7 @@ export const pl: typeof en = {
     title: 'Ustawienia',
     tabs: {
       devices: 'Urządzenia',
-      training: 'Trening',
+      profile: 'Profil',
       ride: 'Jazda',
       connections: 'Połączenia',
       app: 'Aplikacja',
@@ -306,11 +329,33 @@ export const pl: typeof en = {
     rideFilesIn: 'Każda zakończona jazda jest zapisywana jako plik FIT w',
     changeFolder: 'Zmień folder…',
     rideFilesHelp:
-      'Wgraj je gdziekolwiek ręcznie albo połącz powyżej intervals.icu lub Stravę, żeby wysyłać je automatycznie.',
+      'Wgraj je gdziekolwiek ręcznie albo połącz intervals.icu lub Stravę (Ustawienia → Połączenia), żeby wysyłać je automatycznie.',
+    data: {
+      title: 'Twoje dane',
+      intro:
+        'Wszystko zostaje na tym komputerze. Kopia zapasowa to jeden plik z jazdami, profilem, ustawieniami, własnymi treningami i trasami. Klucze usług (Garmin, Strava, intervals.icu) są pomijane: po przywróceniu połącz je ponownie.',
+      export: 'Eksportuj dane…',
+      import: 'Importuj dane…',
+      importConfirm:
+        'Import zastępuje wszystkie obecne dane kopią zapasową. Jeśli chcesz je zachować, najpierw je wyeksportuj.',
+      wipe: 'Usuń wszystkie dane…',
+      wipeConfirm:
+        'To usunie jazdy, profil, ustawienia, własne treningi i trasy oraz rozłączy wszystkie usługi. Pliki FIT w folderze jazd zostają. Tego nie da się cofnąć.',
+      confirmImport: 'Wybierz kopię i zastąp',
+      confirmWipe: 'Usuń wszystko',
+      cancel: 'Anuluj',
+      exported: (path: string) => `Zapisano ${path}`,
+      duringRide: 'Niedostępne podczas jazdy.',
+      errors: {
+        notBackup: 'Ten plik nie jest kopią zapasową Cyclotronu.',
+        tooNew: 'Ta kopia pochodzi z nowszej wersji Cyclotronu. Najpierw zaktualizuj aplikację.',
+        failed: 'Coś poszło nie tak. Szczegóły są w logu (Ustawienia → Aplikacja → Problem?).',
+      },
+    },
     about: 'O programie',
     showDataFolder: 'Pokaż folder danych…',
     dataFolderHelp:
-      'Tu są jazdy, treningi i ustawienia. Skopiuj ten folder, aby zrobić kopię zapasową.',
+      'Tu są jazdy, treningi i ustawienia. Kopię zapasową zrobisz w Ustawienia → Profil → Twoje dane.',
     developer: 'Dla deweloperów',
     playerTest: 'Uruchom test odtwarzacza',
   },

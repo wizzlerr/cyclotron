@@ -2,6 +2,7 @@
   import { masonry } from '../lib/masonry'
   import { GOALS, PLAYER_TEST_WORKOUT, type Goal } from '@cyclotron/core'
   import ControllersCard from '../components/ControllersCard.svelte'
+  import DataCard from '../components/DataCard.svelte'
   import GarminCard from '../components/GarminCard.svelte'
   import IntervalsCard from '../components/IntervalsCard.svelte'
   import StravaCard from '../components/StravaCard.svelte'
@@ -164,7 +165,7 @@
         </section>
       {/if}
       <ControllersCard />
-    {:else if nav.settingsTab === 'training'}
+    {:else if nav.settingsTab === 'profile'}
       <section class="card">
         <h2>{s.profile}</h2>
         <label>
@@ -265,6 +266,13 @@
         {#if profile.rideDays.length === 0}<p class="muted">{tr.anyDay}</p>{/if}
         <p class="muted">{tr.hint}</p>
       </section>
+      <section class="card">
+        <h2>{s.rideFiles}</h2>
+        <p>{s.rideFilesIn} <code>{fitFolder}</code></p>
+        <button onclick={chooseFitFolder}>{s.changeFolder}</button>
+        <p class="muted">{s.rideFilesHelp}</p>
+      </section>
+      <DataCard />
     {:else if nav.settingsTab === 'ride'}
       <section class="card">
         <h2>{s.rideScreen}</h2>
@@ -339,12 +347,6 @@
       <IntervalsCard />
       <GarminCard />
       <StravaCard />
-      <section class="card">
-        <h2>{s.rideFiles}</h2>
-        <p>{s.rideFilesIn} <code>{fitFolder}</code></p>
-        <button onclick={chooseFitFolder}>{s.changeFolder}</button>
-        <p class="muted">{s.rideFilesHelp}</p>
-      </section>
     {:else}
       <section class="card">
         <h2>{s.language}</h2>

@@ -251,6 +251,14 @@ The app stays numbers-first: tiles and workout steps you can read while watching
 | ~~E18-4~~ | ✅ Wellness (resting HR, HRV, sleep) into `external_daily` (source 'intervals', merged per day with Garmin's, Garmin first) + new HRV rule in `wellnessSignals`; FTP from the Ride sport settings (indoor FTP when set) with "Use X W here" / "Send Y W to intervals.icu" in the card; `recommend({ planned })`: today's planned ride is the main pick, only readiness can suggest rest, easier/shorter still offered | M |
 | E18-5 | Check with a real account: upload, pairing with the planned event, a planned workout with ramps/repeats. **Untested with a paid intervals.icu plan** (built against the public API docs; only the 401 for a bad key was seen live) | S |
 
+## E19 — Profile and your data (requested 2026-10-26)
+
+| ID | Task | Size |
+|---|---|---|
+| ~~E19-1~~ | ✅ Settings → Profile tab (was Training): profile, training, ride files, "Your data" card | S |
+| ~~E19-2~~ | ✅ Export / import / delete all data (`main/data.ts`, `components/DataCard.svelte`): one `.cyclotron` file (SQLite `vacuum into` + workouts.json in `backup_files`, no service keys), restore staged next to the DB, window reload; refused during a ride and for backups from a newer schema | M |
+| E19-3 | Check export → import round trip by hand (native file dialogs weren't driven; wipe was, on a throwaway profile) | S |
+
 ## E13 — Virtual routes (requested 2026-10-21)
 
 Ride a route with real grades sent to the trainer, exported as a Strava/Garmin "Virtual Ride" (DESIGN.md D16).

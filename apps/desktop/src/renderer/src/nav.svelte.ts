@@ -21,7 +21,7 @@ export const SCREENS = [
 ] as const satisfies readonly Screen[]
 
 /** Settings groups, in tab order; labels come from `t().app.settings.tabs[id]`. */
-export const SETTINGS_TABS = ['devices', 'training', 'ride', 'connections', 'app'] as const
+export const SETTINGS_TABS = ['devices', 'profile', 'ride', 'connections', 'app'] as const
 export type SettingsTab = (typeof SETTINGS_TABS)[number]
 
 /** Current screen. Plain state-based navigation; no router needed for a desktop app. */

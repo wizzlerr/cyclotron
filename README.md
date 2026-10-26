@@ -82,7 +82,8 @@ gaming graphics card needed. You can turn the world off completely in Settings.
   was recorded on the next start. A long sleep or freeze pauses the ride instead of skipping
   ahead.
 - **Offline and private**: no account and no cloud. Everything stays on your computer in one SQLite
-  database; Garmin, Strava and intervals.icu keys are stored encrypted.
+  database; Garmin, Strava and intervals.icu keys are stored encrypted. Settings → Profile →
+  Your data exports everything to one backup file, restores it, or deletes it all.
 - **Windows, macOS and Linux**. **English and Polish**, automatic updates (Windows and the Linux
   AppImage), a diagnostic report for bug reports, and a
   **simulated trainer** for trying the app without a bike.
@@ -143,10 +144,10 @@ Keep it within a few metres of the trainer: connecting through walls is slow and
 
 ## Quick start
 
-1. **Settings → Training → Profile**: enter your FTP (or run an FTP test first), weight and max heart rate.
+1. **Settings → Profile**: enter your FTP (or run an FTP test first), weight and max heart rate.
 2. **Settings → Devices**: connect your trainer and strap. Cyclotron remembers
    them and reconnects on its own next time.
-3. **Settings → Training**: your weekly hours, training days and goal, for the plan and the
+3. **Settings → Profile → Training**: your weekly hours, training days and goal, for the plan and the
    recommendations.
 4. **Home**: pick how much time you have and press **Ride** on today's workout. Or choose any
    workout in **Workouts**, a route in **Routes**, or **Free ride**.

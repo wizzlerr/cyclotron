@@ -229,6 +229,17 @@ export interface PlannedWorkout {
   done: boolean
 }
 
+/** Export, import or wipe of all app data (E19). */
+export interface DataResult {
+  ok: boolean
+  /** The rider closed the file dialog. */
+  cancelled?: boolean
+  /** Backup written or restored. */
+  path?: string
+  error?: 'notBackup' | 'tooNew' | 'failed'
+  detail?: string
+}
+
 /** What the renderer adds to a diagnostic report (main adds version, system and the log). */
 export interface DiagnosticInput {
   /** Connected devices, their capabilities and what they published (FTMS features, ranges). */
@@ -391,6 +402,14 @@ export interface CyclotronApi {
       refresh: 'none' | 'auto' | 'force',
     ): Promise<{ planned: PlannedWorkout[]; status: IntervalsStatus }>
   }
+  data: {
+    /** Saves everything (rides, settings, own workouts and routes; no service keys) to one file. */
+    export(): Promise<DataResult>
+    /** Replaces all data with a backup, then reloads the window. */
+    import(): Promise<DataResult>
+    /** Deletes all data (not the FIT files), then reloads the window. */
+    wipe(): Promise<DataResult>
+  }
   diag: {
     /** Adds a line to the log file. */
     log(level: 'info' | 'warn' | 'error', message: string): void
@@ -481,4 +500,7 @@ export const IPC = {
   intervalsPlanned: 'intervals:planned',
   intervalsSetFtp: 'intervals:setFtp',
   intervalsSynced: 'intervals:synced',
+  dataExport: 'data:export',
+  dataImport: 'data:import',
+  dataWipe: 'data:wipe',
 } as const

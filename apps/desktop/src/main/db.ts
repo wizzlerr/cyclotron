@@ -131,6 +131,9 @@ const MIGRATIONS = [
   `,
 ]
 
+/** Schema version this build creates; a backup from a newer one can't be restored. */
+export const MIGRATION_COUNT = MIGRATIONS.length
+
 let db: DatabaseSync | undefined
 
 export function getDb(): DatabaseSync {

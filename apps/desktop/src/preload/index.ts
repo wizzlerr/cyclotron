@@ -115,6 +115,11 @@ const api: CyclotronApi = {
       return () => ipcRenderer.removeListener(IPC.intervalsSynced, handler)
     },
   },
+  data: {
+    export: () => ipcRenderer.invoke(IPC.dataExport),
+    import: () => ipcRenderer.invoke(IPC.dataImport),
+    wipe: () => ipcRenderer.invoke(IPC.dataWipe),
+  },
   diag: {
     log: (level, message) => ipcRenderer.send(IPC.diagLog, level, message),
     saveReport: (input) => ipcRenderer.invoke(IPC.diagSave, input),
