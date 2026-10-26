@@ -74,13 +74,15 @@ gaming graphics card needed. You can turn the world off completely in Settings.
   training load, and sleep, HRV and resting heart rate into the daily recommendation. Rides go to
   Garmin with one click.
 - **Strava** (optional): upload rides by hand or automatically after each ride.
+- **intervals.icu** (optional): upload rides, ride the workouts planned on your intervals.icu
+  calendar, and use its resting heart rate, HRV and sleep for readiness.
 - **Recording and export**: every ride is saved locally and written as a **FIT file** with laps.
   FIT files from other apps can be imported into your history.
 - **Safe recording**: if the app or PC crashes mid-ride, you can continue the ride or save what
   was recorded on the next start. A long sleep or freeze pauses the ride instead of skipping
   ahead.
 - **Offline and private**: no account and no cloud. Everything stays on your computer in one SQLite
-  database; Garmin and Strava keys are stored encrypted.
+  database; Garmin, Strava and intervals.icu keys are stored encrypted.
 - **Windows, macOS and Linux**. **English and Polish**, automatic updates (Windows and the Linux
   AppImage), a diagnostic report for bug reports, and a
   **simulated trainer** for trying the app without a bike.
@@ -121,7 +123,7 @@ Download the file for your computer from the
 
 - **Windows 10/11**: run `Cyclotron-Setup-<version>.exe`. The installer is not code-signed yet, so
   SmartScreen warns: choose **More info → Run anyway**. Later versions install themselves on
-  restart (Settings → About → Updates).
+  restart (Settings → App → Updates).
 - **macOS**: open the `.dmg` and drag Cyclotron to Applications. The app is unsigned, so the first
   time you right-click it and choose **Open**. Allow Bluetooth when asked. The app tells you when a
   new version is out; download it from the Releases page.
@@ -141,8 +143,8 @@ Keep it within a few metres of the trainer: connecting through walls is slow and
 
 ## Quick start
 
-1. **Settings → Profile**: enter your FTP (or run an FTP test first), weight and max heart rate.
-2. **Settings → Trainer** and **Heart rate**: connect your trainer and strap. Cyclotron remembers
+1. **Settings → Training → Profile**: enter your FTP (or run an FTP test first), weight and max heart rate.
+2. **Settings → Devices**: connect your trainer and strap. Cyclotron remembers
    them and reconnects on its own next time.
 3. **Settings → Training**: your weekly hours, training days and goal, for the plan and the
    recommendations.
@@ -153,7 +155,7 @@ Keep it within a few metres of the trainer: connecting through walls is slow and
 
 ### Garmin Connect
 
-Settings → Garmin Connect: paste a Personal API key (from Garmin's developer portal). Cyclotron then reads
+Settings → Connections → Garmin Connect: paste a Personal API key (from Garmin's developer portal). Cyclotron then reads
 your other activities and daily wellness data every few hours. Wellness signals are used only
 when the watch is worn all day. To send a ride to Garmin, press **Send to Garmin** in the ride
 summary: it opens Garmin's import page and the FIT file.
@@ -162,12 +164,30 @@ summary: it opens Garmin's import page and the FIT file.
 
 Strava needs your own API application: create one at
 [strava.com/settings/api](https://www.strava.com/settings/api) with `localhost` as the
-authorization callback domain, then paste its Client ID and Client Secret in Settings → Strava and
+authorization callback domain, then paste its Client ID and Client Secret in Settings → Connections → Strava and
 press **Connect**. Rides can then be uploaded from the summary, or automatically.
+
+### intervals.icu
+
+Settings → Connections → intervals.icu: paste the API key from intervals.icu → Settings →
+Developer Settings. Rides can then be uploaded from the summary, or automatically. A ride of a
+planned workout is matched to it on your calendar.
+
+How it works with Cyclotron's own recommendations:
+
+- A ride planned for **today** on intervals.icu becomes the Today recommendation, with easier and
+  shorter options. Only your readiness can suggest rest that day; Cyclotron's training days and
+  weekly hours don't.
+- On days with nothing planned, and once you've ridden the planned workout, Cyclotron recommends as
+  usual. Planned runs, strength and other sports don't count.
+- The "This week" card always shows Cyclotron's own plan.
+- Resting heart rate, HRV and sleep from intervals.icu count toward readiness, together with
+  Garmin's if it's connected.
+- FTP is never synced automatically: the intervals.icu card shows both and copies it either way.
 
 ### Zwift controllers
 
-Settings → Controllers → **Add controller…**, then pick the controller in the list. A Zwift Play is
+Settings → Devices → Controllers → **Add controller…**, then pick the controller in the list. A Zwift Play is
 two devices with the same name: add both. Each one is shown with the last 4 characters of its
 address (for example "Zwift Play 0523"), and the card has a tester that shows every press.
 Don't pick your trainer: the KICKR CORE 2 also offers the Zwift service, and Cyclotron refuses it.
@@ -187,7 +207,7 @@ control shows its button as a coloured badge.
 
 ### Problems?
 
-Settings → Problem? saves a diagnostic report (app log and Bluetooth trace, no keys or tokens)
+Settings → App → Problem? saves a diagnostic report (app log and Bluetooth trace, no keys or tokens)
 that you can attach to a [GitHub issue](https://github.com/wizzlerr/cyclotron/issues).
 
 ## Supported hardware

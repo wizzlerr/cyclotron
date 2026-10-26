@@ -6,6 +6,7 @@ import * as content from './messages/content'
 import * as controllers from './messages/controllers'
 import * as garmin from './messages/garmin'
 import * as history from './messages/history'
+import * as intervals from './messages/intervals'
 import * as library from './messages/library'
 import * as reco from './messages/reco'
 import * as strava from './messages/strava'
@@ -23,6 +24,7 @@ const AREAS = {
   garmin,
   world,
   strava,
+  intervals,
   controllers,
 }
 

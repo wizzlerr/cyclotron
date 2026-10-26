@@ -41,6 +41,7 @@
       case 'planRest':
       case 'planEasy':
       case 'planLong':
+      case 'externalPlan':
         return w[reason.code]
       case 'planHard':
         return w.planHard(typeName(reason.type))
@@ -141,7 +142,11 @@
       <p class="rest"><strong>{tr.restTitle}.</strong> {tr.restRide}</p>
     {/if}
     {#if r.main}
-      {@render option(tr.recommended, r.main, true)}
+      {@render option(
+        r.reasons.some((x) => x.code === 'externalPlan') ? tr.plannedLabel : tr.recommended,
+        r.main,
+        true,
+      )}
       {#if r.easier}{@render option(tr.easier, r.easier, false)}{/if}
       {#if r.shorter}{@render option(tr.shorter, r.shorter, false)}{/if}
     {:else}

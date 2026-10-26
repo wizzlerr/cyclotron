@@ -41,6 +41,8 @@ export interface StoredRide extends RideStartInfo {
   source: 'recorded' | 'import'
   /** Strava activity it was uploaded as (E12-7). */
   stravaId?: number
+  /** intervals.icu activity it was uploaded as (E18). */
+  intervalsId?: string
 }
 
 /** One ride with everything the detail view needs (E9-1). */
@@ -191,6 +193,42 @@ export interface StravaStatus {
   activityUrl?: string
 }
 
+/** intervals.icu (E18). The API key never reaches the renderer. */
+export interface IntervalsStatus {
+  connected: boolean
+  /** Last 4 characters of the saved key. */
+  keyHint?: string
+  athlete?: string
+  /** Last successful call. */
+  lastOkAt?: number
+  /** Last fetch of planned workouts. */
+  plannedAt?: number
+  /** Cycling FTP on intervals.icu (indoor FTP when set). */
+  ftpW?: number
+  /** Upload every finished ride automatically. */
+  auto: boolean
+  encryption: boolean
+  error?: 'noKey' | 'invalidKey' | 'network' | 'http' | 'encryption' | 'noFit' | 'rejected'
+  /** HTTP status for `http` errors. */
+  status?: number
+  /** After an upload. */
+  activityUrl?: string
+}
+
+/** A ride planned on the intervals.icu calendar, converted to .zwo by intervals.icu (E18). */
+export interface PlannedWorkout {
+  eventId: number
+  /** Local date, YYYY-MM-DD. */
+  date: string
+  name: string
+  description?: string
+  zwo: string
+  /** Training load intervals.icu expects. */
+  loadTss?: number
+  /** A finished ride of it is recorded here. */
+  done: boolean
+}
+
 /** What the renderer adds to a diagnostic report (main adds version, system and the log). */
 export interface DiagnosticInput {
   /** Connected devices, their capabilities and what they published (FTMS features, ranges). */
@@ -335,6 +373,24 @@ export interface CyclotronApi {
     upload(rideId: number): Promise<StravaStatus>
     openActivity(id: number): Promise<void>
   }
+  intervals: {
+    status(): Promise<IntervalsStatus>
+    /** Checks the key with intervals.icu and saves it. */
+    setKey(key: string): Promise<IntervalsStatus>
+    disconnect(): Promise<IntervalsStatus>
+    setAuto(on: boolean): Promise<IntervalsStatus>
+    upload(rideId: number): Promise<IntervalsStatus>
+    openActivity(id: string): Promise<void>
+    openCalendar(): Promise<void>
+    /** Sets the cycling FTP on intervals.icu. */
+    setFtp(watts: number): Promise<IntervalsStatus>
+    /** After a sync of planned rides, wellness and FTP (or a disconnect). */
+    onSynced(listener: () => void): () => void
+    /** Planned rides (from two days ago on); 'auto' refetches when the cache is older than 10 minutes. */
+    planned(
+      refresh: 'none' | 'auto' | 'force',
+    ): Promise<{ planned: PlannedWorkout[]; status: IntervalsStatus }>
+  }
   diag: {
     /** Adds a line to the log file. */
     log(level: 'info' | 'warn' | 'error', message: string): void
@@ -415,4 +471,14 @@ export const IPC = {
   garminSync: 'garmin:sync',
   garminSynced: 'garmin:synced',
   analyticsWellness: 'analytics:wellness',
+  intervalsStatus: 'intervals:status',
+  intervalsSetKey: 'intervals:setKey',
+  intervalsDisconnect: 'intervals:disconnect',
+  intervalsSetAuto: 'intervals:setAuto',
+  intervalsUpload: 'intervals:upload',
+  intervalsOpenActivity: 'intervals:openActivity',
+  intervalsOpenCalendar: 'intervals:openCalendar',
+  intervalsPlanned: 'intervals:planned',
+  intervalsSetFtp: 'intervals:setFtp',
+  intervalsSynced: 'intervals:synced',
 } as const

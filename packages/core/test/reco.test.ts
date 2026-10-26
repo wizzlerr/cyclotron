@@ -137,6 +137,30 @@ describe('recommend', () => {
     expect(r.reasons).toContainEqual(expect.objectContaining({ code: 'level', type: r.main!.type }))
   })
 
+  it('follows a workout planned outside the app, with easier and shorter options', () => {
+    const planned: Candidate = { id: 'icu.1', type: 'vo2max', difficulty: 6, durationS: 3600 }
+    // A day off in this app's own plan and the week's hours done: the outside plan wins.
+    const r = recommend(
+      input({
+        planned,
+        weekday: 4,
+        profile: { goal: 'ftp', weeklyHours: 1, rideDays: [1] },
+        rides: [ride({ date: day(-2), durationS: 7200 })],
+      }),
+    )
+    expect(r.rest).toBe(false)
+    expect(r.main).toEqual(planned)
+    expect(r.reasons.map((x) => x.code)).toContain('externalPlan')
+    expect(r.reasons.map((x) => x.code)).not.toContain('restDay')
+    expect(r.reasons.map((x) => x.code)).not.toContain('goal')
+    expect(r.easier!.difficulty).toBeLessThan(6)
+    expect(r.shorter!.durationS).toBeLessThan(3600)
+    // Very tired: rest is still suggested, the planned workout stays as the option.
+    const tired = recommend(input({ planned, load: load(-40) }))
+    expect(tired.rest).toBe(true)
+    expect(tired.main).toEqual(planned)
+  })
+
   it('keeps a fatigued rider easy and a very tired one on rest', () => {
     const tired = recommend(input({ load: load(-15) }))
     expect(['recovery', 'endurance']).toContain(tired.main!.type)

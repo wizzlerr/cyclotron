@@ -35,6 +35,11 @@ export interface RecoInput {
   planDay?: PlanDay
   /** Make a workout to measure when the library has nothing close (E11-10). Default true. */
   generate?: boolean
+  /**
+   * A workout planned for today outside the app (intervals.icu, E18-4). It becomes the main pick;
+   * the engine still judges readiness and offers easier and shorter alternatives.
+   */
+  planned?: Candidate
 }
 
 const GOAL_WEIGHTS: Record<Goal, Record<WorkoutType, number>> = {
@@ -123,21 +128,24 @@ export function recommend(input: RecoInput): Recommendation {
   // Rest: very tired, not a ride day, or the week's hours are already in.
   const weekHours = ownWeek.reduce((s, r) => s + r.durationS, 0) / 3600
   let rest = ready.readiness === 'very_fatigued'
-  if (input.planDay) {
+  // With an outside plan (E18-4) only readiness suggests rest, not this app's days and hours.
+  const ownPlan = !input.planned
+  if (ownPlan && input.planDay) {
     if (input.planDay.kind === 'rest') {
       rest = true
       reasons.push({ code: 'planRest' })
     }
-  } else if (profile.rideDays.length > 0 && !profile.rideDays.includes(input.weekday)) {
+  } else if (ownPlan && profile.rideDays.length > 0 && !profile.rideDays.includes(input.weekday)) {
     rest = true
     reasons.push({ code: 'restDay' })
   }
-  if (profile.weeklyHours > 0 && weekHours >= profile.weeklyHours) {
+  if (ownPlan && profile.weeklyHours > 0 && weekHours >= profile.weeklyHours) {
     rest = true
     reasons.push({ code: 'weeklyDone', hours: round1(weekHours), target: profile.weeklyHours })
   }
 
-  const scores = scoreTypes(input, ready.readiness, rest, week, reasons)
+  // The type reasons explain this app's choice; with an outside plan they'd only confuse.
+  const scores = scoreTypes(input, ready.readiness, rest, week, ownPlan ? reasons : [])
   const ranked = WORKOUT_TYPES.filter((t) => scores[t] > -Infinity).sort(
     (a, b) => scores[b] - scores[a],
   )
@@ -170,19 +178,20 @@ export function recommend(input: RecoInput): Recommendation {
 
   // Recovery is the last resort when nothing else fits the time.
   if (!ranked.includes('recovery')) ranked.push('recovery')
-  let main: Pick | undefined
-  for (const type of ranked) {
+  let main: Pick | undefined = input.planned && { ...input.planned }
+  if (main) reasons.push({ code: 'externalPlan' })
+  for (const type of main ? [] : ranked) {
     main = choose(type, maxS, levels[type] + stretch, [])
     if (main) break
     if (type === ranked[0]) reasons.push({ code: 'noFit', type, minutes: input.minutes })
   }
   if (!main) return { readiness: ready.readiness, tsb: ready.tsb, rest, levels, reasons }
 
-  if (!rest && ready.readiness !== 'fatigued') {
+  if (ownPlan && !rest && ready.readiness !== 'fatigued') {
     reasons.push({ code: 'goal', goal: profile.goal, type: main.type })
   }
   const days = daysSince(rides, main.type, today)
-  if (HARD_TYPES.has(main.type) && (days === null || days >= 10)) {
+  if (ownPlan && HARD_TYPES.has(main.type) && (days === null || days >= 10)) {
     reasons.push({ code: 'notDoneFor', type: main.type, days })
   }
   reasons.push({

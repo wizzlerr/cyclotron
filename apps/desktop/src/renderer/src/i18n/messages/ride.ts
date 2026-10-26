@@ -56,7 +56,7 @@ export const en = {
     elevation: 'Elevation',
     climbed: 'Climbed',
     trainerDifficulty: (pct: number, grade: string) =>
-      `Trainer at ${pct} % difficulty: ${grade} % (change it in Settings → Routes).`,
+      `Trainer at ${pct} % difficulty: ${grade} % (change it in Settings → Ride).`,
   },
 
   notices: {
@@ -189,7 +189,7 @@ export const pl: typeof en = {
     elevation: 'Wysokość',
     climbed: 'Podjazd',
     trainerDifficulty: (pct: number, grade: string) =>
-      `Trenażer na ${pct} % trudności: ${grade} % (zmienisz to w Ustawienia → Trasy).`,
+      `Trenażer na ${pct} % trudności: ${grade} % (zmienisz to w Ustawienia → Jazda).`,
   },
 
   notices: {

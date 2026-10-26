@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+**New**
+
+- **intervals.icu**: connect with your API key (Settings → Connections). Send rides to intervals.icu
+  by hand or automatically, and ride the workouts planned on your intervals.icu calendar from the
+  new "Planned on intervals.icu" card on Home. Rides of a planned workout are matched to it.
+  A workout planned for today becomes the Today recommendation (with easier and shorter options),
+  resting heart rate, HRV and sleep from intervals.icu count toward readiness, and the card shows
+  when the FTP differs between the two, with a button to copy it either way.
+- **Settings in tabs**: Devices, Training, Ride, Connections and App, instead of one long page.
+  Links such as "Devices" on the Ride screen open the right tab.
+
 ## 0.4.0 (2026-10-23)
 
 Cyclotron now runs on Linux too: Windows, macOS and Linux installers are on the release page.

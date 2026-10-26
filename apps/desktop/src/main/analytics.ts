@@ -192,12 +192,15 @@ export function registerAnalyticsIpc(): void {
   ipcMain.handle(IPC.analyticsWellness, (_event, days: number): DailyWellness[] => {
     const from = addDays(today(), -Math.max(1, Math.min(60, Math.floor(days))))
     const rows = getDb()
-      .prepare(`select date, json from external_daily where date >= ? order by date`)
+      .prepare(`select date, json from external_daily where date >= ? order by date, source`)
       .all(from) as { date: string; json: string }[]
-    return rows.map((r) => ({
-      date: r.date,
-      ...(JSON.parse(r.json) as Omit<DailyWellness, 'date'>),
-    }))
+    // One day per date: Garmin and intervals.icu (E18-4) rows merged, Garmin's values first.
+    const byDate = new Map<string, DailyWellness>()
+    for (const r of rows) {
+      const values = JSON.parse(r.json) as Omit<DailyWellness, 'date'>
+      byDate.set(r.date, { ...values, ...byDate.get(r.date), date: r.date })
+    }
+    return [...byDate.values()]
   })
 
   ipcMain.handle(IPC.analyticsLoad, (): DailyLoad[] => {

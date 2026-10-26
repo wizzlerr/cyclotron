@@ -125,6 +125,10 @@ const MIGRATIONS = [
   `
   alter table rides add column strava_id integer;
   `,
+  // E18: the intervals.icu activity a ride was uploaded as (ids look like 'i12345').
+  `
+  alter table rides add column intervals_id text;
+  `,
 ]
 
 let db: DatabaseSync | undefined

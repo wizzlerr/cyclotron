@@ -45,6 +45,16 @@ describe('wellnessSignals', () => {
     expect(wellnessSignals([...days, day(0, { restingHr: 52 })], TODAY)).toEqual([])
   })
 
+  it('flags an HRV well below the usual', () => {
+    const days = [-5, -4, -3, -2, -1].map((n) => day(n, { hrv: 60 }))
+    expect(wellnessSignals([...days, day(0, { hrv: 48 })], TODAY)).toEqual([
+      { source: 'hrv', kind: 'hrv', shift: -1 },
+    ])
+    expect(wellnessSignals([...days, day(0, { hrv: 55 })], TODAY)).toEqual([])
+    // Not enough baseline yet.
+    expect(wellnessSignals([days[4]!, day(0, { hrv: 30 })], TODAY)).toEqual([])
+  })
+
   it('uses Body Battery and short sleep when the watch was worn overnight', () => {
     expect(wellnessSignals([day(-1, {}), day(0, { bodyBatteryMax: 20 })], TODAY)).toContainEqual({
       source: 'bodyBattery',

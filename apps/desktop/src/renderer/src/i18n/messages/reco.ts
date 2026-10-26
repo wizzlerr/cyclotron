@@ -19,6 +19,7 @@ export const en = {
   restTitle: 'Rest day',
   restRide: 'If you still want to ride:',
   recommended: 'Recommended',
+  plannedLabel: 'Planned (intervals.icu)',
   easier: 'Easier',
   shorter: 'Shorter',
   why: 'Why',
@@ -35,18 +36,21 @@ export const en = {
     hardYesterday: 'You rode hard yesterday.',
     twoHardDays: 'Two hard days in a row: time to back off.',
     recentFail: "A recent workout didn't go to plan, so today is a little easier.",
+    externalPlan: 'Planned for today on intervals.icu.',
     signal: (source: string, shift: number) =>
       source === 'restingHr'
-        ? 'Garmin: your resting heart rate is above your usual.'
+        ? 'Your resting heart rate is above your usual.'
         : source === 'bodyBattery'
           ? shift < 0
             ? 'Garmin: your Body Battery is low this morning.'
             : 'Garmin: your Body Battery is well charged.'
           : source === 'sleep'
-            ? 'Garmin: short sleep last night.'
-            : shift < 0
-              ? `${source}: less recovered than usual.`
-              : `${source}: well recovered.`,
+            ? 'Short sleep last night.'
+            : source === 'hrv'
+              ? 'Your HRV is below your usual.'
+              : shift < 0
+                ? `${source}: less recovered than usual.`
+                : `${source}: well recovered.`,
     goal: (goal: Goal, type: string) =>
       ({
         fitness: `${type} builds general fitness.`,
@@ -130,6 +134,7 @@ export const pl: typeof en = {
   restTitle: 'Dzień odpoczynku',
   restRide: 'Jeśli mimo to chcesz jechać:',
   recommended: 'Polecany',
+  plannedLabel: 'Zaplanowany (intervals.icu)',
   easier: 'Łatwiejszy',
   shorter: 'Krótszy',
   why: 'Dlaczego',
@@ -145,18 +150,21 @@ export const pl: typeof en = {
     hardYesterday: 'Wczoraj był mocny trening.',
     twoHardDays: 'Dwa mocne dni z rzędu: czas zwolnić.',
     recentFail: 'Ostatni trening nie poszedł zgodnie z planem, więc dziś trochę łatwiej.',
+    externalPlan: 'Zaplanowany na dziś w intervals.icu.',
     signal: (source: string, shift: number) =>
       source === 'restingHr'
-        ? 'Garmin: tętno spoczynkowe wyższe niż zwykle.'
+        ? 'Tętno spoczynkowe wyższe niż zwykle.'
         : source === 'bodyBattery'
           ? shift < 0
             ? 'Garmin: niska Body Battery tego ranka.'
             : 'Garmin: Body Battery dobrze naładowana.'
           : source === 'sleep'
-            ? 'Garmin: krótki sen tej nocy.'
-            : shift < 0
-              ? `${source}: słabsza regeneracja niż zwykle.`
-              : `${source}: dobra regeneracja.`,
+            ? 'Krótki sen tej nocy.'
+            : source === 'hrv'
+              ? 'HRV niższe niż zwykle.'
+              : shift < 0
+                ? `${source}: słabsza regeneracja niż zwykle.`
+                : `${source}: dobra regeneracja.`,
     goal: (goal: Goal, type: string) =>
       ({
         fitness: `${type} buduje ogólną kondycję.`,

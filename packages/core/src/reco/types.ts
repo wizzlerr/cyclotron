@@ -84,6 +84,8 @@ export type Reason =
   | { code: 'planLong' }
   | { code: 'level'; type: WorkoutType; level: number; difficulty: number }
   | { code: 'noFit'; type: WorkoutType; minutes: number }
+  /** Today's main pick is the workout planned outside the app (E18-4). */
+  | { code: 'externalPlan' }
 
 export interface Pick {
   id: string

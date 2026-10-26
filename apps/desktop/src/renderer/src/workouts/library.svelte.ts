@@ -12,6 +12,7 @@ import type { WorkoutDone } from '../../../shared/api'
 import { errorText } from '../i18n/errors'
 import { t } from '../i18n/t'
 import { loadPref, savePref } from '../lib/prefs'
+import { planned } from './planned.svelte'
 
 const FAVOURITES_KEY = 'cyclotron.workoutFavourites'
 
@@ -57,9 +58,13 @@ class Library {
   }
 
   load(): Promise<void> {
-    this.loaded ??= window.cyclotron.workouts.load().then((json) => {
-      if (json) this.imported = (JSON.parse(json) as LibraryFile).workouts
-    })
+    this.loaded ??= Promise.all([
+      window.cyclotron.workouts.load().then((json) => {
+        if (json) this.imported = (JSON.parse(json) as LibraryFile).workouts
+      }),
+      // Planned intervals.icu rides aren't in the library list, but rides of them can be continued.
+      planned.load().catch(() => {}),
+    ]).then(() => {})
     return this.loaded
   }
 
@@ -106,9 +111,9 @@ class Library {
     savePref(FAVOURITES_KEY, this.favourites)
   }
 
-  /** A library workout, or a generated one rebuilt from its id (E11-10). */
+  /** A library workout, a planned intervals.icu one, or a generated one rebuilt from its id. */
   find(id: string): Workout | undefined {
-    const w = this.all.find((x) => x.id === id)
+    const w = this.all.find((x) => x.id === id) ?? planned.find(id)
     if (w || !isGeneratedId(id)) return w
     let g = this.generated.get(id)
     if (!g && (g = generatedWorkout(id))) this.generated.set(id, g)

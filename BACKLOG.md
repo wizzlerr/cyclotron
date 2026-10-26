@@ -241,6 +241,16 @@ The app stays numbers-first: tiles and workout steps you can read while watching
 | E17-4 | ✅ done 2026-10-22: controller drives the whole app (`lib/padnav.svelte.ts`: D-pad moves a highlight, A presses, B backs out/closes dialogs; up/down stay in the sidebar or the screen; on the Ride screen the highlight fades after 5 s), coloured A/B/Y/Z and +/− badges on the Ride controls (`components/PadHint.svelte`), +/− = shift buttons, Click and paddles (D-pad no longer changes watts); +/− in a free ride switches ERG on. The trainer can't be added as a controller (KICKR CORE 2 also has the Zwift service). Several controllers with the same name (a Play's two halves): remembered by address, shown as "Zwift Play 0523" (last 4 address characters) | M |
 | E17-3 | ✅ tested 2026-10-22 by the user with a Zwift Click and both Zwift Play halves; Zwift Play / Ride / Click controllers (`core/ble/zwift.ts`, `devices/zwift-controller.ts`, Settings → Controllers with a button tester; ride mapping: start/pause, harder/easier, skip, ERG toggle, mute, world) | M |
 
+## E18 — intervals.icu (requested 2026-10-26)
+
+| ID | Task | Size |
+|---|---|---|
+| ~~E18-1~~ | ✅ Connect with the rider's own API key (Basic auth `API_KEY:<key>`, athlete `0`), encrypted with `safeStorage`; Settings → Connections card (`main/intervals.ts`, `components/IntervalsCard.svelte`) | S |
+| ~~E18-2~~ | ✅ Upload rides: "Send to intervals.icu" on the summary and ride detail, optional auto-upload; `rides.intervals_id` (migration 8); rides of a planned workout are sent with `paired_event_id` | S |
+| ~~E18-3~~ | ✅ Planned workouts: next 7 days of WORKOUT events (ride types) fetched as .zwo (`events.json?ext=zwo`), cached in settings, "Planned on intervals.icu" card on Home with Ride → route picker; workout id `icu.<eventId>` (`workouts/planned.svelte.ts`) | M |
+| ~~E18-4~~ | ✅ Wellness (resting HR, HRV, sleep) into `external_daily` (source 'intervals', merged per day with Garmin's, Garmin first) + new HRV rule in `wellnessSignals`; FTP from the Ride sport settings (indoor FTP when set) with "Use X W here" / "Send Y W to intervals.icu" in the card; `recommend({ planned })`: today's planned ride is the main pick, only readiness can suggest rest, easier/shorter still offered | M |
+| E18-5 | Check with a real account: upload, pairing with the planned event, a planned workout with ramps/repeats. **Untested with a paid intervals.icu plan** (built against the public API docs; only the 401 for a bad key was seen live) | S |
+
 ## E13 — Virtual routes (requested 2026-10-21)
 
 Ride a route with real grades sent to the trainer, exported as a Strava/Garmin "Virtual Ride" (DESIGN.md D16).

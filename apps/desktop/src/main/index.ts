@@ -6,6 +6,7 @@ import { attachBluetooth, enableWebBluetooth, registerBluetoothIpc } from './blu
 import { closeDb } from './db'
 import { attachRendererLog, initLog, registerLogIpc } from './log'
 import { registerGarminIpc, scheduleGarminSync } from './garmin'
+import { registerIntervalsIpc } from './intervals'
 import { registerPrefsIpc } from './prefs'
 import { registerRideIpc } from './ride'
 import { registerRidesIpc } from './rides'
@@ -81,6 +82,7 @@ registerAnalyticsIpc()
 registerGarminIpc()
 registerLogIpc()
 registerStravaIpc()
+registerIntervalsIpc()
 setupUpdater()
 
 void app.whenReady().then(() => {

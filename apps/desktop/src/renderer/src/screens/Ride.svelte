@@ -301,7 +301,8 @@
 {#snippet deviceWarnings()}
   {#if !devices.trainer}
     <p class="warn">
-      {t().ride.noTrainer} <button onclick={() => go('settings')}>{t().ride.devices}</button>
+      {t().ride.noTrainer}
+      <button onclick={() => go('settings', 'devices')}>{t().ride.devices}</button>
     </p>
   {:else if devices.trainerStatus === 'reconnecting'}
     <p class="warn">{t().ride.reconnecting}</p>
@@ -479,7 +480,7 @@
 
   {#if !devices.trainer}
     <p class="muted">{t().ride.noTrainer}</p>
-    <button onclick={() => go('settings')}>{t().ride.devices}</button>
+    <button onclick={() => go('settings', 'devices')}>{t().ride.devices}</button>
   {:else}
     {@render deviceWarnings()}
     {@render tileGrid()}

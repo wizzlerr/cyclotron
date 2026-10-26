@@ -4,7 +4,7 @@
   import { go } from '../nav.svelte'
 </script>
 
-<button class="status" onclick={() => go('settings')} title={t().app.status.devices}>
+<button class="status" onclick={() => go('settings', 'devices')} title={t().app.status.devices}>
   <span
     class="dot"
     class:on={devices.trainer}

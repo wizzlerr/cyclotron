@@ -99,6 +99,22 @@ const api: CyclotronApi = {
     upload: (id) => ipcRenderer.invoke(IPC.stravaUpload, id),
     openActivity: (id) => ipcRenderer.invoke(IPC.stravaOpenActivity, id),
   },
+  intervals: {
+    status: () => ipcRenderer.invoke(IPC.intervalsStatus),
+    setKey: (key) => ipcRenderer.invoke(IPC.intervalsSetKey, key),
+    disconnect: () => ipcRenderer.invoke(IPC.intervalsDisconnect),
+    setAuto: (on) => ipcRenderer.invoke(IPC.intervalsSetAuto, on),
+    upload: (id) => ipcRenderer.invoke(IPC.intervalsUpload, id),
+    openActivity: (id) => ipcRenderer.invoke(IPC.intervalsOpenActivity, id),
+    openCalendar: () => ipcRenderer.invoke(IPC.intervalsOpenCalendar),
+    planned: (refresh) => ipcRenderer.invoke(IPC.intervalsPlanned, refresh),
+    setFtp: (watts) => ipcRenderer.invoke(IPC.intervalsSetFtp, watts),
+    onSynced: (listener) => {
+      const handler = (): void => listener()
+      ipcRenderer.on(IPC.intervalsSynced, handler)
+      return () => ipcRenderer.removeListener(IPC.intervalsSynced, handler)
+    },
+  },
   diag: {
     log: (level, message) => ipcRenderer.send(IPC.diagLog, level, message),
     saveReport: (input) => ipcRenderer.invoke(IPC.diagSave, input),

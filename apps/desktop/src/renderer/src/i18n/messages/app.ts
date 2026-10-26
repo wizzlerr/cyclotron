@@ -1,6 +1,7 @@
 // Strings for the app area (E15): shell, Home, Settings, devices. See common.ts for the glossary;
 // `pl` must match `en` key for key.
 import type { UpdateStatus } from '../../../../shared/api'
+import type { SettingsTab } from '../../nav.svelte'
 
 export const en = {
   nav: {
@@ -76,6 +77,13 @@ export const en = {
   },
   settings: {
     title: 'Settings',
+    tabs: {
+      devices: 'Devices',
+      training: 'Training',
+      ride: 'Ride',
+      connections: 'Connections',
+      app: 'App',
+    } satisfies Record<SettingsTab, string>,
     language: 'Language',
     profile: 'Profile',
     weight: 'Weight',
@@ -141,7 +149,8 @@ export const en = {
     rideFiles: 'Ride files',
     rideFilesIn: 'Each finished ride is saved as a FIT file in',
     changeFolder: 'Change folder…',
-    rideFilesHelp: 'Upload these to Garmin Connect or Strava. Automatic upload comes later.',
+    rideFilesHelp:
+      'Upload them anywhere by hand, or connect intervals.icu or Strava above to send them automatically.',
     about: 'About',
     showDataFolder: 'Show data folder…',
     dataFolderHelp: 'Rides, workouts and settings live here. Copy the folder to back them up.',
@@ -224,6 +233,13 @@ export const pl: typeof en = {
   },
   settings: {
     title: 'Ustawienia',
+    tabs: {
+      devices: 'Urządzenia',
+      training: 'Trening',
+      ride: 'Jazda',
+      connections: 'Połączenia',
+      app: 'Aplikacja',
+    },
     language: 'Język',
     profile: 'Profil',
     weight: 'Waga',
@@ -290,7 +306,7 @@ export const pl: typeof en = {
     rideFilesIn: 'Każda zakończona jazda jest zapisywana jako plik FIT w',
     changeFolder: 'Zmień folder…',
     rideFilesHelp:
-      'Możesz je wgrać do Garmin Connect lub Stravy. Automatyczne wysyłanie pojawi się później.',
+      'Wgraj je gdziekolwiek ręcznie albo połącz powyżej intervals.icu lub Stravę, żeby wysyłać je automatycznie.',
     about: 'O programie',
     showDataFolder: 'Pokaż folder danych…',
     dataFolderHelp:
