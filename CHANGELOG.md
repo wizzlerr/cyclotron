@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.6.0 (2026-11-02)
+
 **Changed**
 
 - Ride buttons moved to the side bar: big and always in the same place. Start / Resume are
