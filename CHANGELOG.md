@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.5.0 (2026-11-02)
+
 **New**
 
 - **Pick the workout type on the Today card**: Auto (the app decides) or any type, e.g. what your
