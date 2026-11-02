@@ -92,6 +92,19 @@ export class WorkoutPlayer {
     this.intensity = Math.min(MAX_INTENSITY, Math.max(MIN_INTENSITY, rounded))
   }
 
+  /**
+   * Moves the current target by `deltaW` watts (controller + / −) by scaling the intensity, so
+   * every later target moves by the same proportion. No-op on steps without a target.
+   */
+  nudgeTarget(deltaW: number): void {
+    const segment = this.status === 'finished' ? undefined : this.segmentAt(this.positionS)
+    if (!segment || !hasTarget(segment)) return
+    const pct = segmentPctAt(segment, this.positionS - segment.startS)
+    if (pct <= 0 || this.ftpW <= 0) return
+    const target = this.watts(pct) + deltaW
+    this.intensity = Math.min(MAX_INTENSITY, Math.max(MIN_INTENSITY, target / (pct * this.ftpW)))
+  }
+
   state(): PlayerState {
     const segment = this.status === 'finished' ? undefined : this.segmentAt(this.positionS)
     const segmentElapsedS = segment ? this.positionS - segment.startS : 0

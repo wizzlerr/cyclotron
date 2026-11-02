@@ -1,6 +1,9 @@
 <script lang="ts">
   import DevicePicker from './components/DevicePicker.svelte'
   import DeviceStatus from './components/DeviceStatus.svelte'
+  import RideControls from './components/RideControls.svelte'
+  import { controls } from './ride/controls.svelte'
+  import { ride } from './ride/session.svelte'
   import { devices } from './devices/devices.svelte'
   import { nav, go, SCREENS } from './nav.svelte'
   import { t } from './i18n/t'
@@ -27,6 +30,7 @@
 <div class="shell">
   <nav>
     <div class="brand">{t().common.appName}</div>
+    {#if controls.panel && (nav.screen === 'ride' || ride.active)}<RideControls />{/if}
     {#each SCREENS as s (s)}
       <button
         class:active={nav.screen === s || (s === 'workouts' && nav.screen === 'builder')}
@@ -85,7 +89,7 @@
   }
   .shell {
     display: grid;
-    grid-template-columns: 11rem 1fr;
+    grid-template-columns: 12rem 1fr;
     height: 100vh;
   }
   nav {
@@ -94,6 +98,7 @@
     gap: 0.25rem;
     padding: 1rem 0.75rem;
     background: var(--panel);
+    overflow-y: auto;
   }
   .brand {
     font-weight: 700;

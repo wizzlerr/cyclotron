@@ -2,6 +2,7 @@
   // Settings → Controllers: Zwift Play / Click / Ride buttons, with a live tester.
   import { devices, rememberedLabel } from '../devices/devices.svelte'
   import { t } from '../i18n/t'
+  import { MAPPABLE_BUTTONS, PAD_ACTIONS, padmap, type PadAction } from '../lib/padmap.svelte'
 
   const c = $derived(t().controllers)
   const connected = $derived(new Set(devices.controllers.map((x) => x.label)))
@@ -36,6 +37,23 @@
         : c.pressAny}
     </p>
   {/if}
+  <details open={!padmap.isDefault}>
+    <summary>{c.actionsTitle}</summary>
+    <p class="muted">{c.actionsIntro}</p>
+    <div class="map">
+      {#each MAPPABLE_BUTTONS as b (b)}
+        <label for="pad-{b}">{c.buttons[b]}</label>
+        <select
+          id="pad-{b}"
+          value={padmap.action(b)}
+          onchange={(e) => padmap.set(b, e.currentTarget.value as PadAction)}
+        >
+          {#each PAD_ACTIONS as a (a)}<option value={a}>{c.actions[a]}</option>{/each}
+        </select>
+      {/each}
+    </div>
+    <button onclick={() => padmap.reset()} disabled={padmap.isDefault}>{c.resetActions}</button>
+  </details>
   <details>
     <summary>{c.mappingTitle}</summary>
     <ul class="mapping">
@@ -61,6 +79,13 @@
   .tester {
     font-weight: 600;
     color: var(--series-1);
+  }
+  .map {
+    display: grid;
+    grid-template-columns: max-content minmax(10rem, 16rem);
+    gap: 0.35rem 1rem;
+    align-items: center;
+    margin: 0.5rem 0 0.75rem;
   }
   .mapping {
     margin: 0.25rem 0;

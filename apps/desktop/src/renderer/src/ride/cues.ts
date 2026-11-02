@@ -2,8 +2,8 @@
 import { sound } from './sound.svelte'
 
 let ctx: AudioContext | undefined
-/** Gain at 100 %; the old fixed level (0.2) is 60 %. */
-const MAX_GAIN = 0.33
+/** Gain at 100 % (full scale). Raised from 0.33 on 2026-11-02: the beeps were too quiet. */
+const MAX_GAIN = 1
 
 function tone(freqHz: number, durationMs: number, delayMs = 0): void {
   const level = (sound.volume / 100) * MAX_GAIN
@@ -13,11 +13,14 @@ function tone(freqHz: number, durationMs: number, delayMs = 0): void {
   const osc = ctx.createOscillator()
   const gain = ctx.createGain()
   osc.frequency.value = freqHz
+  // Full level for most of the beep, then a short fade (no click): louder than decaying at once.
+  const end = at + durationMs / 1000
   gain.gain.setValueAtTime(level, at)
-  gain.gain.exponentialRampToValueAtTime(0.001, at + durationMs / 1000)
+  gain.gain.setValueAtTime(level, at + (durationMs / 1000) * 0.7)
+  gain.gain.exponentialRampToValueAtTime(0.001, end)
   osc.connect(gain).connect(ctx.destination)
   osc.start(at)
-  osc.stop(at + durationMs / 1000)
+  osc.stop(end)
 }
 
 /** 3-2-1 countdown tick. */

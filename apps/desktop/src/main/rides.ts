@@ -1,5 +1,6 @@
-import { mkdir, rm, writeFile } from 'node:fs/promises'
-import { basename, join } from 'node:path'
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { basename, dirname, join } from 'node:path'
+import { asGarminDevice } from '@cyclotron/core'
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import {
   IPC,
@@ -21,6 +22,8 @@ import { autoUpload } from './strava'
 
 const FIT_FOLDER_KEY = 'fitFolder'
 const GARMIN_IMPORT_URL = 'https://connect.garmin.com/modern/import-data'
+/** Settings → Garmin: send rides as a Garmin Edge so Connect counts their training load (D33). */
+const GARMIN_AS_DEVICE_KEY = 'pref:cyclotron.garmin.asDevice'
 const FEEDBACK = new Set<RideFeedback>(['easy', 'right', 'hard', 'failed'])
 
 export interface RideRow {
@@ -222,7 +225,7 @@ export function registerRidesIpc(): void {
   // and Garmin's import page.
   ipcMain.handle(IPC.ridesSendToGarmin, async (_event, rideId: number) => {
     const path = rideRow(rideId)?.fit_path
-    if (path) shell.showItemInFolder(path)
+    if (path) shell.showItemInFolder(await garminCopy(path))
     await shell.openExternal(GARMIN_IMPORT_URL)
   })
 
@@ -332,3 +335,38 @@ export function toSample(r: SampleRow): RideSample {
 
 export const int = (n: number | undefined): number | null =>
   n === undefined ? null : Math.round(n)
+
+/**
+ * The file to hand Garmin: the ride's own FIT, or with "send as a Garmin device" on, a copy in
+ * a `garmin` folder next to it that says Edge 830, with training-effect fields (D33). Falls back
+ * to the original on any error.
+ */
+async function garminCopy(path: string): Promise<string> {
+  if (getSetting(GARMIN_AS_DEVICE_KEY) !== 'true') return path
+  try {
+    const { bytes, changed } = asGarminDevice(await readFile(path), {
+      // A new file id on every send: Connect refuses one it has seen before.
+      serialNumber: Math.floor(Date.now() / 1000),
+      maxHrBpm: profileMaxHr(),
+    })
+    if (!changed) return path
+    const dir = join(dirname(path), 'garmin')
+    await mkdir(dir, { recursive: true })
+    const copy = join(dir, basename(path))
+    await writeFile(copy, bytes)
+    return copy
+  } catch (e) {
+    console.error('Garmin copy failed', path, e)
+    return path
+  }
+}
+
+/** Max HR from the profile the renderer saves (renderer/src/profile.svelte.ts). */
+function profileMaxHr(): number | undefined {
+  try {
+    const p = JSON.parse(getSetting('pref:cyclotron.profile') ?? '{}') as { maxHr?: unknown }
+    return typeof p.maxHr === 'number' ? p.maxHr : undefined
+  } catch {
+    return undefined
+  }
+}

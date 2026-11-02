@@ -2,10 +2,34 @@
 
 ## Unreleased
 
+**Changed**
+
+- Ride buttons moved to the side bar: big and always in the same place. Start / Resume are
+  green, Skip yellow, End red. Intensity, World and Mute are there too, and they stay while you
+  look at another screen mid-ride.
+- Pick what each Zwift controller button does on the Ride screen (Settings → Devices →
+  Controllers): start/pause, skip, end (press twice), + / −, ERG, mute, world or nothing.
+- Combined ride tiles: power / target, average power | NP, and one time tile with the interval
+  time left (blue), elapsed and total. Your tile choice is moved over automatically.
+- Louder beeps.
+
+**Fixed**
+
+- Zwift Click v2: the − button raised the power instead of lowering it. Controller buttons now
+  follow Zwift: the left side is −, the right side +.
+- Controller + / − in a workout now moves the target by exactly 1 W per press (it was 1 %, so
+  1 or 2 W depending on rounding).
+
 ## 0.5.0 (2026-11-02)
 
 **New**
 
+- Settings → Connections → Garmin: "Send rides as a Garmin device" (off by default). Garmin
+  Connect gives training load only to rides from Garmin devices or partner apps; with this on,
+  "Send to Garmin" hands over a copy of the FIT file that says Garmin Edge 830, with training
+  effect fields, in a `garmin` folder next to the ride's file. Garmin then works out the ride's
+  exercise load and counts it in short-term load. Sending a ride again doesn't hit "already
+  uploaded" (delete the old one in Connect first).
 - **Pick the workout type on the Today card**: Auto (the app decides) or any type, e.g. what your
   running watch suggests when you ride instead of a run. Your form still sets how hard it is.
   Time can now be any number of minutes (say 23 or 51), and easy rides fill that time exactly.

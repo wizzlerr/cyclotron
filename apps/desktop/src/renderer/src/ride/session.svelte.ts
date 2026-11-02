@@ -323,6 +323,14 @@ class RideSession {
     this.refresh()
   }
 
+  /** Moves the current target by `deltaW` watts (controller + / −). */
+  nudgeTarget(deltaW: number): void {
+    if (!this.player) return
+    this.advanceToNow()
+    this.player.nudgeTarget(deltaW)
+    this.refresh()
+  }
+
   resetIntensity(): void {
     this.player?.setIntensity(1)
     this.refresh()

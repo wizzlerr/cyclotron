@@ -1,5 +1,6 @@
 // Strings for Zwift controllers (buttons). See common.ts for the glossary; `pl` must match `en`.
 import type { ZwiftButton } from '@cyclotron/core'
+import type { PadAction } from '../../lib/padmap.svelte'
 
 export const en = {
   title: 'Controllers',
@@ -12,11 +13,26 @@ export const en = {
   pressAny: 'Press any button to test.',
   lastPress: (button: string, from: string) => `${button} (${from})`,
   hint: (button: string) => `Controller button ${button}`,
+  actionsTitle: 'Button actions on the Ride screen',
+  actionsIntro:
+    'Pick what each button does while riding. End needs two presses (the first asks). The D-pad always moves the highlight.',
+  resetActions: 'Back to defaults',
+  actions: {
+    playPause: 'Start / pause / resume',
+    skip: 'Skip step',
+    end: 'End ride',
+    plus: '+ (more)',
+    minus: '− (less)',
+    erg: 'ERG on/off (free ride)',
+    mute: 'Mute',
+    world: 'Virtual world',
+    none: 'Nothing',
+  } satisfies Record<PadAction, string>,
   mappingTitle: 'What the buttons do',
   mapping: [
     'D-pad: move the highlight around the app; A: press the highlighted button or tab; B: back (closes a dialog, drops the highlight)',
-    'Ride screen, nothing highlighted: A start / pause / resume, B ERG on/off in a free ride, Y mute, Z virtual world',
-    '+ / − (side buttons, Click, paddles): more or less (ERG ±10 W, workout ±1 %, resistance ±5 %)',
+    'Ride screen, nothing highlighted: each button runs its action above (defaults: A start / pause / resume, B ERG on/off in a free ride, Y mute, Z virtual world, left side −, right side +)',
+    '+ / −: more or less (ERG ±10 W, workout ±1 W, resistance ±5 %)',
     'On the Ride screen the highlight fades after 5 s without a press.',
   ],
   notTrainer: (name: string) =>
@@ -55,11 +71,26 @@ export const pl: typeof en = {
   pressAny: 'Naciśnij dowolny przycisk, żeby sprawdzić.',
   lastPress: (button: string, from: string) => `${button} (${from})`,
   hint: (button: string) => `Przycisk kontrolera ${button}`,
+  actionsTitle: 'Działania przycisków na ekranie jazdy',
+  actionsIntro:
+    'Wybierz, co robi każdy przycisk podczas jazdy. Zakończenie wymaga dwóch naciśnięć (pierwsze pyta). Krzyżak zawsze przesuwa podświetlenie.',
+  resetActions: 'Przywróć domyślne',
+  actions: {
+    playPause: 'Start / pauza / wznowienie',
+    skip: 'Pomiń krok',
+    end: 'Zakończ jazdę',
+    plus: '+ (więcej)',
+    minus: '− (mniej)',
+    erg: 'ERG wł./wył. (jazda swobodna)',
+    mute: 'Wycisz',
+    world: 'Wirtualny świat',
+    none: 'Nic',
+  },
   mappingTitle: 'Co robią przyciski',
   mapping: [
     'Krzyżak: przesuwa podświetlenie po aplikacji; A: naciska podświetlony przycisk lub zakładkę; B: wstecz (zamyka okno, zdejmuje podświetlenie)',
-    'Ekran jazdy, nic niepodświetlone: A start / pauza / wznowienie, B ERG wł./wył. w jeździe swobodnej, Y wycisz, Z wirtualny świat',
-    '+ / − (przyciski boczne, Click, łopatki): więcej lub mniej (ERG ±10 W, trening ±1 %, opór ±5 %)',
+    'Ekran jazdy, nic niepodświetlone: każdy przycisk wykonuje działanie wybrane powyżej (domyślnie: A start / pauza / wznowienie, B ERG wł./wył. w jeździe swobodnej, Y wycisz, Z wirtualny świat, lewa strona −, prawa +)',
+    '+ / −: więcej lub mniej (ERG ±10 W, trening ±1 W, opór ±5 %)',
     'Na ekranie jazdy podświetlenie znika po 5 s bez naciśnięcia.',
   ],
   notTrainer: (name: string) =>

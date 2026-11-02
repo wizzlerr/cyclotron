@@ -45,3 +45,27 @@ export function balancedColumns(
   const rows = Math.ceil(count / fit)
   return Math.max(1, Math.ceil(count / rows))
 }
+
+/**
+ * Like balancedColumns, with one tile two columns wide (the ride screen's time tile, three times
+ * side by side). Picks the fewest rows, then no holes (the grid packs densely), then the fewest
+ * columns, so rows stay full and tiles stay big.
+ */
+export function columnsWithWide(
+  count: number,
+  width: number,
+  minTile: number,
+  gap: number,
+): { columns: number; span: number } {
+  const fit = Math.max(1, Math.floor((width + gap) / (minTile + gap)))
+  if (fit < 3) return { columns: balancedColumns(count, width, minTile, gap), span: 1 }
+  let best = { columns: fit, score: Infinity }
+  for (let columns = 3; columns <= fit; columns++) {
+    const slots = count + 1
+    const rows = Math.ceil(slots / columns)
+    const holes = rows * columns - slots
+    const score = rows * 1000 + holes * 10 + columns
+    if (score < best.score) best = { columns, score }
+  }
+  return { columns: best.columns, span: 2 }
+}

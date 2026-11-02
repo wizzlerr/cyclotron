@@ -193,6 +193,7 @@ Runs from the desktop app (scheduled pulls while it's open); moves to the server
 | E12-5 | ✅ done 2026-10-22 (`main/garmin.ts` sync on start + every 3 h + "Sync now"; other activities with source TSS or HR-based TSS into the load; own uploads skipped; migration 6). Prototype metrics import: scheduled pull (e.g. every few hours / after sync) into a small `external_metrics` table; must fit the NAS budget | M |
 | E12-6 | ✅ done 2026-10-22 (`core/reco/external.ts`: resting HR vs usual, Body Battery, short sleep → `ReadinessSignal`, only when the watch is worn day and night). Feed Garmin metrics into recommendations (see E11-11) | M |
 | ~~E12-7~~ | ✅ built 2026-10-22 (`main/strava.ts`: rider's own API app, OAuth via a local 127.0.0.1 callback, upload with polling, auto-upload after a ride, migration 7; untested against Strava). Direct Strava upload (each rider registers a Strava API app; Strava does not forward to Garmin) | M |
+| E12-8 | ✅ built 2026-11-02 (D33): opt-in "Send rides as a Garmin device": the copy for Garmin says Edge 830, gets a new file id per send and training-effect fields, so Connect calculates exercise load and short-term load (confirmed by hand on a real ride; the in-app button not yet driven) | S |
 
 ## E14 — Cloud-folder sync (requested 2026-10-21, after E8)
 
@@ -260,6 +261,19 @@ The app stays numbers-first: tiles and workout steps you can read while watching
 | ~~E19-1~~ | ✅ Settings → Profile tab (was Training): profile, training, ride files, "Your data" card | S |
 | ~~E19-2~~ | ✅ Export / import / delete all data (`main/data.ts`, `components/DataCard.svelte`): one `.cyclotron` file (SQLite `vacuum into` + workouts.json in `backup_files`, no service keys), restore staged next to the DB, window reload; refused during a ride and for backups from a newer schema | M |
 | E19-3 | Check export → import round trip by hand (native file dialogs weren't driven; wipe was, on a throwaway profile) | S |
+
+## E20 — Cloud storage integration (requested 2026-11-02, optional, not started)
+
+Optional connection to **Google Drive, Dropbox and OneDrive** from Settings → Connections. Scope to settle before building (open question): backup only (FIT files + `.cyclotron` export, E19) or full multi-device sync (overlaps E14, which uses the providers' desktop folders instead of their APIs, D20).
+
+Notes: each provider needs an app registration and OAuth with PKCE (public desktop client, local 127.0.0.1 callback like Strava, tokens encrypted with `safeStorage`). Dropbox and OneDrive support PKCE without a secret; Google treats a desktop client secret as non-secret, and the `drive.file` scope (only files the app created) avoids Google's restricted-scope review. Write into an app folder (`Apps/Cyclotron`).
+
+| ID | Task | Size |
+|---|---|---|
+| E20-0 | Decide scope (backup vs sync) and whether API integration replaces E14's synced-folder approach | S |
+| E20-1 | Provider interface in main (connect/disconnect, upload, list, download) + OAuth PKCE flow | M |
+| E20-2 | Google Drive, Dropbox, OneDrive implementations; app registrations | M |
+| E20-3 | Settings → Connections card per provider; auto-upload of FIT after a ride and scheduled backups; restore from cloud | M |
 
 ## E13 — Virtual routes (requested 2026-10-21)
 
