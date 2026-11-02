@@ -18,6 +18,9 @@ const en = {
   duplicate: 'already in your history',
   notFit: 'not a FIT file',
   noRecords: 'no data records in the file',
+  exportBackupTitle: 'Export Cyclotron data',
+  importBackupTitle: 'Import Cyclotron data',
+  backupFilter: 'Cyclotron backups',
 }
 
 const pl: typeof en = {
@@ -34,6 +37,9 @@ const pl: typeof en = {
   duplicate: 'jest już w historii',
   notFit: 'to nie jest plik FIT',
   noRecords: 'plik nie zawiera danych',
+  exportBackupTitle: 'Eksportuj dane Cyclotronu',
+  importBackupTitle: 'Importuj dane Cyclotronu',
+  backupFilter: 'Kopie zapasowe Cyclotronu',
 }
 
 export function strings(): typeof en {

@@ -7,7 +7,7 @@ import { ride } from '../ride/session.svelte'
 import { bleTrace } from './diag'
 
 // Builds and saves a diagnostic report (Settings → Problem?). Holds no keys or tokens: the Garmin
-// key and Strava tokens live only in main, encrypted, and aren't part of this.
+// and intervals.icu keys and Strava tokens live only in main, encrypted, and aren't part of this.
 
 export async function saveDiagnosticReport(): Promise<string | null> {
   const t = devices.trainer

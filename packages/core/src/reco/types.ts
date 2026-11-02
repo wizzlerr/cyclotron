@@ -56,6 +56,8 @@ export interface Candidate {
   type: WorkoutType
   difficulty: number
   durationS: number
+  /** Its intervals (`workShape`), so variants don't repeat the same intervals twice. */
+  shape?: string
 }
 
 export interface RecoProfile {
@@ -84,11 +86,17 @@ export type Reason =
   | { code: 'planLong' }
   | { code: 'level'; type: WorkoutType; level: number; difficulty: number }
   | { code: 'noFit'; type: WorkoutType; minutes: number }
+  /** Today's main pick is the workout planned outside the app (E18-4). */
+  | { code: 'externalPlan' }
+  /** The rider chose today's type (`RecoInput.type`). */
+  | { code: 'chosenType'; type: WorkoutType }
 
 export interface Pick {
   id: string
   type: WorkoutType
   difficulty: number
+  /** Its intervals (`workShape`), when known. */
+  shape?: string
   /** Set when the workout was made to measure (E11-10) rather than taken from the library. */
   generated?: Workout
   durationS: number
@@ -101,6 +109,11 @@ export interface Recommendation {
   /** Rest is suggested; `main` is then an easy option for riding anyway. */
   rest: boolean
   main?: Pick
+  /**
+   * Other ways to ride today's main pick: `main` first, then up to four of the same type and
+   * about the same difficulty, each a different shape (3×6 min, 2×9 min, 1×18 min …).
+   */
+  variants?: Pick[]
   easier?: Pick
   shorter?: Pick
   levels: Record<WorkoutType, number>

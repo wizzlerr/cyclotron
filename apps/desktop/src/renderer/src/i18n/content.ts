@@ -15,8 +15,11 @@ export function workoutName(w: Workout): string {
   const spec = parseGeneratedId(w.id)
   if (spec) {
     const type = t().common.workoutTypes[spec.type]
-    // Interval workouts are named by their intervals; steady ones by their whole length and power.
-    if (spec.count > 1) return `${type} ${spec.count}×${span(spec.onS)}`
+    // Interval workouts are named by their intervals (also one block: "Threshold 1×20 min"; the
+    // easy riding after it isn't the point); steady ones by their whole length and power.
+    if (spec.type !== 'recovery' && spec.type !== 'endurance') {
+      return `${type} ${spec.count}×${span(spec.onS)}`
+    }
     const total = span(timelineDurationS(buildTimeline(w.steps)))
     return `${type} ${total} · ${formatNumber(Math.round(spec.onPct * 100))} %`
   }
@@ -33,8 +36,15 @@ function generatedDescription(s: GenSpec): string {
   const g = t().reco.generated
   const pct = formatNumber(Math.round(s.onPct * 100))
   return s.count === 1
-    ? g.steady(span(s.onS), pct)
+    ? g.steady(span(s.onS), pct, s.fillS > 0)
     : g.intervals(s.count, span(s.onS), pct, span(s.offS), s.fillS > 0)
+}
+
+/** Short label for a variant chip: "3×6 min · 100 %" for a generated workout, else its name. */
+export function variantLabel(w: Workout): string {
+  const spec = parseGeneratedId(w.id)
+  if (!spec) return workoutName(w)
+  return `${spec.count}×${span(spec.onS)} · ${formatNumber(Math.round(spec.onPct * 100))} %`
 }
 
 /** 30 → "30 s", 600 → "10 min". */

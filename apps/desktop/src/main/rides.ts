@@ -13,6 +13,7 @@ import {
 import { computeAggregates } from './analytics'
 import { getDb, getSetting, setSetting, transaction } from './db'
 import { strings } from './i18n'
+import { autoUpload as intervalsAutoUpload } from './intervals'
 import { autoUpload } from './strava'
 
 // Ride recording storage (E5-1), FIT files (E5-3) and FTP history (E6-3). The renderer computes summaries and encodes
@@ -46,6 +47,7 @@ export interface RideRow {
   fit_path: string | null
   source: 'recorded' | 'import'
   strava_id: number | null
+  intervals_id: string | null
 }
 
 export interface SampleRow {
@@ -165,7 +167,10 @@ export function registerRidesIpc(): void {
         // Not fatal: the backfill on next start tries again.
         console.error('aggregates failed', e)
       }
-      if (fitPath) autoUpload(rideId)
+      if (fitPath) {
+        autoUpload(rideId)
+        intervalsAutoUpload(rideId)
+      }
       return { fitPath, fitError }
     },
   )
@@ -289,6 +294,7 @@ export function toRide(r: RideRow): StoredRide {
     fitPath: r.fit_path ?? undefined,
     source: r.source,
     stravaId: r.strava_id ?? undefined,
+    intervalsId: r.intervals_id ?? undefined,
     totals:
       r.status === 'finished'
         ? {

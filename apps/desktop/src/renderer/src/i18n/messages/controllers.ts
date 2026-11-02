@@ -21,7 +21,7 @@ export const en = {
   ],
   notTrainer: (name: string) =>
     `${name} is your trainer or heart rate strap, not a controller. Pick the Zwift Play, Click or Ride itself.`,
-  help: "Newer Zwift Ride and Click v2 firmware is locked to Zwift and may stop sending after a minute. If buttons don't arrive, save a diagnostic report (Settings → Problem?).",
+  help: "Newer Zwift Ride and Click v2 firmware is locked to Zwift and may stop sending after a minute. If buttons don't arrive, save a diagnostic report (Settings → App → Problem?).",
   buttons: {
     up: 'Up',
     down: 'Down',
@@ -64,7 +64,7 @@ export const pl: typeof en = {
   ],
   notTrainer: (name: string) =>
     `${name} to twój trenażer lub pas tętna, nie kontroler. Wybierz sam Zwift Play, Click lub Ride.`,
-  help: 'Nowsze oprogramowanie Zwift Ride i Click v2 jest zablokowane dla Zwifta i może przestać wysyłać po minucie. Jeśli przyciski nie działają, zapisz raport diagnostyczny (Ustawienia → Problem?).',
+  help: 'Nowsze oprogramowanie Zwift Ride i Click v2 jest zablokowane dla Zwifta i może przestać wysyłać po minucie. Jeśli przyciski nie działają, zapisz raport diagnostyczny (Ustawienia → Aplikacja → Problem?).',
   buttons: {
     up: 'Góra',
     down: 'Dół',

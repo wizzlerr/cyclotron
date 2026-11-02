@@ -28,7 +28,7 @@ export const en = {
   stored: 'The secret and Strava tokens are stored encrypted on this computer.',
   errors: {
     noApp: 'Enter a valid Client ID (digits) and Client Secret.',
-    notConnected: 'Connect to Strava first (Settings → Strava).',
+    notConnected: 'Connect to Strava first (Settings → Connections).',
     denied: 'Strava refused: check the Client ID/Secret and allow uploading when Strava asks.',
     timeout: 'No answer from Strava within 5 minutes.',
     network: "Couldn't reach Strava. Check the internet connection.",
@@ -64,7 +64,7 @@ export const pl: typeof en = {
   stored: 'Sekret i tokeny Stravy są zaszyfrowane na tym komputerze.',
   errors: {
     noApp: 'Wpisz poprawny Client ID (cyfry) i Client Secret.',
-    notConnected: 'Najpierw połącz się ze Stravą (Ustawienia → Strava).',
+    notConnected: 'Najpierw połącz się ze Stravą (Ustawienia → Połączenia).',
     denied: 'Strava odmówiła: sprawdź Client ID/Secret i zezwól na wysyłanie, gdy Strava zapyta.',
     timeout: 'Brak odpowiedzi ze Stravy przez 5 minut.',
     network: 'Brak połączenia ze Stravą. Sprawdź internet.',

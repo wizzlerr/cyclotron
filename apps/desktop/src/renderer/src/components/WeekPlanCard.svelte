@@ -57,7 +57,7 @@
     {#if plan.defaultDays}
       <p class="muted">
         {tr.plan.defaultDays}
-        <button class="link" onclick={() => go('settings')}>{tr.plan.settings}</button>
+        <button class="link" onclick={() => go('settings', 'profile')}>{tr.plan.settings}</button>
       </p>
     {/if}
   </section>

@@ -20,9 +20,18 @@ export const SCREENS = [
   'settings',
 ] as const satisfies readonly Screen[]
 
-/** Current screen. Plain state-based navigation; no router needed for a desktop app. */
-export const nav = $state<{ screen: Screen }>({ screen: 'home' })
+/** Settings groups, in tab order; labels come from `t().app.settings.tabs[id]`. */
+export const SETTINGS_TABS = ['devices', 'profile', 'ride', 'connections', 'app'] as const
+export type SettingsTab = (typeof SETTINGS_TABS)[number]
 
-export function go(screen: Screen): void {
+/** Current screen. Plain state-based navigation; no router needed for a desktop app. */
+export const nav = $state<{ screen: Screen; settingsTab: SettingsTab }>({
+  screen: 'home',
+  settingsTab: 'devices',
+})
+
+/** `tab` opens Settings on that group (e.g. "connect a trainer" → devices). */
+export function go(screen: Screen, tab?: SettingsTab): void {
   nav.screen = screen
+  if (tab) nav.settingsTab = tab
 }

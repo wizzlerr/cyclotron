@@ -1,4 +1,5 @@
 <script lang="ts">
+  import IntervalsButton from './IntervalsButton.svelte'
   import StravaButton from './StravaButton.svelte'
   // E9-1: one ride in full: stats, power/HR (and elevation) over time, power curve, zones, laps.
   import {
@@ -276,6 +277,7 @@
       >{t().garmin.send}</button
     >
     <StravaButton rideId={ride.id} stravaId={ride.stravaId} />
+    <IntervalsButton rideId={ride.id} intervalsId={ride.intervalsId} />
   {/if}
   {#if confirmDelete}
     <span class="warn">{t().history.detail.confirmDelete}</span>

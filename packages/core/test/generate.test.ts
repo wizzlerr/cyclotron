@@ -2,10 +2,13 @@ import { describe, expect, it } from 'vitest'
 import {
   BUILTIN_WORKOUTS,
   generatedWorkout,
+  generateOptions,
   generateWorkout,
   isGeneratedId,
   parseGeneratedId,
   recommend,
+  shapeKey,
+  workShape,
   workoutMeta,
   WORKOUT_TYPES,
   type Candidate,
@@ -38,6 +41,25 @@ describe('generateWorkout', () => {
 
   it("returns nothing when even the shortest shape doesn't fit", () => {
     expect(generateWorkout('threshold', 5, 15 * 60)).toBeUndefined()
+  })
+
+  it('offers one workout per interval shape, closest first', () => {
+    const opts = generateOptions('threshold', 4.5, 60 * 60)
+    expect(opts[0]).toEqual(generateWorkout('threshold', 4.5, 60 * 60))
+    expect(new Set(opts.map((w) => workShape(w))).size).toBe(opts.length)
+    const off = opts.map((w) => Math.abs(workoutMeta(w).difficulty - 4.5))
+    expect(off.slice(0, 5).every((o) => o <= 0.5)).toBe(true)
+    // Steady types: one.
+    expect(generateOptions('endurance', 3, 60 * 60)).toHaveLength(1)
+  })
+
+  it('names the intervals of library and generated workouts alike', () => {
+    const lib = BUILTIN_WORKOUTS.find((w) => w.id === 'builtin.sweetspot.2x15')!
+    expect(workShape(lib)).toBe('2x900')
+    expect(workShape(generatedWorkout('gen.sweetspot.2x900@900.300@550.f0')!)).toBe('2x900')
+    expect(shapeKey('gen.sweetspot.2x900@900.300@550.f600')).toBe(
+      shapeKey('gen.sweetspot.2x900@880.300@550.f0'),
+    )
   })
 
   it('rebuilds the same workout from its id', () => {

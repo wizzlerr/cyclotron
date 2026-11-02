@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+**New**
+
+- **Pick the workout type on the Today card**: Auto (the app decides) or any type, e.g. what your
+  running watch suggests when you ride instead of a run. Your form still sets how hard it is.
+  Time can now be any number of minutes (say 23 or 51), and easy rides fill that time exactly.
+- **Variants of the recommended workout**: up to five ways to ride the same thing (e.g. 3×6 min,
+  2×8 min, 1×12 min at threshold), about equally hard, as buttons on the Today card. Workouts
+  made for you also rotate: intervals you rode in the last two weeks give way to a different set.
+- **intervals.icu**: connect with your API key (Settings → Connections). Send rides to intervals.icu
+  by hand or automatically, and ride the workouts planned on your intervals.icu calendar from the
+  new "Planned on intervals.icu" card on Home. Rides of a planned workout are matched to it.
+  A workout planned for today becomes the Today recommendation (with easier and shorter options),
+  resting heart rate, HRV and sleep from intervals.icu count toward readiness, and the card shows
+  when the FTP differs between the two, with a button to copy it either way.
+- **Settings in tabs**: Devices, Profile, Ride, Connections and App, instead of one long page.
+  Links such as "Devices" on the Ride screen open the right tab.
+- **Your data** (Settings → Profile): export everything to one backup file, import it (on this or
+  another computer), or delete all data. Service keys aren't in the backup; FIT files are never
+  deleted.
+
 ## 0.4.0 (2026-10-23)
 
 Cyclotron now runs on Linux too: Windows, macOS and Linux installers are on the release page.

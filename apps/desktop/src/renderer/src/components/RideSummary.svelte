@@ -1,4 +1,5 @@
 <script lang="ts">
+  import IntervalsButton from './IntervalsButton.svelte'
   import StravaButton from './StravaButton.svelte'
   // E5-4: shown after a ride is saved.
   import { caloriesKcal } from '@cyclotron/core'
@@ -154,6 +155,7 @@
         title={t().garmin.sendHint}>{t().garmin.send}</button
       >
       <StravaButton rideId={result.rideId} />
+      <IntervalsButton rideId={result.rideId} />
     {:else}
       <span class="error">{t().ride.summary.fitFailed(result.fitError ?? '')}</span>
     {/if}

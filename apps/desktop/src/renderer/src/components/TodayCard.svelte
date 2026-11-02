@@ -1,7 +1,14 @@
 <script lang="ts">
   // "What should I ride today?" (E11-6): one recommendation, an easier and a shorter one, and why.
-  import { buildTimeline, type Pick, type Reason, type Route, type Workout } from '@cyclotron/core'
-  import { workoutDescription, workoutName } from '../i18n/content'
+  import {
+    buildTimeline,
+    WORKOUT_TYPES,
+    type Pick,
+    type Reason,
+    type Route,
+    type Workout,
+  } from '@cyclotron/core'
+  import { variantLabel, workoutDescription, workoutName } from '../i18n/content'
   import { formatNumber } from '../i18n/i18n.svelte'
   import { t } from '../i18n/t'
   import { formatDuration } from '../lib/format'
@@ -16,6 +23,11 @@
   const TIMES = [30, 45, 60, 75, 90, 120, 150]
   /** The plan's time for today joins the choices when it isn't one of them. */
   const times = $derived([...new Set([...TIMES, today.minutes])].sort((a, b) => a - b))
+  /** Any time, e.g. the 23 or 51 min a watch prescribes for an easy run. */
+  function setMinutes(e: Event): void {
+    const m = Math.round(Number((e.currentTarget as HTMLInputElement).value))
+    if (m >= 10 && m <= 360) today.chosenMinutes = m
+  }
 
   $effect(() => {
     void today.refresh()
@@ -41,7 +53,10 @@
       case 'planRest':
       case 'planEasy':
       case 'planLong':
+      case 'externalPlan':
         return w[reason.code]
+      case 'chosenType':
+        return w.chosenType(typeName(reason.type))
       case 'planHard':
         return w.planHard(typeName(reason.type))
       case 'signal':
@@ -100,6 +115,23 @@
         <span class="name">{workoutName(w)}</span>
         <button class:primary={big} onclick={() => (picking = w)}>{t().common.actions.ride}</button>
       </div>
+      {#if big && r?.variants}
+        <div class="times variants" role="group" aria-label={tr.variants}>
+          <span class="muted">{tr.variants}</span>
+          {#each r.variants as v (v.id)}
+            {@const vw = v.generated ?? library.find(v.id)}
+            {#if vw}
+              <button
+                class="time"
+                class:on={v.id === pick.id}
+                aria-pressed={v.id === pick.id}
+                title={`${workoutName(vw)} · ${t().common.level(formatNumber(v.difficulty, 1))} · ${formatDuration(v.durationS)}`}
+                onclick={() => (today.variantId = v.id)}>{variantLabel(vw)}</button
+              >
+            {/if}
+          {/each}
+        </div>
+      {/if}
       {#if big && pick.generated}
         <p class="desc">{workoutDescription(w)}</p>
       {/if}
@@ -130,7 +162,37 @@
         onclick={() => (today.chosenMinutes = m)}>{tr.minutes(m)}</button
       >
     {/each}
+    <input
+      class="other"
+      type="number"
+      min="10"
+      max="360"
+      step="1"
+      placeholder="min"
+      aria-label={tr.otherMinutes}
+      title={tr.otherMinutes}
+      onchange={setMinutes}
+    />
   </div>
+
+  <div class="times" role="group" aria-label={tr.typeLabel}>
+    <span class="muted">{tr.typeLabel}</span>
+    <button
+      class="time"
+      class:on={!today.chosenType}
+      aria-pressed={!today.chosenType}
+      onclick={() => (today.chosenType = undefined)}>{tr.typeAuto}</button
+    >
+    {#each WORKOUT_TYPES as type (type)}
+      <button
+        class="time"
+        class:on={today.chosenType === type}
+        aria-pressed={today.chosenType === type}
+        onclick={() => (today.chosenType = type)}>{typeName(type)}</button
+      >
+    {/each}
+  </div>
+  <p class="hint">{tr.typeHint}</p>
 
   {#if today.error}
     <p class="error">{tr.failed(today.error)}</p>
@@ -140,12 +202,22 @@
     {#if r.rest}
       <p class="rest"><strong>{tr.restTitle}.</strong> {tr.restRide}</p>
     {/if}
-    {#if r.main}
-      {@render option(tr.recommended, r.main, true)}
+    {#if r.main && today.main}
+      {@render option(
+        today.chosenType
+          ? tr.chosenLabel
+          : r.reasons.some((x) => x.code === 'externalPlan')
+            ? tr.plannedLabel
+            : tr.recommended,
+        today.main,
+        true,
+      )}
       {#if r.easier}{@render option(tr.easier, r.easier, false)}{/if}
       {#if r.shorter}{@render option(tr.shorter, r.shorter, false)}{/if}
     {:else}
-      <p class="muted">{tr.nothing}</p>
+      <p class="muted">
+        {today.chosenType ? tr.nothingType(typeName(today.chosenType)) : tr.nothing}
+      </p>
     {/if}
     {#if reasons.length > 0}
       <h3>{tr.why}</h3>
@@ -215,6 +287,19 @@
   }
   .time.on {
     outline: 2px solid var(--series-1);
+  }
+  .other {
+    width: 4.5rem;
+    padding: 0.1rem 0.4rem;
+    font-size: 0.85rem;
+  }
+  .variants .muted {
+    font-size: 0.75rem;
+  }
+  .hint {
+    margin: -0.3rem 0 0;
+    font-size: 0.8rem;
+    color: var(--muted);
   }
   .option {
     display: flex;

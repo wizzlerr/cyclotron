@@ -43,6 +43,8 @@ export interface DailyWellness {
   /** Hours the device covered that day (stress/wellness monitoring). */
   coverageH?: number
   sleepS?: number
+  /** Overnight HRV (rMSSD, ms), e.g. from intervals.icu (E18-4). */
+  hrv?: number
 }
 
 /** A day counts only when the device was worn most of it (not just during activities). */
@@ -56,6 +58,10 @@ const RESTING_HR_UP = 5
 const BATTERY_LOW = 30
 const BATTERY_HIGH = 80
 const SLEEP_SHORT_S = 5.5 * 3600
+const HRV_DAYS = 14
+const HRV_MIN_DAYS = 4
+/** HRV this far below the usual (as a share of it) means less recovered. */
+const HRV_DOWN = 0.15
 
 /**
  * Readiness signals from wellness data (E12-6, through the E11-11 interface). Each rule only
@@ -81,6 +87,17 @@ export function wellnessSignals(days: readonly DailyWellness[], today: string): 
       if (d.restingHr >= usual + RESTING_HR_UP) {
         out.push({ source: 'restingHr', kind: 'hrv', shift: -1 })
       }
+    }
+  }
+  if (d.hrv !== undefined && d.hrv > 0) {
+    const past: number[] = []
+    for (let i = 1; i <= HRV_DAYS; i++) {
+      const x = byDate.get(addDays(today, -i))?.hrv
+      if (x !== undefined && x > 0) past.push(x)
+    }
+    if (past.length >= HRV_MIN_DAYS) {
+      const usual = past.reduce((a, b) => a + b, 0) / past.length
+      if (d.hrv <= usual * (1 - HRV_DOWN)) out.push({ source: 'hrv', kind: 'hrv', shift: -1 })
     }
   }
   // Body Battery means little unless the watch was worn overnight (it charges while asleep).

@@ -3,9 +3,11 @@ import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import { IPC } from '../shared/api'
 import { backfillAggregates, registerAnalyticsIpc } from './analytics'
 import { attachBluetooth, enableWebBluetooth, registerBluetoothIpc } from './bluetooth'
+import { registerDataIpc } from './data'
 import { closeDb } from './db'
 import { attachRendererLog, initLog, registerLogIpc } from './log'
 import { registerGarminIpc, scheduleGarminSync } from './garmin'
+import { registerIntervalsIpc } from './intervals'
 import { registerPrefsIpc } from './prefs'
 import { registerRideIpc } from './ride'
 import { registerRidesIpc } from './rides'
@@ -81,6 +83,8 @@ registerAnalyticsIpc()
 registerGarminIpc()
 registerLogIpc()
 registerStravaIpc()
+registerIntervalsIpc()
+registerDataIpc()
 setupUpdater()
 
 void app.whenReady().then(() => {

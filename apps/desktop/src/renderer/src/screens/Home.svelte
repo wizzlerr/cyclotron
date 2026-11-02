@@ -1,5 +1,6 @@
 <script lang="ts">
   import { masonry } from '../lib/masonry'
+  import PlannedCard from '../components/PlannedCard.svelte'
   import TodayCard from '../components/TodayCard.svelte'
   import WeekPlanCard from '../components/WeekPlanCard.svelte'
   import { devices } from '../devices/devices.svelte'
@@ -37,6 +38,7 @@
   {/if}
   {#if recovery.message}<p class="muted">{recovery.message}</p>{/if}
 
+  <PlannedCard />
   <TodayCard />
 
   <section class="card">
@@ -47,7 +49,7 @@
       <button onclick={() => go('workouts')}>{h.ftpTest}</button>
     {:else}
       <p class="muted">{h.connectFirst}</p>
-      <button onclick={() => go('settings')}>{h.devices}</button>
+      <button onclick={() => go('settings', 'devices')}>{h.devices}</button>
     {/if}
   </section>
 

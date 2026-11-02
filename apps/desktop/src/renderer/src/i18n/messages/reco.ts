@@ -16,9 +16,19 @@ export const en = {
   form: (tsb: string) => `form ${tsb}`,
   timeLabel: 'Time today',
   minutes: (m: number) => `${m} min`,
+  otherMinutes: 'Other time, minutes',
+  typeLabel: 'Type',
+  typeAuto: 'Auto',
+  typeHint:
+    'Riding instead of a run? Pick what your watch suggests (Base = Endurance, Sprint = Anaerobic).',
+  chosenLabel: 'Your choice',
+  variants: 'Same workout, other ways',
+  nothingType: (type: string) =>
+    `No ${type} workout fits this time. Try more time, or another type.`,
   restTitle: 'Rest day',
   restRide: 'If you still want to ride:',
   recommended: 'Recommended',
+  plannedLabel: 'Planned (intervals.icu)',
   easier: 'Easier',
   shorter: 'Shorter',
   why: 'Why',
@@ -35,18 +45,22 @@ export const en = {
     hardYesterday: 'You rode hard yesterday.',
     twoHardDays: 'Two hard days in a row: time to back off.',
     recentFail: "A recent workout didn't go to plan, so today is a little easier.",
+    externalPlan: 'Planned for today on intervals.icu.',
+    chosenType: (type: string) => `You chose ${type} for today; your form sets how hard.`,
     signal: (source: string, shift: number) =>
       source === 'restingHr'
-        ? 'Garmin: your resting heart rate is above your usual.'
+        ? 'Your resting heart rate is above your usual.'
         : source === 'bodyBattery'
           ? shift < 0
             ? 'Garmin: your Body Battery is low this morning.'
             : 'Garmin: your Body Battery is well charged.'
           : source === 'sleep'
-            ? 'Garmin: short sleep last night.'
-            : shift < 0
-              ? `${source}: less recovered than usual.`
-              : `${source}: well recovered.`,
+            ? 'Short sleep last night.'
+            : source === 'hrv'
+              ? 'Your HRV is below your usual.'
+              : shift < 0
+                ? `${source}: less recovered than usual.`
+                : `${source}: well recovered.`,
     goal: (goal: Goal, type: string) =>
       ({
         fitness: `${type} builds general fitness.`,
@@ -91,8 +105,8 @@ export const en = {
   },
   generated: {
     badge: 'Made for you',
-    steady: (span: string, pct: string) =>
-      `Made for your level: warm-up, ${span} at ${pct} % FTP, cool-down.`,
+    steady: (span: string, pct: string, fill = false) =>
+      `Made for your level: warm-up, ${span} at ${pct} % FTP${fill ? ', easy riding to use your time' : ''}, cool-down.`,
     intervals: (count: number, on: string, pct: string, off: string, fill: boolean) =>
       `Made for your level: ${count} × ${on} at ${pct} % FTP with ${off} easy between${fill ? ', then easy riding to use your time' : ''}.`,
   },
@@ -105,7 +119,7 @@ export const en = {
     todayTag: 'Today',
     planned: (tss: number, done: number) => `Planned TSS ${tss} · done ${done}`,
     capped: 'Load reduced to keep your fitness rising safely (about +8 a week).',
-    defaultDays: 'Training days picked for you. Choose your own in Settings → Training.',
+    defaultDays: 'Training days picked for you. Choose your own in Settings → Profile.',
     settings: 'Settings…',
   },
   levels: {
@@ -127,9 +141,19 @@ export const pl: typeof en = {
   form: (tsb: string) => `forma ${tsb}`,
   timeLabel: 'Czas na dziś',
   minutes: (m: number) => `${m} min`,
+  otherMinutes: 'Inny czas, minuty',
+  typeLabel: 'Rodzaj',
+  typeAuto: 'Auto',
+  typeHint:
+    'Rower zamiast biegania? Wybierz to, co poleca zegarek (Bazowy = Wytrzymałość, Sprint = Beztlenowy).',
+  chosenLabel: 'Twój wybór',
+  variants: 'Ten sam trening inaczej',
+  nothingType: (type: string) =>
+    `Żaden trening typu ${type} nie mieści się w tym czasie. Wybierz więcej czasu albo inny rodzaj.`,
   restTitle: 'Dzień odpoczynku',
   restRide: 'Jeśli mimo to chcesz jechać:',
   recommended: 'Polecany',
+  plannedLabel: 'Zaplanowany (intervals.icu)',
   easier: 'Łatwiejszy',
   shorter: 'Krótszy',
   why: 'Dlaczego',
@@ -145,18 +169,22 @@ export const pl: typeof en = {
     hardYesterday: 'Wczoraj był mocny trening.',
     twoHardDays: 'Dwa mocne dni z rzędu: czas zwolnić.',
     recentFail: 'Ostatni trening nie poszedł zgodnie z planem, więc dziś trochę łatwiej.',
+    externalPlan: 'Zaplanowany na dziś w intervals.icu.',
+    chosenType: (type: string) => `Twój wybór na dziś: ${type}; forma decyduje, jak mocno.`,
     signal: (source: string, shift: number) =>
       source === 'restingHr'
-        ? 'Garmin: tętno spoczynkowe wyższe niż zwykle.'
+        ? 'Tętno spoczynkowe wyższe niż zwykle.'
         : source === 'bodyBattery'
           ? shift < 0
             ? 'Garmin: niska Body Battery tego ranka.'
             : 'Garmin: Body Battery dobrze naładowana.'
           : source === 'sleep'
-            ? 'Garmin: krótki sen tej nocy.'
-            : shift < 0
-              ? `${source}: słabsza regeneracja niż zwykle.`
-              : `${source}: dobra regeneracja.`,
+            ? 'Krótki sen tej nocy.'
+            : source === 'hrv'
+              ? 'HRV niższe niż zwykle.'
+              : shift < 0
+                ? `${source}: słabsza regeneracja niż zwykle.`
+                : `${source}: dobra regeneracja.`,
     goal: (goal: Goal, type: string) =>
       ({
         fitness: `${type} buduje ogólną kondycję.`,
@@ -201,8 +229,8 @@ export const pl: typeof en = {
   },
   generated: {
     badge: 'Na miarę',
-    steady: (span: string, pct: string) =>
-      `Ułożony pod twój poziom: rozgrzewka, ${span} przy ${pct} % FTP, schłodzenie.`,
+    steady: (span: string, pct: string, fill = false) =>
+      `Ułożony pod twój poziom: rozgrzewka, ${span} przy ${pct} % FTP${fill ? ', spokojna jazda do końca czasu' : ''}, schłodzenie.`,
     intervals: (count: number, on: string, pct: string, off: string, fill: boolean) =>
       `Ułożony pod twój poziom: ${count} × ${on} przy ${pct} % FTP, ${off} luźno pomiędzy${fill ? ', potem spokojna jazda do końca czasu' : ''}.`,
   },
@@ -215,7 +243,7 @@ export const pl: typeof en = {
     todayTag: 'Dziś',
     planned: (tss: number, done: number) => `Plan TSS ${tss} · zrobione ${done}`,
     capped: 'Obciążenie zmniejszone, żeby kondycja rosła bezpiecznie (około +8 na tydzień).',
-    defaultDays: 'Dni treningowe dobrane automatycznie. Wybierz własne w Ustawienia → Trening.',
+    defaultDays: 'Dni treningowe dobrane automatycznie. Wybierz własne w Ustawienia → Profil.',
     settings: 'Ustawienia…',
   },
   levels: {
