@@ -107,6 +107,17 @@ describe('WorkoutPlayer', () => {
     expect(p.state().intensity).toBe(1.5)
   })
 
+  it('nudges the current target by whole watts', () => {
+    const p = new WorkoutPlayer(w, 200)
+    p.start()
+    p.advance(110)
+    expect(p.state().targetW).toBe(150)
+    for (let i = 0; i < 7; i++) p.nudgeTarget(1)
+    expect(p.state().targetW).toBe(157)
+    for (let i = 0; i < 10; i++) p.nudgeTarget(-1)
+    expect(p.state().targetW).toBe(147)
+  })
+
   it('does not count paused time', () => {
     const p = new WorkoutPlayer(w, 200)
     p.start()

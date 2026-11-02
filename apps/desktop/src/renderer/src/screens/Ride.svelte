@@ -1,27 +1,28 @@
 <script lang="ts">
   import PadHint from '../components/PadHint.svelte'
+  import { padmap } from '../lib/padmap.svelte'
   import { padnav } from '../lib/padnav.svelte'
-  import { buttonDirection, caloriesKcal, heartRateZone, powerZone } from '@cyclotron/core'
+  import { controls, ERG_STEP_W, RESISTANCE_STEP } from '../ride/controls.svelte'
+  import { caloriesKcal, heartRateZone, powerZone } from '@cyclotron/core'
   import LiveChart from '../components/LiveChart.svelte'
   import RideSummary from '../components/RideSummary.svelte'
   import RouteMap from '../components/RouteMap.svelte'
   import RouteProfile from '../components/RouteProfile.svelte'
   import Tile from '../components/Tile.svelte'
+  import type { ComponentProps } from 'svelte'
   import WorldView from '../components/WorldView.svelte'
   import WorkoutProfile from '../components/WorkoutProfile.svelte'
   import { devices } from '../devices/devices.svelte'
   import { workoutName } from '../i18n/content'
   import { formatNumber } from '../i18n/i18n.svelte'
   import { t } from '../i18n/t'
-  import { balancedColumns, shareSpace, type Elastic } from '../lib/fit'
-  import { describeSegment as describe, formatDuration, formatKm, formatPct } from '../lib/format'
+  import { balancedColumns, columnsWithWide, shareSpace, type Elastic } from '../lib/fit'
+  import { describeSegment as describe, formatDuration, formatKm } from '../lib/format'
   import { go } from '../nav.svelte'
   import { profile } from '../profile.svelte'
   import { ride } from '../ride/session.svelte'
   import { rideTiles, type TileId } from '../ride/tiles.svelte'
   import { worldPrefs } from '../world/prefs.svelte'
-
-  const STEP_W = 10
 
   // The ride screen fits the window, since nobody scrolls from the bike: tiles and controls take
   // what they need and the charts share the rest (fit() below). Only when even their minimum
@@ -33,91 +34,21 @@
   let routeHeight = $state(110)
   let chartHeight = $state(200)
   let worldHeight = $state(300)
-  let ergWatts = $state(150)
-  /** Manual resistance (E2-3), 0–100 % of the trainer's range. */
-  let resistancePct = $state(30)
-  const RESISTANCE_STEP = 5
-  let confirmEnd = $state(false)
-
   const s = $derived(ride.state)
   const remaining = $derived(s ? Math.ceil(s.segmentRemainingS) : 0)
-  const inFreeStep = $derived(s?.status === 'running' && s.segment?.kind === 'freeride')
   const pZone = $derived(
     devices.power3s && devices.power3s > 0 ? powerZone(devices.power3s, profile.ftpW) : undefined,
   )
   const hrZone = $derived(
     devices.bpm && profile.maxHr ? heartRateZone(devices.bpm, profile.maxHr) : undefined,
   )
-  // Manual ERG: before a ride it drives the trainer directly; during a free-ride step it goes
-  // through the session so it's recorded and survives pause/resume.
-  const manualErgOn = $derived(
-    ride.active ? ride.manual?.kind === 'erg' : devices.control.kind === 'erg',
-  )
+  const manualErgOn = $derived(controls.manualErgOn)
 
-  function setErg(watts: number): void {
-    ergWatts = Math.min(1000, Math.max(50, watts))
-    const control = { kind: 'erg', watts: ergWatts } as const
-    if (ride.active) ride.setManual(control)
-    else void devices.setControl(control)
-  }
+  // Zwift controller buttons navigation didn't use (lib/padnav.svelte.ts), run as the action
+  // they're mapped to (Settings → Controllers).
+  $effect(() => padnav.unhandled.on((button) => controls.run(padmap.action(button))))
 
-  function ergOff(): void {
-    if (ride.active) ride.setManual(undefined)
-    else void devices.setControl({ kind: 'free' })
-  }
-
-  const manualResistanceOn = $derived(
-    ride.active ? ride.manual?.kind === 'resistance' : devices.control.kind === 'resistance',
-  )
-  const canResistance = $derived(devices.trainer?.capabilities().resistance ?? false)
-
-  function setResistance(pct: number): void {
-    resistancePct = Math.min(100, Math.max(0, pct))
-    const control = { kind: 'resistance', level: resistancePct } as const
-    if (ride.active) ride.setManual(control)
-    else void devices.setControl(control)
-  }
-
-  // Zwift controller buttons navigation didn't use (lib/padnav.svelte.ts, Settings → Controllers).
-  $effect(() =>
-    padnav.unhandled.on((button) => {
-      const dir = buttonDirection(button)
-      const st = ride.state?.status
-      if (dir !== 0) {
-        if (manualErgOn) setErg(ergWatts + dir * STEP_W)
-        else if (manualResistanceOn) setResistance(resistancePct + dir * RESISTANCE_STEP)
-        else if (ride.active && !inFreeStep) ride.adjustIntensity(dir * 0.01)
-        // Free riding: + / − switch ERG on, a step up or down from the last target.
-        else setErg(ergWatts + dir * STEP_W)
-        return
-      }
-      if (button === 'a') {
-        if (st === 'ready' && devices.trainer) ride.start()
-        else if (st === 'running') ride.pause()
-        else if (st === 'paused') ride.resume()
-      } else if (button === 'b') {
-        if (manualErgOn) ergOff()
-        else if (!ride.active || inFreeStep) setErg(ergWatts)
-      } else if (button === 'y') {
-        ride.muted = !ride.muted
-      } else if (button === 'z') {
-        worldPrefs.setEnabled(!worldPrefs.enabled)
-      }
-    }),
-  )
-
-  function end(): void {
-    confirmEnd = false
-    ride.end()
-  }
-
-  interface TileProps {
-    label: string
-    value: number | string | undefined
-    unit?: string
-    accent?: string
-    highlight?: boolean
-  }
+  type TileProps = ComponentProps<typeof Tile>
 
   const fixed = (n: number | undefined, digits: number): string | undefined =>
     n === undefined ? undefined : formatNumber(n, digits)
@@ -126,8 +57,52 @@
   const tiles = $derived.by((): Record<TileId, TileProps> => {
     const m = ride.metrics
     const L = t().ride.tiles
-    const target = ride.active ? ride.targetW : manualErgOn ? ergWatts : undefined
+    const target = ride.active ? ride.targetW : manualErgOn ? controls.ergWatts : undefined
+    const powerLabel = pZone ? t().ride.powerZoneTile(pZone) : L.power3s.short
+    const intervalHot = s?.status === 'running' && remaining <= 5 && s.next !== undefined
+    const timed = s !== undefined && !ride.isFreeRide
     return {
+      powerTarget: {
+        label: powerLabel,
+        parts:
+          target === undefined
+            ? undefined
+            : [
+                { value: devices.power3s, name: powerLabel },
+                { value: target, color: 'var(--muted)', name: L.target.short },
+              ],
+        value: devices.power3s,
+        sep: '/',
+        unit: 'W',
+        accent: pZone ? `var(--z${pZone})` : undefined,
+      },
+      avgNp: {
+        label: L.avgNp.short,
+        parts: [
+          { value: m?.avgPowerW, name: L.avgPower.short },
+          { value: m?.normalizedPowerW, name: L.np.short },
+        ],
+        unit: 'W',
+      },
+      time: {
+        label: L.elapsed.short,
+        parts: timed
+          ? [
+              {
+                value: formatDuration(remaining),
+                color: intervalHot ? 'var(--warn)' : 'var(--series-1)',
+                name: L.time.interval,
+              },
+              { value: formatDuration(s.positionS), name: L.elapsed.short },
+              {
+                value: formatDuration(s.totalS),
+                color: 'var(--muted)',
+                name: L.time.total,
+              },
+            ]
+          : undefined,
+        value: s ? formatDuration(s.positionS) : undefined,
+      },
       power3s: {
         label: pZone ? t().ride.powerZoneTile(pZone) : L.power3s.short,
         value: devices.power3s,
@@ -180,6 +155,8 @@
     'kcal',
     'elapsed',
     'intervalAvg',
+    'avgNp',
+    'time',
   ])
   /** Before a ride: only live readings; ride totals and interval tiles have nothing to show. */
   const shownIds = $derived(
@@ -191,11 +168,16 @@
 
   const rem = (): number => parseFloat(getComputedStyle(document.documentElement).fontSize) || 16
   /** Wider tiles on big windows, to fit the bigger numbers (Tile.svelte); rows come out even. */
-  const tileColumns = $derived.by(() => {
+  const tileLayout = $derived.by(() => {
     void windowWidth
     const r = rem()
     const minTile = Math.min(22 * r, Math.max(10 * r, windowWidth * 0.1))
-    return balancedColumns(shownIds.length, tilesWidth, minTile, 0.75 * r)
+    const gap = 0.75 * r
+    // The time tile holds three times, so it spans two columns when there are three or more.
+    if (shownIds.includes('time') && !ride.isFreeRide) {
+      return columnsWithWide(shownIds.length, tilesWidth, minTile, gap)
+    }
+    return { columns: balancedColumns(shownIds.length, tilesWidth, minTile, gap), span: 1 }
   })
 
   type Part = 'profile' | 'route' | 'chart' | 'world'
@@ -261,27 +243,31 @@
 
 {#snippet ergControls()}
   {#if manualErgOn}
-    <button onclick={() => setErg(ergWatts - STEP_W)}>−{STEP_W} W<PadHint button="minus" /></button>
-    <span class="erg">ERG {ergWatts} W</span>
-    <button onclick={() => setErg(ergWatts + STEP_W)}>+{STEP_W} W<PadHint button="plus" /></button>
-    <button onclick={ergOff}
-      >{t().ride.ergOff}{#if inFreeStep || !ride.active}<PadHint button="b" />{/if}</button
+    <button onclick={() => controls.setErg(controls.ergWatts - ERG_STEP_W)}
+      >−{ERG_STEP_W} W<PadHint action="minus" /></button
     >
-  {:else if manualResistanceOn}
-    <button onclick={() => setResistance(resistancePct - RESISTANCE_STEP)}
-      >−{RESISTANCE_STEP} %<PadHint button="minus" /></button
+    <span class="erg">ERG {controls.ergWatts} W</span>
+    <button onclick={() => controls.setErg(controls.ergWatts + ERG_STEP_W)}
+      >+{ERG_STEP_W} W<PadHint action="plus" /></button
     >
-    <span class="erg">{t().ride.resistance(resistancePct)}</span>
-    <button onclick={() => setResistance(resistancePct + RESISTANCE_STEP)}
-      >+{RESISTANCE_STEP} %<PadHint button="plus" /></button
+    <button onclick={() => controls.ergOff()}>{t().ride.ergOff}<PadHint action="erg" /></button>
+  {:else if controls.manualResistanceOn}
+    <button onclick={() => controls.setResistance(controls.resistancePct - RESISTANCE_STEP)}
+      >−{RESISTANCE_STEP} %<PadHint action="minus" /></button
     >
-    <button onclick={ergOff}>{t().ride.resistanceOff}</button>
+    <span class="erg">{t().ride.resistance(controls.resistancePct)}</span>
+    <button onclick={() => controls.setResistance(controls.resistancePct + RESISTANCE_STEP)}
+      >+{RESISTANCE_STEP} %<PadHint action="plus" /></button
+    >
+    <button onclick={() => controls.ergOff()}>{t().ride.resistanceOff}</button>
   {:else}
-    <button onclick={() => setErg(ergWatts)}
-      >{t().ride.ergMode}{#if inFreeStep || !ride.active}<PadHint button="b" />{/if}</button
+    <button onclick={() => controls.setErg(controls.ergWatts)}
+      >{t().ride.ergMode}<PadHint action="erg" /></button
     >
-    {#if canResistance}
-      <button onclick={() => setResistance(resistancePct)}>{t().ride.resistanceMode}</button>
+    {#if controls.canResistance}
+      <button onclick={() => controls.setResistance(controls.resistancePct)}
+        >{t().ride.resistanceMode}</button
+      >
     {/if}
   {/if}
 {/snippet}
@@ -290,10 +276,17 @@
   <div
     class="tiles"
     bind:clientWidth={tilesWidth}
-    style:grid-template-columns="repeat({tileColumns}, minmax(0, 1fr))"
+    style:grid-template-columns="repeat({tileLayout.columns}, minmax(0, 1fr))"
   >
     {#each shownIds as id (id)}
-      <Tile {...tiles[id]} />
+      <div
+        class="cell"
+        style:grid-column={id === 'time' && tileLayout.span > 1
+          ? `span ${tileLayout.span}`
+          : undefined}
+      >
+        <Tile {...tiles[id]} />
+      </div>
     {/each}
   </div>
 {/snippet}
@@ -336,68 +329,8 @@
 
       {@render tileGrid()}
 
-      <section class="controls">
-        {#if s.status === 'ready'}
-          <button class="primary" onclick={() => ride.start()} disabled={!devices.trainer}>
-            {t().common.actions.start}<PadHint button="a" />
-          </button>
-          <button onclick={() => ride.close()}>{t().common.actions.close}</button>
-        {:else}
-          {#if s.status === 'running'}
-            <button onclick={() => ride.pause()}
-              >{t().common.actions.pause}<PadHint button="a" /></button
-            >
-          {:else}
-            <button class="primary" onclick={() => ride.resume()}
-              >{t().common.actions.resume}<PadHint button="a" /></button
-            >
-          {/if}
-          {#if !ride.isFreeRide}<button onclick={() => ride.skip()}>{t().ride.skipStep}</button
-            >{/if}
-          {#if confirmEnd}
-            <span class="warn">{t().ride.confirmEnd}</span>
-            <button class="primary" onclick={end}>{t().common.actions.end}</button>
-            <button onclick={() => (confirmEnd = false)}>{t().common.actions.cancel}</button>
-          {:else}
-            <button onclick={() => (confirmEnd = true)}>{t().ride.endEllipsis}</button>
-          {/if}
-
-          {#if !ride.isFreeRide}
-            <span class="sep"></span>
-            <button onclick={() => ride.adjustIntensity(-0.05)}>−5</button>
-            <button onclick={() => ride.adjustIntensity(-0.01)}>−1<PadHint button="minus" /></button
-            >
-            <button
-              class="intensity"
-              onclick={() => ride.resetIntensity()}
-              title={t().ride.resetIntensity}
-            >
-              {formatPct(s.intensity)}
-            </button>
-            <button onclick={() => ride.adjustIntensity(0.01)}>+1<PadHint button="plus" /></button>
-            <button onclick={() => ride.adjustIntensity(0.05)}>+5</button>
-          {/if}
-        {/if}
-        <button
-          class="world-toggle"
-          class:on={worldPrefs.enabled}
-          aria-pressed={worldPrefs.enabled}
-          title={worldPrefs.enabled ? t().world.toggleOn : t().world.toggleOff}
-          onclick={() => worldPrefs.setEnabled(!worldPrefs.enabled)}
-          >{t().world.toggle}<PadHint button="z" /></button
-        >
-        <label class="mute"
-          ><input type="checkbox" bind:checked={ride.muted} />
-          {t().ride.mute}<PadHint button="y" /></label
-        >
-      </section>
-
       {#if worldPrefs.enabled}
         {#key ride.route?.id}<WorldView maxHeight={worldHeight} />{/key}
-      {/if}
-
-      {#if inFreeStep}
-        <section class="controls">{@render ergControls()}</section>
       {/if}
 
       {#if ride.route && ride.routeState}
@@ -497,15 +430,6 @@
 {/if}
 
 <style>
-  .world-toggle {
-    margin-left: auto;
-  }
-  .world-toggle.on {
-    outline: 2px solid var(--series-1);
-  }
-  .world-toggle + .mute {
-    margin-left: 0.5rem;
-  }
   .head {
     display: flex;
     align-items: baseline;
@@ -517,7 +441,12 @@
   }
   .tiles {
     display: grid;
+    grid-auto-flow: row dense;
     gap: 0.75rem;
+  }
+  .cell {
+    display: grid;
+    min-width: 0;
   }
   .chart {
     margin-top: 0.75rem;
@@ -574,16 +503,8 @@
   .sep {
     width: 1rem;
   }
-  .intensity {
-    min-width: 4.5rem;
-    font-weight: 600;
-  }
   .primary {
     font-weight: 600;
-  }
-  .mute {
-    margin-left: auto;
-    color: var(--muted);
   }
   .warn {
     color: var(--warn);

@@ -261,6 +261,19 @@ The app stays numbers-first: tiles and workout steps you can read while watching
 | ~~E19-2~~ | ✅ Export / import / delete all data (`main/data.ts`, `components/DataCard.svelte`): one `.cyclotron` file (SQLite `vacuum into` + workouts.json in `backup_files`, no service keys), restore staged next to the DB, window reload; refused during a ride and for backups from a newer schema | M |
 | E19-3 | Check export → import round trip by hand (native file dialogs weren't driven; wipe was, on a throwaway profile) | S |
 
+## E20 — Cloud storage integration (requested 2026-11-02, optional, not started)
+
+Optional connection to **Google Drive, Dropbox and OneDrive** from Settings → Connections. Scope to settle before building (open question): backup only (FIT files + `.cyclotron` export, E19) or full multi-device sync (overlaps E14, which uses the providers' desktop folders instead of their APIs, D20).
+
+Notes: each provider needs an app registration and OAuth with PKCE (public desktop client, local 127.0.0.1 callback like Strava, tokens encrypted with `safeStorage`). Dropbox and OneDrive support PKCE without a secret; Google treats a desktop client secret as non-secret, and the `drive.file` scope (only files the app created) avoids Google's restricted-scope review. Write into an app folder (`Apps/Cyclotron`).
+
+| ID | Task | Size |
+|---|---|---|
+| E20-0 | Decide scope (backup vs sync) and whether API integration replaces E14's synced-folder approach | S |
+| E20-1 | Provider interface in main (connect/disconnect, upload, list, download) + OAuth PKCE flow | M |
+| E20-2 | Google Drive, Dropbox, OneDrive implementations; app registrations | M |
+| E20-3 | Settings → Connections card per provider; auto-upload of FIT after a ride and scheduled backups; restore from cloud | M |
+
 ## E13 — Virtual routes (requested 2026-10-21)
 
 Ride a route with real grades sent to the trainer, exported as a Strava/Garmin "Virtual Ride" (DESIGN.md D16).

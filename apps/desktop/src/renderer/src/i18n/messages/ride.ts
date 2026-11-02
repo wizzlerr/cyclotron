@@ -5,6 +5,14 @@ export const en = {
   title: 'Ride',
   /** Tile names: `long` in Settings → Ride screen, `short` on the tile itself. */
   tiles: {
+    powerTarget: { long: 'Power / target', short: 'Power / target' },
+    avgNp: { long: 'Average power | NP', short: 'Avg | NP' },
+    time: {
+      long: 'Time: interval left | elapsed | total',
+      short: 'Time',
+      interval: 'Interval',
+      total: 'Total',
+    },
     power3s: { long: 'Power (3 s average)', short: 'Power' },
     power: { long: 'Power (instant)', short: 'Power (instant)' },
     power10s: { long: 'Power (10 s average)', short: 'Power 10 s' },
@@ -43,6 +51,8 @@ export const en = {
   endEllipsis: 'End…',
   resetIntensity: 'Reset to 100 %',
   mute: 'Mute',
+  intensity: 'Intensity',
+  controlsLabel: 'Ride controls',
   startFreeRide: 'Start free ride',
   chooseWorkout: 'Choose a workout…',
   notRecordedYet: 'Nothing is recorded until you start a ride.',
@@ -137,6 +147,14 @@ export const en = {
 export const pl: typeof en = {
   title: 'Jazda',
   tiles: {
+    powerTarget: { long: 'Moc / cel', short: 'Moc / cel' },
+    avgNp: { long: 'Średnia moc | NP', short: 'Śr. | NP' },
+    time: {
+      long: 'Czas: do końca interwału | upłynęło | całość',
+      short: 'Czas',
+      interval: 'Interwał',
+      total: 'Całość',
+    },
     power3s: { long: 'Moc (średnia 3 s)', short: 'Moc' },
     power: { long: 'Moc (chwilowa)', short: 'Moc chwilowa' },
     power10s: { long: 'Moc (średnia 10 s)', short: 'Moc 10 s' },
@@ -176,6 +194,8 @@ export const pl: typeof en = {
   endEllipsis: 'Zakończ…',
   resetIntensity: 'Przywróć 100 %',
   mute: 'Wycisz',
+  intensity: 'Intensywność',
+  controlsLabel: 'Sterowanie jazdą',
   startFreeRide: 'Rozpocznij jazdę swobodną',
   chooseWorkout: 'Wybierz trening…',
   notRecordedYet: 'Nic nie jest zapisywane, dopóki nie rozpoczniesz jazdy.',

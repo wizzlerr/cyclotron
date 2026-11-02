@@ -58,6 +58,7 @@ describe('zwiftButtons', () => {
 
   it('reads Click v1 plus/minus and ignores other frames', () => {
     expect([...zwiftButtons(frame(0x37, vf(2, 1)))!]).toEqual(['shiftUpR'])
+    expect([...zwiftButtons(frame(0x37, vf(1, 1)))!]).toEqual(['shiftDownL'])
     expect(zwiftButtons(frame(0x19, [0x08, 0x50]))).toBeUndefined()
     expect(zwiftButtons(frame(0x15))).toBeUndefined()
   })
@@ -81,9 +82,14 @@ describe('ZwiftButtonTracker', () => {
     expect(t.update(a)).toEqual(['a'])
   })
 
-  it('maps shifting to more/less', () => {
+  it('maps shifting to more/less by side (left −, right +)', () => {
     expect(buttonDirection('shiftUpR')).toBe(1)
+    expect(buttonDirection('shiftDownR')).toBe(1)
+    expect(buttonDirection('paddleR')).toBe(1)
     expect(buttonDirection('paddleL')).toBe(-1)
+    expect(buttonDirection('shiftDownL')).toBe(-1)
+    // Click v2's − unit reports a left shift up.
+    expect(buttonDirection('shiftUpL')).toBe(-1)
     expect(buttonDirection('a')).toBe(0)
   })
 })

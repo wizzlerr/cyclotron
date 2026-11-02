@@ -143,8 +143,9 @@ export function zwiftButtons(frame: Uint8Array): Set<ZwiftButton> | undefined {
     return held
   }
   if (type === MSG_CLICK) {
+    // One device with + and −: reported as the right (+) and left (−) shift, see buttonDirection.
     if (pressed(1)) held.add('shiftUpR')
-    if (pressed(2)) held.add('shiftDownR')
+    if (pressed(2)) held.add('shiftDownL')
     return held
   }
   return undefined
@@ -164,11 +165,12 @@ export class ZwiftButtonTracker {
 }
 
 /**
- * The "+" and "−" buttons: shift buttons (a Play's right side button is +, its left one −, a
- * Click's two are + and −) and paddles. The D-pad is for moving around the app, not for this.
+ * The "+" and "−" buttons, by side like Zwift: left shifts and paddle are −, right ones +. A
+ * Click v2's − unit reports a left "shift up" and a Play's left side button a left "shift down",
+ * so the up/down in the name doesn't decide. The D-pad is for moving around the app, not for this.
  */
 export function buttonDirection(b: ZwiftButton): 1 | -1 | 0 {
-  if (b === 'shiftUpL' || b === 'shiftUpR' || b === 'paddleR') return 1
-  if (b === 'shiftDownL' || b === 'shiftDownR' || b === 'paddleL') return -1
+  if (b === 'shiftUpR' || b === 'shiftDownR' || b === 'paddleR') return 1
+  if (b === 'shiftUpL' || b === 'shiftDownL' || b === 'paddleL') return -1
   return 0
 }

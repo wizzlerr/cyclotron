@@ -1,17 +1,28 @@
 <script lang="ts">
   import { devices } from '../devices/devices.svelte'
   import { t } from '../i18n/t'
+  import { buttonBadge, padmap, type PadAction } from '../lib/padmap.svelte'
 
-  /** Which controller button does this (shown only while a controller is connected). */
-  let { button }: { button: 'a' | 'b' | 'y' | 'z' | 'plus' | 'minus' } = $props()
+  /** Which controller button runs this (shown only while a controller is connected). */
+  let { action }: { action: PadAction } = $props()
 
-  const label = { a: 'A', b: 'B', y: 'Y', z: 'Z', plus: '+', minus: '−' }
+  /** One badge per distinct label: a Play's three "+" buttons show one "+". */
+  const badges = $derived.by(() => {
+    const out: [label: string, cls: string][] = []
+    for (const b of padmap.buttons(action)) {
+      const label = buttonBadge(b)
+      if (!out.some(([l]) => l === label)) out.push([label, /^[a-z]$/.test(b) ? b : 'other'])
+    }
+    return out.slice(0, 2)
+  })
 </script>
 
 {#if devices.controllers.length}
-  <span class="pad-hint {button}" title={t().controllers.hint(label[button])} aria-hidden="true"
-    >{label[button]}</span
-  >
+  {#each badges as [label, cls] (label)}
+    <span class="pad-hint {cls}" title={t().controllers.hint(label)} aria-hidden="true"
+      >{label}</span
+    >
+  {/each}
 {/if}
 
 <style>
@@ -27,6 +38,7 @@
     line-height: 1;
     vertical-align: middle;
     color: #111418;
+    flex: none;
   }
   /* Gamepad-style colours, so each letter is easy to spot. */
   .a {
@@ -41,8 +53,7 @@
   .z {
     background: #4a90d9;
   }
-  .plus,
-  .minus {
-    background: #8a93a0;
+  .other {
+    background: #c3c9d1;
   }
 </style>

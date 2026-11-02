@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+**Changed**
+
+- Ride buttons moved to the side bar: big and always in the same place. Start / Resume are
+  green, Skip yellow, End red. Intensity, World and Mute are there too, and they stay while you
+  look at another screen mid-ride.
+- Pick what each Zwift controller button does on the Ride screen (Settings → Devices →
+  Controllers): start/pause, skip, end (press twice), + / −, ERG, mute, world or nothing.
+- Combined ride tiles: power / target, average power | NP, and one time tile with the interval
+  time left (blue), elapsed and total. Your tile choice is moved over automatically.
+- Louder beeps.
+
+**Fixed**
+
+- Zwift Click v2: the − button raised the power instead of lowering it. Controller buttons now
+  follow Zwift: the left side is −, the right side +.
+- Controller + / − in a workout now moves the target by exactly 1 W per press (it was 1 %, so
+  1 or 2 W depending on rounding).
+
 ## 0.5.0 (2026-11-02)
 
 **New**

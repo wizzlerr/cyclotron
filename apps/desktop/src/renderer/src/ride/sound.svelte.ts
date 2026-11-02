@@ -3,8 +3,7 @@ import { loadPref, savePref } from '../lib/prefs'
 // Volume of the ride's beeps (countdown, step change, finish), 0–100 %.
 
 const KEY = 'cyclotron.cueVolume'
-/** 60 % matches the level the beeps always had. */
-const DEFAULT = 60
+const DEFAULT = 80
 
 class Sound {
   volume = $state(loadPref<number>(KEY) ?? DEFAULT)
