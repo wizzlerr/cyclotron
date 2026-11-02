@@ -6,9 +6,11 @@ import {
   readinessFor,
   recommend,
   rideFailed,
+  shapeKey,
   startLevel,
   targetHit,
   workoutMeta,
+  workShape,
   type Candidate,
   type DailyLoad,
   type RecoInput,
@@ -30,7 +32,13 @@ const ride = (over: Partial<RideRecord>): RideRecord => ({
 
 const CANDIDATES: Candidate[] = BUILTIN_WORKOUTS.map((w) => {
   const m = workoutMeta(w)
-  return { id: w.id, type: m.type, difficulty: m.difficulty, durationS: m.durationS }
+  return {
+    id: w.id,
+    type: m.type,
+    difficulty: m.difficulty,
+    durationS: m.durationS,
+    shape: workShape(w),
+  }
 })
 
 const input = (over: Partial<RecoInput> = {}): RecoInput => ({
@@ -159,6 +167,73 @@ describe('recommend', () => {
     const tired = recommend(input({ planned, load: load(-40) }))
     expect(tired.rest).toBe(true)
     expect(tired.main).toEqual(planned)
+  })
+
+  it('rides the type the rider chose, for the time chosen', () => {
+    // An easy run swapped for a ride: endurance for 23, 37 and 51 min, on a day off in the plan.
+    for (const minutes of [23, 37, 51]) {
+      const r = recommend(
+        input({
+          type: 'endurance',
+          minutes,
+          profile: { goal: 'ftp', weeklyHours: 6, rideDays: [1] },
+        }),
+      )
+      expect(r.rest).toBe(false)
+      expect(r.main!.type).toBe('endurance')
+      expect(r.main!.durationS).toBeGreaterThanOrEqual((minutes - 1.5) * 60)
+      expect(r.main!.durationS).toBeLessThanOrEqual(minutes * 60 * 1.05)
+      expect(r.reasons.map((x) => x.code)).toContain('chosenType')
+      expect(r.reasons.map((x) => x.code)).not.toContain('restDay')
+    }
+    // A threshold day wins over the planned workout; readiness still sets the difficulty.
+    const planned: Candidate = { id: 'icu.1', type: 'vo2max', difficulty: 6, durationS: 3600 }
+    const fresh = recommend(input({ type: 'threshold', minutes: 60, planned, load: load(10) }))
+    const tired = recommend(input({ type: 'threshold', minutes: 60, load: load(-15) }))
+    expect(fresh.main!.type).toBe('threshold')
+    expect(tired.main!.type).toBe('threshold')
+    expect(tired.main!.difficulty).toBeLessThan(fresh.main!.difficulty)
+    // Nothing of the type fits: no pick rather than another type.
+    const none = recommend(input({ type: 'vo2max', minutes: 15 }))
+    expect(none.main).toBeUndefined()
+    expect(none.reasons).toContainEqual({ code: 'noFit', type: 'vo2max', minutes: 15 })
+  })
+
+  it('offers variants of the main pick: same type, about as hard, different shapes', () => {
+    const r = recommend(input({ type: 'threshold', minutes: 60, load: load(10) }))
+    const v = r.variants!
+    expect(v[0]).toEqual(r.main)
+    expect(v.length).toBeGreaterThanOrEqual(3)
+    expect(v.length).toBeLessThanOrEqual(5)
+    expect(
+      new Set(v.map((p) => p.shape ?? (p.generated && workShape(p.generated)) ?? p.id)).size,
+    ).toBe(v.length)
+    for (const p of v) {
+      expect(p.type).toBe('threshold')
+      expect(Math.abs(p.difficulty - r.main!.difficulty)).toBeLessThanOrEqual(0.6)
+      expect(p.durationS).toBeLessThanOrEqual(60 * 60 * 1.05)
+    }
+    // A workout planned outside the app has no variants.
+    const planned: Candidate = { id: 'icu.1', type: 'vo2max', difficulty: 6, durationS: 3600 }
+    expect(recommend(input({ planned })).variants).toBeUndefined()
+  })
+
+  it('rotates generated workouts: a shape ridden in the last two weeks gives way', () => {
+    // No library: every pick is generated.
+    const gen = { type: 'threshold' as const, minutes: 60, load: load(10), candidates: [] }
+    const first = recommend(input(gen)).main!
+    expect(first.generated).toBeDefined()
+    const rides = [
+      ride({
+        date: day(-5),
+        workoutId: first.id.replace(/\.f\d+$/, '.f0'), // another fill: the same shape
+        type: 'threshold',
+        difficulty: first.difficulty,
+      }),
+    ]
+    const next = recommend(input({ ...gen, rides })).main!
+    expect(shapeKey(next.id)).not.toBe(shapeKey(first.id))
+    expect(next.type).toBe('threshold')
   })
 
   it('keeps a fatigued rider easy and a very tired one on rest', () => {

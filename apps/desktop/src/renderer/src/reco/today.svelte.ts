@@ -3,6 +3,7 @@ import {
   recommend,
   weekPlan,
   wellnessSignals,
+  workShape,
   type RecoProfile,
   type WeekPlan,
   type Candidate,
@@ -11,6 +12,7 @@ import {
   type Recommendation,
   type RideRecord,
   type Workout,
+  type WorkoutType,
 } from '@cyclotron/core'
 import type { RecoRide } from '../../../shared/api'
 import { localToday } from '../lib/today'
@@ -29,6 +31,10 @@ const WELLNESS_DAYS = 21
 class Today {
   /** Time the rider picked on the Today card; until then, the plan's time for today. */
   chosenMinutes = $state<number | undefined>()
+  /** Type the rider picked (e.g. what the watch suggests instead of a run); undefined = auto. */
+  chosenType = $state<WorkoutType | undefined>()
+  /** Variant of the main pick the rider switched to (id); ignored once it's no longer offered. */
+  variantId = $state<string | undefined>()
   error = $state<string | undefined>()
   private history = $state.raw<{
     rides: RecoRide[]
@@ -86,10 +92,14 @@ class Today {
       candidates,
       planDay: this.planToday,
       planned: this.planned,
+      type: this.chosenType,
       // Garmin and intervals.icu wellness (E12-6, E18-4): silent unless the data looks complete.
       signals: wellnessSignals(h.wellness, h.date),
     })
   })
+
+  /** The main pick, or the variant of it the rider chose. */
+  main = $derived(this.result?.variants?.find((v) => v.id === this.variantId) ?? this.result?.main)
 
   private get profile(): RecoProfile {
     return { goal: profile.goal, weeklyHours: profile.weeklyHours, rideDays: profile.rideDays }
@@ -113,7 +123,13 @@ class Today {
 
 function candidate(w: Workout): Candidate {
   const m = library.meta(w)
-  return { id: w.id, type: m.type, difficulty: m.difficulty, durationS: m.durationS }
+  return {
+    id: w.id,
+    type: m.type,
+    difficulty: m.difficulty,
+    durationS: m.durationS,
+    shape: workShape(w),
+  }
 }
 
 /** Adds what the engine needs from the workout the ride followed (type, difficulty, plan). */

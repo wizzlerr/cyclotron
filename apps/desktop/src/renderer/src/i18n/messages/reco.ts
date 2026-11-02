@@ -16,6 +16,15 @@ export const en = {
   form: (tsb: string) => `form ${tsb}`,
   timeLabel: 'Time today',
   minutes: (m: number) => `${m} min`,
+  otherMinutes: 'Other time, minutes',
+  typeLabel: 'Type',
+  typeAuto: 'Auto',
+  typeHint:
+    'Riding instead of a run? Pick what your watch suggests (Base = Endurance, Sprint = Anaerobic).',
+  chosenLabel: 'Your choice',
+  variants: 'Same workout, other ways',
+  nothingType: (type: string) =>
+    `No ${type} workout fits this time. Try more time, or another type.`,
   restTitle: 'Rest day',
   restRide: 'If you still want to ride:',
   recommended: 'Recommended',
@@ -37,6 +46,7 @@ export const en = {
     twoHardDays: 'Two hard days in a row: time to back off.',
     recentFail: "A recent workout didn't go to plan, so today is a little easier.",
     externalPlan: 'Planned for today on intervals.icu.',
+    chosenType: (type: string) => `You chose ${type} for today; your form sets how hard.`,
     signal: (source: string, shift: number) =>
       source === 'restingHr'
         ? 'Your resting heart rate is above your usual.'
@@ -95,8 +105,8 @@ export const en = {
   },
   generated: {
     badge: 'Made for you',
-    steady: (span: string, pct: string) =>
-      `Made for your level: warm-up, ${span} at ${pct} % FTP, cool-down.`,
+    steady: (span: string, pct: string, fill = false) =>
+      `Made for your level: warm-up, ${span} at ${pct} % FTP${fill ? ', easy riding to use your time' : ''}, cool-down.`,
     intervals: (count: number, on: string, pct: string, off: string, fill: boolean) =>
       `Made for your level: ${count} × ${on} at ${pct} % FTP with ${off} easy between${fill ? ', then easy riding to use your time' : ''}.`,
   },
@@ -131,6 +141,15 @@ export const pl: typeof en = {
   form: (tsb: string) => `forma ${tsb}`,
   timeLabel: 'Czas na dziś',
   minutes: (m: number) => `${m} min`,
+  otherMinutes: 'Inny czas, minuty',
+  typeLabel: 'Rodzaj',
+  typeAuto: 'Auto',
+  typeHint:
+    'Rower zamiast biegania? Wybierz to, co poleca zegarek (Bazowy = Wytrzymałość, Sprint = Beztlenowy).',
+  chosenLabel: 'Twój wybór',
+  variants: 'Ten sam trening inaczej',
+  nothingType: (type: string) =>
+    `Żaden trening typu ${type} nie mieści się w tym czasie. Wybierz więcej czasu albo inny rodzaj.`,
   restTitle: 'Dzień odpoczynku',
   restRide: 'Jeśli mimo to chcesz jechać:',
   recommended: 'Polecany',
@@ -151,6 +170,7 @@ export const pl: typeof en = {
     twoHardDays: 'Dwa mocne dni z rzędu: czas zwolnić.',
     recentFail: 'Ostatni trening nie poszedł zgodnie z planem, więc dziś trochę łatwiej.',
     externalPlan: 'Zaplanowany na dziś w intervals.icu.',
+    chosenType: (type: string) => `Twój wybór na dziś: ${type}; forma decyduje, jak mocno.`,
     signal: (source: string, shift: number) =>
       source === 'restingHr'
         ? 'Tętno spoczynkowe wyższe niż zwykle.'
@@ -209,8 +229,8 @@ export const pl: typeof en = {
   },
   generated: {
     badge: 'Na miarę',
-    steady: (span: string, pct: string) =>
-      `Ułożony pod twój poziom: rozgrzewka, ${span} przy ${pct} % FTP, schłodzenie.`,
+    steady: (span: string, pct: string, fill = false) =>
+      `Ułożony pod twój poziom: rozgrzewka, ${span} przy ${pct} % FTP${fill ? ', spokojna jazda do końca czasu' : ''}, schłodzenie.`,
     intervals: (count: number, on: string, pct: string, off: string, fill: boolean) =>
       `Ułożony pod twój poziom: ${count} × ${on} przy ${pct} % FTP, ${off} luźno pomiędzy${fill ? ', potem spokojna jazda do końca czasu' : ''}.`,
   },
