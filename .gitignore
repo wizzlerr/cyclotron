@@ -15,3 +15,6 @@ coverage/
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
 caputre/
+
+# Commit message drafted by Claude (the user commits)
+COMMIT_MESSAGE

@@ -24,6 +24,12 @@
 
 **New**
 
+- Settings → Connections → Garmin: "Send rides as a Garmin device" (off by default). Garmin
+  Connect gives training load only to rides from Garmin devices or partner apps; with this on,
+  "Send to Garmin" hands over a copy of the FIT file that says Garmin Edge 830, with training
+  effect fields, in a `garmin` folder next to the ride's file. Garmin then works out the ride's
+  exercise load and counts it in short-term load. Sending a ride again doesn't hit "already
+  uploaded" (delete the old one in Connect first).
 - **Pick the workout type on the Today card**: Auto (the app decides) or any type, e.g. what your
   running watch suggests when you ride instead of a run. Your form still sets how hard it is.
   Time can now be any number of minutes (say 23 or 51), and easy rides fill that time exactly.

@@ -3,6 +3,11 @@
   import type { GarminStatus } from '../../../shared/api'
   import { formatDateTime } from '../i18n/i18n.svelte'
   import { t } from '../i18n/t'
+  import { loadPref, savePref } from '../lib/prefs'
+
+  // Read by main when "Send to Garmin" runs (main/rides.ts, D33).
+  const AS_DEVICE_KEY = 'cyclotron.garmin.asDevice'
+  let asDevice = $state(loadPref<boolean>(AS_DEVICE_KEY) === true)
 
   let status = $state<GarminStatus | undefined>()
   let key = $state('')
@@ -117,6 +122,16 @@
     <p class="muted">{g.stored}</p>
   {/if}
 
+  <label class="check">
+    <input
+      type="checkbox"
+      bind:checked={asDevice}
+      onchange={() => savePref(AS_DEVICE_KEY, asDevice)}
+    />
+    {g.asDevice}
+  </label>
+  <p class="muted">{g.asDeviceHint}</p>
+
   {#if message}<p class:error={!message.ok} class:ok={message.ok}>{message.text}</p>{/if}
 </section>
 
@@ -131,6 +146,12 @@
   .row input {
     flex: 1;
     min-width: 12rem;
+  }
+  .check {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-top: 1rem;
   }
   .quiet {
     margin-left: auto;

@@ -35,6 +35,9 @@ export const en = {
   sampleSaved: (file: string) => `Saved ${file}`,
   ok: 'Garmin answered: the key works.',
   stored: 'The key is stored encrypted on this computer and only used to talk to Garmin.',
+  asDevice: 'Send rides as a Garmin device',
+  asDeviceHint:
+    'Garmin Connect only counts training load (and so training status and recovery) for rides from Garmin devices or partner apps. With this on, "Send to Garmin" hands over a copy of the FIT file, in a "garmin" folder next to it, that says it was recorded on a Garmin Edge 830, so Garmin works out the ride\'s exercise load. Delete the ride in Connect before sending it again. It\'s a workaround Garmin doesn\'t support and may stop honouring. Your own files and the Strava and intervals.icu uploads are unchanged.',
   errors: {
     noKey: 'No key saved.',
     invalidKey: 'Garmin rejected the key. It may be mistyped, deleted or expired.',
@@ -76,6 +79,9 @@ export const pl: typeof en = {
   sampleSaved: (file: string) => `Zapisano ${file}`,
   ok: 'Garmin odpowiedział: klucz działa.',
   stored: 'Klucz jest zaszyfrowany na tym komputerze i służy tylko do łączenia z Garminem.',
+  asDevice: 'Wysyłaj jazdy jako urządzenie Garmin',
+  asDeviceHint:
+    'Garmin Connect liczy obciążenie treningowe (a więc status treningu i regenerację) tylko dla jazd z urządzeń Garmin lub aplikacji partnerskich. Po włączeniu „Wyślij do Garmina” poda kopię pliku FIT (w folderze „garmin” obok), która twierdzi, że nagrał ją Garmin Edge 830, więc Garmin wyliczy obciążenie wysiłkowe jazdy. Przed ponownym wysłaniem usuń jazdę w Connect. To obejście, którego Garmin nie wspiera i może przestać uznawać. Twoje pliki oraz wysyłki do Strava i intervals.icu się nie zmieniają.',
   errors: {
     noKey: 'Brak zapisanego klucza.',
     invalidKey: 'Garmin odrzucił klucz. Może być błędnie wpisany, usunięty albo wygasły.',

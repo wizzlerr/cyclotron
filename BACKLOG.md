@@ -193,6 +193,7 @@ Runs from the desktop app (scheduled pulls while it's open); moves to the server
 | E12-5 | ✅ done 2026-10-22 (`main/garmin.ts` sync on start + every 3 h + "Sync now"; other activities with source TSS or HR-based TSS into the load; own uploads skipped; migration 6). Prototype metrics import: scheduled pull (e.g. every few hours / after sync) into a small `external_metrics` table; must fit the NAS budget | M |
 | E12-6 | ✅ done 2026-10-22 (`core/reco/external.ts`: resting HR vs usual, Body Battery, short sleep → `ReadinessSignal`, only when the watch is worn day and night). Feed Garmin metrics into recommendations (see E11-11) | M |
 | ~~E12-7~~ | ✅ built 2026-10-22 (`main/strava.ts`: rider's own API app, OAuth via a local 127.0.0.1 callback, upload with polling, auto-upload after a ride, migration 7; untested against Strava). Direct Strava upload (each rider registers a Strava API app; Strava does not forward to Garmin) | M |
+| E12-8 | ✅ built 2026-11-02 (D33): opt-in "Send rides as a Garmin device": the copy for Garmin says Edge 830, gets a new file id per send and training-effect fields, so Connect calculates exercise load and short-term load (confirmed by hand on a real ride; the in-app button not yet driven) | S |
 
 ## E14 — Cloud-folder sync (requested 2026-10-21, after E8)
 
