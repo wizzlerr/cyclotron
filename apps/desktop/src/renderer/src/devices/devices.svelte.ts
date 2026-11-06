@@ -4,9 +4,10 @@ import { t } from '../i18n/t'
 import { logEvent } from '../lib/diag'
 import { loadPref, savePref } from '../lib/prefs'
 import { BleHeartRate, HEART_RATE_SERVICES } from './ble-heart-rate'
-import type { ZwiftButton } from '@cyclotron/core'
+import { OBC_SERVICE, type ZwiftButton } from '@cyclotron/core'
 import { CpsTrainer } from './cps-trainer'
 import { Emitter } from './emitter'
+import { ObcController } from './obc-controller'
 import { CONTROLLER_SERVICES, controllerLabel, ZwiftController } from './zwift-controller'
 import { FtmsTrainer, TRAINER_SERVICES } from './ftms-trainer'
 import { SimulatedTrainer } from './simulated'
@@ -45,6 +46,21 @@ function sameController(a: RememberedController, b: RememberedController): boole
 export const rememberedLabel = (r: RememberedController): string =>
   controllerLabel(r.name, r.address)
 
+type Controller = ZwiftController | ObcController
+
+/** Zwift first; a device without its services falls back to OpenBikeControl. */
+async function connectControllerDevice(
+  device: BluetoothDevice,
+  address: string | undefined,
+): Promise<Controller> {
+  try {
+    return await ZwiftController.connect(device, address)
+  } catch (e) {
+    if (!(e instanceof DOMException && e.name === 'NotFoundError')) throw e
+    return await ObcController.connect(device, address)
+  }
+}
+
 /** FTMS first; a device without it (a power meter, an older trainer) falls back to CPS. */
 async function connectTrainerDevice(device: BluetoothDevice): Promise<Trainer> {
   try {
@@ -68,8 +84,8 @@ class Devices {
   picking = $state(false)
   error = $state<string | undefined>()
   remembered = $state(loadRemembered())
-  /** Zwift Play / Click / Ride controllers (buttons); a Play is two devices. */
-  controllers = $state.raw<ZwiftController[]>([])
+  /** Zwift Play / Click / Ride and OpenBikeControl controllers; a Play is two devices. */
+  controllers = $state.raw<Controller[]>([])
   rememberedControllers = $state<RememberedController[]>(
     loadRememberedControllers().filter((c) => !this.isTrainerOrStrap(c.name)),
   )
@@ -112,13 +128,14 @@ class Devices {
   /** Adds a controller (picker, or straight to a remembered one, by address when known). */
   async connectController(known?: RememberedController): Promise<void> {
     const prefer = known ? (known.address ?? known.name) : undefined
-    await this.connect('controller', CONTROLLER_SERVICES, prefer, async (device, address) => {
+    const services = [...CONTROLLER_SERVICES, OBC_SERVICE]
+    await this.connect('controller', services, prefer, async (device, address) => {
       // The KICKR CORE 2 also has the Zwift service. One BLE device is one GATT link, so a
       // controller on it would share (and on disconnect, drop) the trainer's connection.
       if (device.name && this.isTrainerOrStrap(device.name)) {
         throw new Error(t().controllers.notTrainer(device.name))
       }
-      const c = await ZwiftController.connect(device, address)
+      const c = await connectControllerDevice(device, address)
       // Reconnecting the same unit replaces it; a Play's other half (same name) is added.
       const same = this.controllers.find((x) => sameController(x, c))
       if (same) await this.disconnectController(same)
@@ -145,7 +162,7 @@ class Devices {
     ].includes(name)
   }
 
-  async disconnectController(c: ZwiftController): Promise<void> {
+  async disconnectController(c: Controller): Promise<void> {
     this.controllers = this.controllers.filter((x) => x !== c)
     await c.disconnect()
   }
