@@ -38,6 +38,8 @@ export const en = {
   ],
   notTrainer: (name: string) =>
     `${name} is your trainer or heart rate strap, not a controller. Pick the Zwift Play, Click or Ride itself.`,
+  unknownKind: (name: string) =>
+    `Couldn't tell whether ${name} is a Zwift or an OpenBikeControl controller: no Bluetooth advertisement came within 3 s. Press a button on it to wake it up and try again.`,
   help: "Newer Zwift Ride and Click v2 firmware is locked to Zwift and may stop sending after a minute. If buttons don't arrive, save a diagnostic report (Settings → App → Problem?).",
   buttons: {
     up: 'Up',
@@ -97,6 +99,8 @@ export const pl: typeof en = {
   ],
   notTrainer: (name: string) =>
     `${name} to twój trenażer lub pas tętna, nie kontroler. Wybierz sam Zwift Play, Click lub Ride.`,
+  unknownKind: (name: string) =>
+    `Nie udało się rozpoznać, czy ${name} to kontroler Zwift czy OpenBikeControl: w ciągu 3 s nie przyszło ogłoszenie Bluetooth. Naciśnij na nim przycisk, żeby go obudzić, i spróbuj ponownie.`,
   help: 'Nowsze oprogramowanie Zwift Ride i Click v2 jest zablokowane dla Zwifta i może przestać wysyłać po minucie. Jeśli przyciski nie działają, zapisz raport diagnostyczny (Ustawienia → Aplikacja → Problem?).',
   buttons: {
     up: 'Góra',

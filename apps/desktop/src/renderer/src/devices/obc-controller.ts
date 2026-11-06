@@ -5,6 +5,7 @@ import {
   OBC_SUPPORTED_IDS,
   ObcButtonTracker,
   obcAppInfo,
+  type ObcContext,
   type ZwiftButton,
 } from '@cyclotron/core'
 import { logEvent, traceBle } from '../lib/diag'
@@ -15,7 +16,8 @@ import { controllerLabel } from './zwift-controller'
 
 /**
  * An OpenBikeControl controller (buttons). Its buttons come out as the matching Zwift buttons,
- * so it drives navigation and the ride actions like a Zwift Play.
+ * so it drives navigation and the ride actions like a Zwift Play. `context` says where a press
+ * lands, to pick one action when a button sends several ids.
  */
 export class ObcController {
   readonly name: string
@@ -27,6 +29,7 @@ export class ObcController {
   private constructor(
     device: BluetoothDevice,
     readonly address: string | undefined,
+    private context: () => ObcContext,
   ) {
     this.name = device.name ?? 'OpenBikeControl'
     this.label = controllerLabel(this.name, address)
@@ -37,8 +40,12 @@ export class ObcController {
     )
   }
 
-  static async connect(device: BluetoothDevice, address?: string): Promise<ObcController> {
-    const c = new ObcController(device, address)
+  static async connect(
+    device: BluetoothDevice,
+    address: string | undefined,
+    context: () => ObcContext,
+  ): Promise<ObcController> {
+    const c = new ObcController(device, address, context)
     await c.link.open()
     return c
   }
@@ -62,7 +69,8 @@ export class ObcController {
       if (!v) return
       traceBle(this.label, 'obc', v)
       const bytes = new Uint8Array(v.buffer, v.byteOffset, v.byteLength)
-      for (const b of this.tracker.update(bytes)) this.presses.emit(b)
+      const b = this.tracker.update(bytes, this.context())
+      if (b) this.presses.emit(b)
     }
     await state.startNotifications()
     // Optional: tells the device which buttons we use, so it can adapt.

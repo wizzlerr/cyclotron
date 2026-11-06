@@ -21,10 +21,15 @@ function finish(deviceId: string): void {
  * Chromium ships Web Bluetooth enabled on Windows and macOS only; on Linux `navigator.bluetooth`
  * doesn't exist without this Blink feature (checked with Electron 44). It talks to BlueZ over
  * D-Bus. Must run before the app is ready.
+ *
+ * `BluetoothDevice.watchAdvertisements()` (telling Zwift from OpenBikeControl controllers by
+ * their advertisement) is behind WebBluetoothWatchAdvertisements; its `advertisementreceived`
+ * event interface behind WebBluetoothScanning. Just these two, not `experimentalFeatures`.
  */
 export function enableWebBluetooth(): void {
-  if (process.platform === 'linux')
-    app.commandLine.appendSwitch('enable-blink-features', 'WebBluetooth')
+  const features = ['WebBluetoothWatchAdvertisements', 'WebBluetoothScanning']
+  if (process.platform === 'linux') features.unshift('WebBluetooth')
+  app.commandLine.appendSwitch('enable-blink-features', features.join(','))
 }
 
 export function registerBluetoothIpc(): void {

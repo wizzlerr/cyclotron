@@ -4,7 +4,15 @@ import { t } from '../i18n/t'
 import { logEvent } from '../lib/diag'
 import { loadPref, savePref } from '../lib/prefs'
 import { BleHeartRate, HEART_RATE_SERVICES } from './ble-heart-rate'
-import { OBC_SERVICE, type ZwiftButton } from '@cyclotron/core'
+import {
+  controllerKind,
+  OBC_SERVICE,
+  ZWIFT_COMPANY_ID,
+  type ControllerKind,
+  type ObcContext,
+  type ZwiftButton,
+} from '@cyclotron/core'
+import { nav } from '../nav.svelte'
 import { CpsTrainer } from './cps-trainer'
 import { Emitter } from './emitter'
 import { ObcController } from './obc-controller'
@@ -31,6 +39,8 @@ const CONTROLLERS_KEY = 'cyclotron.controllers'
 export interface RememberedController {
   name: string
   address?: string
+  /** Detected on the first connect; older entries without it are Zwift. */
+  kind?: ControllerKind
 }
 
 /** Older versions stored plain names. */
@@ -48,16 +58,47 @@ export const rememberedLabel = (r: RememberedController): string =>
 
 type Controller = ZwiftController | ObcController
 
-/** Zwift first; a device without its services falls back to OpenBikeControl. */
-async function connectControllerDevice(
-  device: BluetoothDevice,
-  address: string | undefined,
-): Promise<Controller> {
+const ADVERTISEMENT_TIMEOUT_MS = 3_000
+
+/** Ride actions on the Ride screen, navigation elsewhere (padnav, Ride.svelte). */
+const obcContext = (): ObcContext => (nav.screen === 'ride' ? 'riding' : 'menus')
+
+/**
+ * Zwift or OpenBikeControl, from the picked device's advertisements (Electron's picker only
+ * gives names). Needs the Blink features enabled in main/bluetooth.ts.
+ */
+async function detectControllerKind(device: BluetoothDevice): Promise<ControllerKind> {
+  // Without the API (it's behind Blink features), keep the behaviour from before OpenBikeControl.
+  if (typeof device.watchAdvertisements !== 'function') {
+    logEvent('warn', `${device.name ?? 'device'}: no watchAdvertisements, assuming Zwift`)
+    return 'zwift'
+  }
+  const stop = new AbortController()
   try {
-    return await ZwiftController.connect(device, address)
-  } catch (e) {
-    if (!(e instanceof DOMException && e.name === 'NotFoundError')) throw e
-    return await ObcController.connect(device, address)
+    const kind = await new Promise<ControllerKind | undefined>((resolve) => {
+      const timer = setTimeout(() => resolve(undefined), ADVERTISEMENT_TIMEOUT_MS)
+      device.addEventListener(
+        'advertisementreceived',
+        (e) => {
+          const kind = controllerKind(e.uuids.map(String), [...e.manufacturerData.keys()])
+          if (!kind) return
+          clearTimeout(timer)
+          resolve(kind)
+        },
+        { signal: stop.signal },
+      )
+      // Refused (not supported here): keep the behaviour from before OpenBikeControl.
+      device.watchAdvertisements({ signal: stop.signal }).catch((e: unknown) => {
+        clearTimeout(timer)
+        logEvent('warn', `${device.name ?? 'device'}: watchAdvertisements failed (${String(e)})`)
+        resolve('zwift')
+      })
+    })
+    if (!kind) throw new Error(t().controllers.unknownKind(device.name ?? '?'))
+    logEvent('info', `${device.name ?? 'device'}: advertises as ${kind}`)
+    return kind
+  } finally {
+    stop.abort()
   }
 }
 
@@ -129,13 +170,22 @@ class Devices {
   async connectController(known?: RememberedController): Promise<void> {
     const prefer = known ? (known.address ?? known.name) : undefined
     const services = [...CONTROLLER_SERVICES, OBC_SERVICE]
-    await this.connect('controller', services, prefer, async (device, address) => {
+    const open = async (device: BluetoothDevice, address: string | undefined): Promise<void> => {
       // The KICKR CORE 2 also has the Zwift service. One BLE device is one GATT link, so a
       // controller on it would share (and on disconnect, drop) the trainer's connection.
       if (device.name && this.isTrainerOrStrap(device.name)) {
         throw new Error(t().controllers.notTrainer(device.name))
       }
-      const c = await connectControllerDevice(device, address)
+      const picked = { name: device.name ?? '', address }
+      // A remembered controller skips detection; entries from before OpenBikeControl are Zwift.
+      const kind =
+        known && sameController(known, picked)
+          ? (known.kind ?? 'zwift')
+          : await detectControllerKind(device)
+      const c =
+        kind === 'obc'
+          ? await ObcController.connect(device, address, obcContext)
+          : await ZwiftController.connect(device, address)
       // Reconnecting the same unit replaces it; a Play's other half (same name) is added.
       const same = this.controllers.find((x) => sameController(x, c))
       if (same) await this.disconnectController(same)
@@ -144,13 +194,15 @@ class Devices {
         this.presses.emit(button)
       })
       this.controllers = [...this.controllers, c]
-      const entry = { name: c.name, address: c.address }
+      const entry = { name: c.name, address: c.address, kind }
       this.rememberedControllers = [
         ...this.rememberedControllers.filter((r) => !sameController(r, entry)),
         entry,
       ]
       savePref(CONTROLLERS_KEY, this.rememberedControllers)
-    })
+    }
+    // Zwift's company id makes its manufacturer data visible to detectControllerKind.
+    await this.connect('controller', services, prefer, open, [ZWIFT_COMPANY_ID])
   }
 
   private isTrainerOrStrap(name: string): boolean {
@@ -226,12 +278,13 @@ class Devices {
     optionalServices: BluetoothServiceUUID[],
     name: string | undefined,
     open: (device: BluetoothDevice, address: string | undefined) => Promise<void>,
+    optionalManufacturerData: number[] = [],
   ): Promise<void> {
     if (this.connecting) return
     this.connecting = role
     this.error = undefined
     try {
-      const device = await this.pick(optionalServices, name)
+      const device = await this.pick(optionalServices, name, optionalManufacturerData)
       if (!device) return
       const address = (await window.cyclotron.bluetooth.lastPicked()) ?? undefined
       await open(device, address)
@@ -250,11 +303,16 @@ class Devices {
   private async pick(
     optionalServices: BluetoothServiceUUID[],
     name: string | undefined,
+    optionalManufacturerData: number[],
   ): Promise<BluetoothDevice | undefined> {
     this.picking = true
     void window.cyclotron.bluetooth.preferDevice(name ?? null)
     try {
-      return await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices })
+      return await navigator.bluetooth.requestDevice({
+        acceptAllDevices: true,
+        optionalServices,
+        optionalManufacturerData,
+      })
     } catch (e) {
       if (!(e instanceof DOMException && e.name === 'NotFoundError')) throw e
       // No adapter (or BlueZ not running on Linux) rejects the same way as a cancelled picker.
