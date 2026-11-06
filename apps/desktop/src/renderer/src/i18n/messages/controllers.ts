@@ -1,11 +1,11 @@
-// Strings for Zwift controllers (buttons). See common.ts for the glossary; `pl` must match `en`.
+// Strings for Zwift and OpenBikeControl controllers (buttons). See common.ts for the glossary; `pl` must match `en`.
 import type { ZwiftButton } from '@cyclotron/core'
 import type { PadAction } from '../../lib/padmap.svelte'
 
 export const en = {
   title: 'Controllers',
   intro:
-    'Zwift Play, Click or Ride buttons can run the Ride screen. A Zwift Play is two devices (left and right): add both.',
+    'Zwift Play, Click or Ride and OpenBikeControl controllers can run the Ride screen. A Zwift Play is two devices (left and right): add both.',
   add: 'Add controller…',
   connect: (name: string) => `Connect ${name}`,
   disconnect: 'Disconnect',
@@ -34,9 +34,12 @@ export const en = {
     'Ride screen, nothing highlighted: each button runs its action above (defaults: A start / pause / resume, B ERG on/off in a free ride, Y mute, Z virtual world, left side −, right side +)',
     '+ / −: more or less (ERG ±10 W, workout ±1 W, resistance ±5 %)',
     'On the Ride screen the highlight fades after 5 s without a press.',
+    'OpenBikeControl: shift up / down (or harder / easier) are the right and left shift, up / down / left / right the D-pad, select A, back B.',
   ],
   notTrainer: (name: string) =>
     `${name} is your trainer or heart rate strap, not a controller. Pick the Zwift Play, Click or Ride itself.`,
+  unknownKind: (name: string) =>
+    `Couldn't tell whether ${name} is a Zwift or an OpenBikeControl controller: no Bluetooth advertisement came within 3 s. Press a button on it to wake it up and try again.`,
   help: "Newer Zwift Ride and Click v2 firmware is locked to Zwift and may stop sending after a minute. If buttons don't arrive, save a diagnostic report (Settings → App → Problem?).",
   buttons: {
     up: 'Up',
@@ -63,7 +66,7 @@ export const en = {
 export const pl: typeof en = {
   title: 'Kontrolery',
   intro:
-    'Przyciski Zwift Play, Click albo Ride mogą sterować ekranem jazdy. Zwift Play to dwa urządzenia (lewe i prawe): dodaj oba.',
+    'Przyciski Zwift Play, Click albo Ride i kontrolery OpenBikeControl mogą sterować ekranem jazdy. Zwift Play to dwa urządzenia (lewe i prawe): dodaj oba.',
   add: 'Dodaj kontroler…',
   connect: (name: string) => `Połącz ${name}`,
   disconnect: 'Rozłącz',
@@ -92,9 +95,12 @@ export const pl: typeof en = {
     'Ekran jazdy, nic niepodświetlone: każdy przycisk wykonuje działanie wybrane powyżej (domyślnie: A start / pauza / wznowienie, B ERG wł./wył. w jeździe swobodnej, Y wycisz, Z wirtualny świat, lewa strona −, prawa +)',
     '+ / −: więcej lub mniej (ERG ±10 W, trening ±1 W, opór ±5 %)',
     'Na ekranie jazdy podświetlenie znika po 5 s bez naciśnięcia.',
+    'OpenBikeControl: zmiana w górę / w dół (lub trudniej / łatwiej) to prawa i lewa zmiana, góra / dół / lewo / prawo to krzyżak, wybór to A, wstecz to B.',
   ],
   notTrainer: (name: string) =>
     `${name} to twój trenażer lub pas tętna, nie kontroler. Wybierz sam Zwift Play, Click lub Ride.`,
+  unknownKind: (name: string) =>
+    `Nie udało się rozpoznać, czy ${name} to kontroler Zwift czy OpenBikeControl: w ciągu 3 s nie przyszło ogłoszenie Bluetooth. Naciśnij na nim przycisk, żeby go obudzić, i spróbuj ponownie.`,
   help: 'Nowsze oprogramowanie Zwift Ride i Click v2 jest zablokowane dla Zwifta i może przestać wysyłać po minucie. Jeśli przyciski nie działają, zapisz raport diagnostyczny (Ustawienia → Aplikacja → Problem?).',
   buttons: {
     up: 'Góra',

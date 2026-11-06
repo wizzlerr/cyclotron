@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+**New**
+
+- OpenBikeControl controllers (Settings → Devices → Controllers): shift up / down are + / −,
+  the navigation buttons move the highlight like the Zwift D-pad, select is A and back is B.
+  Works with controllers that speak it over Bluetooth, and with bridge apps such as BikeControl.
+  A button that sends several actions at once runs one: shifting on the Ride screen,
+  navigation elsewhere. Cyclotron tells Zwift and OpenBikeControl controllers apart by their
+  Bluetooth advertisement when you add one.
+
 ## 0.6.0 (2026-11-02)
 
 **Changed**
