@@ -1,5 +1,5 @@
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
-import { basename, dirname, join } from 'node:path'
+import { basename, join } from 'node:path'
 import { asGarminDevice } from '@cyclotron/core'
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import {
@@ -171,6 +171,7 @@ export function registerRidesIpc(): void {
         console.error('aggregates failed', e)
       }
       if (fitPath) {
+        await writeGarminCopy(fitPath)
         autoUpload(rideId)
         intervalsAutoUpload(rideId)
       }
@@ -195,7 +196,10 @@ export function registerRidesIpc(): void {
   ipcMain.handle(IPC.ridesDiscard, async (_event, rideId: number) => {
     const row = rideRow(rideId)
     if (!row) return
-    if (row.fit_path) await rm(row.fit_path, { force: true })
+    if (row.fit_path) {
+      await rm(row.fit_path, { force: true })
+      await rm(garminPath(row.fit_path), { force: true })
+    }
     getDb().prepare('delete from rides where id = ?').run(rideId)
   })
 
@@ -225,7 +229,7 @@ export function registerRidesIpc(): void {
   // and Garmin's import page.
   ipcMain.handle(IPC.ridesSendToGarmin, async (_event, rideId: number) => {
     const path = rideRow(rideId)?.fit_path
-    if (path) shell.showItemInFolder(await garminCopy(path))
+    if (path) shell.showItemInFolder((await writeGarminCopy(path)) ?? path)
     await shell.openExternal(GARMIN_IMPORT_URL)
   })
 
@@ -336,28 +340,30 @@ export function toSample(r: SampleRow): RideSample {
 export const int = (n: number | undefined): number | null =>
   n === undefined ? null : Math.round(n)
 
+/** `ride.fit` → `ride_garmin.fit`, next to it. */
+const garminPath = (path: string): string => path.replace(/(\.fit)?$/i, '_garmin.fit')
+
 /**
- * The file to hand Garmin: the ride's own FIT, or with "send as a Garmin device" on, a copy in
- * a `garmin` folder next to it that says Edge 830, with training-effect fields (D33). Falls back
- * to the original on any error.
+ * With "send as a Garmin device" on, writes `<ride>_garmin.fit` next to the ride's FIT: the same
+ * ride saying Edge 830, with training-effect fields (D33). Written when the ride is saved and
+ * again on every "Send to Garmin" (a new file id each time). Returns its path, or undefined when
+ * the setting is off, the file isn't ours or anything fails.
  */
-async function garminCopy(path: string): Promise<string> {
-  if (getSetting(GARMIN_AS_DEVICE_KEY) !== 'true') return path
+async function writeGarminCopy(path: string): Promise<string | undefined> {
+  if (getSetting(GARMIN_AS_DEVICE_KEY) !== 'true') return undefined
   try {
     const { bytes, changed } = asGarminDevice(await readFile(path), {
       // A new file id on every send: Connect refuses one it has seen before.
       serialNumber: Math.floor(Date.now() / 1000),
       maxHrBpm: profileMaxHr(),
     })
-    if (!changed) return path
-    const dir = join(dirname(path), 'garmin')
-    await mkdir(dir, { recursive: true })
-    const copy = join(dir, basename(path))
+    if (!changed) return undefined
+    const copy = garminPath(path)
     await writeFile(copy, bytes)
     return copy
   } catch (e) {
     console.error('Garmin copy failed', path, e)
-    return path
+    return undefined
   }
 }
 

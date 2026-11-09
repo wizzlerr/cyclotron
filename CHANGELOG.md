@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+**Changed**
+
+- "Send rides as a Garmin device": the Garmin copy is now saved with every ride as
+  `<ride>_garmin.fit` next to the FIT file (no `garmin` folder), and "Send to Garmin" selects it.
+
 ## 0.6.0 (2026-11-02)
 
 **Changed**
