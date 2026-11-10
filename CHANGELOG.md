@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.6.1 (2026-11-10)
+
 **Changed**
 
 - "Send rides as a Garmin device": the Garmin copy is now saved with every ride as
