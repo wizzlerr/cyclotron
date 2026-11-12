@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+**Added**
+
+- Edit the Ride screen tiles: "Edit layout" on the Ride screen lets you drag tiles around, resize
+  them from the corner, and click one to choose up to three numbers (any power, heart rate,
+  cadence, speed, time, ride total or route number), its background and number colours. Your
+  current tiles are kept. The same editor is in Settings → Ride, so no trainer or ride is needed.
+
 **Fixed**
 
 - Zwift Click v2 / Ride controllers no longer disconnect after about a minute without presses

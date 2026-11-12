@@ -12,6 +12,7 @@
   import { t } from '../i18n/t'
   import { display, UI_SCALES } from '../lib/display.svelte'
   import { go, nav, SETTINGS_TABS } from '../nav.svelte'
+  import RideTiles from '../components/RideTiles.svelte'
   import { profile } from '../profile.svelte'
   import { saveDiagnosticReport } from '../lib/report'
   import { updates } from '../lib/updates.svelte'
@@ -19,7 +20,6 @@
   import { ride } from '../ride/session.svelte'
   import { sound } from '../ride/sound.svelte'
   import { worldPrefs } from '../world/prefs.svelte'
-  import { rideTiles, TILES } from '../ride/tiles.svelte'
 
   let fitFolder = $state('')
   let ftpHistory = $state.raw<FtpEntry[]>([])
@@ -274,21 +274,13 @@
       </section>
       <DataCard />
     {:else if nav.settingsTab === 'ride'}
+      <section class="card wide">
+        <h2>{s.rideTiles}</h2>
+        <p class="muted">{s.tilesHelp}</p>
+        <RideTiles editor />
+      </section>
       <section class="card">
         <h2>{s.rideScreen}</h2>
-        <div class="tile-choices">
-          {#each TILES as tile (tile.id)}
-            <label>
-              <input
-                type="checkbox"
-                checked={rideTiles.shown.includes(tile.id)}
-                onchange={() => rideTiles.toggle(tile.id)}
-              />
-              {tile.label}
-            </label>
-          {/each}
-        </div>
-        <button onclick={() => rideTiles.reset()}>{s.resetTiles}</button>
         <h3>{s.cueVolume}</h3>
         <label class="volume">
           <input
@@ -458,14 +450,10 @@
     margin: 0;
     padding-left: 1.25rem;
   }
-  .tile-choices {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
-    gap: 0.25rem;
-    margin-bottom: 0.75rem;
-  }
-  .tile-choices label {
-    margin-left: 0;
+  /* The tile editor spans every column, so tiles look as they will on the Ride screen. */
+  .wide {
+    grid-column: 1 / -1;
+    max-width: none;
   }
   .row {
     display: flex;

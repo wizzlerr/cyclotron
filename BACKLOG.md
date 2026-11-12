@@ -83,6 +83,7 @@ cyclotron/                (pnpm monorepo, TypeScript everywhere)
 | ~~E4-3~~ | ✅ (2026-10-21) (`LiveRideMetrics`, equal to the saved summary) Live NP, IF, TSS, kJ, W/kg, average power (math in `core`) | M |
 | ~~E4-4~~ | ✅ (2026-10-21) (uPlot; cadence hidden by default, click the legend) Live chart: power/HR/cadence over time | M |
 | ~~E4-5~~ | ✅ (2026-10-21) Layout settings: which tiles are shown | S |
+| ~~E4-6~~ | ✅ (2026-11-12, user request, D34) Edit the Ride screen tiles: drag, resize, 1–3 numbers per tile from every metric, colours | M |
 
 ## E5 — Ride recording and export
 
