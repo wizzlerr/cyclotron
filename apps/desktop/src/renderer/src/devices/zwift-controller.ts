@@ -22,6 +22,12 @@ export function controllerLabel(name: string, address: string | undefined): stri
   return tail ? `${name} ${tail}` : name
 }
 
+/**
+ * Click v2 (and Ride) units deep-sleep after ~1 min without presses and the link drops; Zwift keeps
+ * them awake by repeating the RideOn handshake (qdomyos-zwift PR #4743 does the same every 3 s).
+ */
+const KEEP_ALIVE_MS = 3000
+
 /** Ask for both Zwift services (Play/Click, and Ride/Click v2/Play fw2) when picking. */
 export const CONTROLLER_SERVICES: BluetoothServiceUUID[] = [ZWIFT_SERVICE, ZWIFT_RIDE_SERVICE]
 
@@ -36,6 +42,7 @@ export class ZwiftController {
   readonly presses = new Emitter<ZwiftButton>()
   private link: BleLink
   private tracker = new ZwiftButtonTracker()
+  private keepAlive: ReturnType<typeof setInterval> | undefined
 
   private constructor(
     device: BluetoothDevice,
@@ -46,7 +53,7 @@ export class ZwiftController {
     this.link = new BleLink(
       device,
       (server) => this.setup(server),
-      () => {},
+      () => this.stopKeepAlive(),
     )
   }
 
@@ -61,11 +68,18 @@ export class ZwiftController {
   }
 
   async disconnect(): Promise<void> {
+    this.stopKeepAlive()
     this.link.close()
     this.presses.clear()
   }
 
+  private stopKeepAlive(): void {
+    clearInterval(this.keepAlive)
+    this.keepAlive = undefined
+  }
+
   private async setup(server: BluetoothRemoteGATTServer): Promise<void> {
+    this.stopKeepAlive()
     const service = await server
       .getPrimaryService(ZWIFT_RIDE_SERVICE)
       .catch(() => server.getPrimaryService(ZWIFT_SERVICE))
@@ -86,6 +100,19 @@ export class ZwiftController {
     }
     // Plain "RideOn": current firmware then sends unencrypted button frames.
     await rx.writeValueWithoutResponse(RIDE_ON)
+    if (service.uuid === ZWIFT_RIDE_SERVICE) {
+      let failed = false
+      this.keepAlive = setInterval(() => {
+        rx.writeValueWithoutResponse(RIDE_ON).then(
+          () => (failed = false),
+          (e: unknown) => {
+            // Once per failure streak: a dropped link is handled by BleLink's reconnect.
+            if (!failed) logEvent('warn', `${this.label}: keep-alive failed: ${String(e)}`)
+            failed = true
+          },
+        )
+      }, KEEP_ALIVE_MS)
+    }
     logEvent('info', `${this.label}: controller connected (${service.uuid})`)
   }
 }

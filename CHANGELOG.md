@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+**Fixed**
+
+- Zwift Click v2 / Ride controllers no longer disconnect after about a minute without presses
+  (the app now keeps them awake, like Zwift does).
+
+**Changed**
+
+- Settings → Controllers shows each connected controller's Bluetooth address, and the device
+  picker hides controllers that are already connected, so the second Click is easier to find.
+
 ## 0.6.1 (2026-11-10)
 
 **Changed**
