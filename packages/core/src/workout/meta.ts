@@ -96,14 +96,90 @@ export function workoutMeta(workout: Workout): WorkoutMeta {
   }
 }
 
-/** The hardest type with enough work in it; recovery when there is none. */
+/**
+ * The workout's main work: of the types from tempo up with enough work at or above their floor,
+ * the one with the most time in its own band (up to the next type's floor) relative to the work
+ * it needs. So 3 × 10 min sweet spot with a few short surges is sweet spot, not anaerobic.
+ * Endurance when no harder type has enough work, recovery when endurance hasn't either.
+ */
 export function classifyProfile(profile: readonly number[]): WorkoutType {
-  for (let i = WORKOUT_TYPES.length - 1; i > 0; i--) {
+  let best: WorkoutType | undefined
+  let bestScore = -1
+  // Hardest first, so a tie goes to the harder type.
+  for (let i = WORKOUT_TYPES.length - 1; i >= 2; i--) {
     const type = WORKOUT_TYPES[i]!
     const rule = RULES[type]
-    if (profile.filter((p) => p >= rule.minPct).length >= rule.classifyS) return type
+    const next = WORKOUT_TYPES[i + 1]
+    const top = next ? RULES[next].minPct : Infinity
+    let above = 0
+    let inBand = 0
+    for (const p of profile) {
+      if (p < rule.minPct) continue
+      above++
+      if (p < top) inBand++
+    }
+    if (above < rule.classifyS) continue
+    const score = inBand / rule.classifyS
+    if (score > bestScore) {
+      bestScore = score
+      best = type
+    }
   }
-  return 'recovery'
+  if (best) return best
+  const endurance = RULES.endurance
+  return profile.filter((p) => p >= endurance.minPct).length >= endurance.classifyS
+    ? 'endurance'
+    : 'recovery'
+}
+
+/** One recorded second, for `rideWork`. */
+export interface WorkSample {
+  powerW?: number | null
+  /** Lap or workout step; seconds of one segment are scored at the segment's average. */
+  segment?: number | null
+  paused?: boolean
+}
+
+/** Seconds averaged when a ride has no laps to go by. */
+const SMOOTH_S = 30
+/** A ride needs this many laps for them to be its intervals. */
+const MIN_LAPS = 3
+
+/**
+ * Type and difficulty of what a ride actually was, from its power (E11-14): free rides, route
+ * rides and imports (e.g. Zwift workouts) count for the levels too. A ride with laps (a Zwift
+ * workout writes one per interval, ours one per step) is scored at each lap's average power, as
+ * planned workouts are; without laps, at a 30 s rolling average. Undefined without power.
+ */
+export function rideWork(
+  samples: readonly WorkSample[],
+  ftpW: number,
+): { type: WorkoutType; difficulty: number } | undefined {
+  const moving = samples.filter((s) => !s.paused)
+  if (ftpW <= 0 || !moving.some((s) => (s.powerW ?? 0) > 0)) return undefined
+  const power = moving.map((s) => s.powerW ?? 0)
+  const laps = new Set(moving.map((s) => s.segment ?? null))
+  const profile: number[] = []
+  if (!laps.has(null) && laps.size >= MIN_LAPS) {
+    let start = 0
+    for (let i = 1; i <= moving.length; i++) {
+      if (i < moving.length && moving[i]!.segment === moving[start]!.segment) continue
+      let sum = 0
+      for (let j = start; j < i; j++) sum += power[j]!
+      const pct = sum / (i - start) / ftpW
+      for (let j = start; j < i; j++) profile.push(pct)
+      start = i
+    }
+  } else {
+    let sum = 0
+    for (let i = 0; i < power.length; i++) {
+      sum += power[i]!
+      if (i >= SMOOTH_S) sum -= power[i - SMOOTH_S]!
+      profile.push(sum / Math.min(i + 1, SMOOTH_S) / ftpW)
+    }
+  }
+  const type = classifyProfile(profile)
+  return { type, difficulty: profileDifficulty(profile, type) }
 }
 
 /**

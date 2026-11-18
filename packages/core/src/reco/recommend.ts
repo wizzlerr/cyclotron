@@ -116,7 +116,7 @@ const STRETCH: Record<Readiness, number> = {
 const HIGH_MAX = 0.25
 const HIGH_MIN = 0.1
 /** Library workouts further than this from the target difficulty are replaced by a generated one. */
-const GENERATE_OFF = 1
+const GENERATE_OFF = 0.5
 /** …and only when the generated one is at least this much closer. */
 const GENERATE_GAIN = 0.5
 /** Done within this many days: prefer another workout. */

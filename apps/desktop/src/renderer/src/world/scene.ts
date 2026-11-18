@@ -27,8 +27,10 @@ export type WorldQuality = 'low' | 'high'
 /** What the world needs from the ride, read every frame. */
 export interface WorldFeed {
   route?: Route
-  /** Position along the route (wraps when a workout outlasts it). */
+  /** Position along the route (round a loop again, or back, when a workout outlasts it). */
   routeD?: number
+  /** Riding back towards the route's start (`RoutePosition.backwards`). */
+  backwards?: boolean
   speedMps: number
   cadenceRpm: number
   running: boolean
@@ -125,9 +127,15 @@ export function createWorld(
   far.position.y = minY - 25
   scene.add(far)
   scene.add(trees(q))
+  // Gradient signs for each direction; only the set for the way the rider is going is shown.
+  const signsForward = new THREE.Group()
+  const signsBack = new THREE.Group()
+  signsBack.visible = false
+  scene.add(signsForward, signsBack)
   if (route) {
     for (const m of kmMarkers(centre, track)) scene.add(m)
-    for (const m of gradientSigns(route, centre, track)) scene.add(m)
+    signsForward.add(...gradientSigns(route, centre, track, false))
+    signsBack.add(...gradientSigns(route, centre, track, true))
   }
 
   function roadMesh(pts: WorldPoint[], keep: typeof track): THREE.Group {
@@ -337,8 +345,12 @@ export function createWorld(
     const target = f.running ? f.speedMps : 0
     speed += (target - speed) * Math.min(1, dt * SPEED_EASE)
 
+    // Along the road's distance: −1 while riding a point-to-point route back to its start.
+    const dir = !straight && f.backwards ? -1 : 1
+    signsForward.visible = dir === 1
+    signsBack.visible = dir === -1
     const before = worldD
-    worldD += speed * dt
+    worldD += dir * speed * dt
     if (!straight && f.routeD !== undefined) {
       // The ride's position is the truth but only updates once a second: compare with where it
       // is now (last report + distance since), so the correction stays small and continuous
@@ -347,18 +359,20 @@ export function createWorld(
         lastRouteD = f.routeD
         routeDAt = now
       }
-      const truth = f.routeD + speed * ((now - routeDAt) / 1000)
+      const truth = f.routeD + dir * speed * ((now - routeDAt) / 1000)
       const diff = truth - worldD
       worldD = Math.abs(diff) > SNAP_M ? truth : worldD + diff * Math.min(1, dt * POSITION_EASE)
     }
     if (import.meta.env.DEV && dt > 0) {
-      steps.push((worldD - before) / dt)
+      steps.push((dir * (worldD - before)) / dt)
       if (steps.length > 300) steps.shift()
     }
     if (debugD !== undefined) worldD = debugD
     const roadD = straight ? STRAIGHT_START + (((worldD % PERIOD) + PERIOD) % PERIOD) : worldD
 
-    const fr = frameAt(centre, roadD, 6)
+    const road = frameAt(centre, roadD, 6)
+    // Heading and slope in the direction of travel; riding back, the rider keeps right too.
+    const fr = { ...road, hx: dir * road.hx, hz: dir * road.hz, slope: dir * road.slope }
     // Right of the heading is (−hz, hx).
     const x = fr.x - fr.hz * LANE_OFFSET
     const z = fr.z + fr.hx * LANE_OFFSET
@@ -373,9 +387,9 @@ export function createWorld(
     // Chase camera on the road behind (not straight back, which is inside the hill on a hairpin),
     // at least CAM_MIN_M from the rider, above the rider and the ground, aimed at the rider with a
     // slight lead along the heading so the rider stays in frame through hairpins.
-    const back = frameAt(centre, roadD - CAM_BACK_M, 6)
-    let bx = back.x - back.hz * LANE_OFFSET
-    let bz = back.z + back.hx * LANE_OFFSET
+    const back = frameAt(centre, roadD - dir * CAM_BACK_M, 6)
+    let bx = back.x - dir * back.hz * LANE_OFFSET
+    let bz = back.z + dir * back.hx * LANE_OFFSET
     const away = Math.hypot(bx - x, bz - z)
     if (away < CAM_MIN_M) {
       // Round a tight bend the road behind is too close: back off along the line to it (or
@@ -552,13 +566,16 @@ function buildRider(track: <T extends { dispose(): void }>(x: T) => T): {
 /** A small text label that always faces the camera. */
 /**
  * Gradient signs on climbs (E16-8): a red-bordered warning triangle with the gradient of the
- * stretch ahead, on a post on the left of the road, facing the rider.
+ * stretch ahead, on a post on the left of the road, facing the rider. `backwards`: the signs for
+ * riding the route back (on the other side, facing the other way).
  */
 function gradientSigns(
   route: Route,
   pts: WorldPoint[],
   track: <T extends { dispose(): void }>(x: T) => T,
+  backwards: boolean,
 ): THREE.Object3D[] {
+  const dir = backwards ? -1 : 1
   const out: THREE.Object3D[] = []
   const postGeo = track(new THREE.CylinderGeometry(0.05, 0.05, 2.4, 6).translate(0, 1.2, 0))
   const postMat = track(new THREE.MeshLambertMaterial({ color: 0x9aa0a6 }))
@@ -574,9 +591,10 @@ function gradientSigns(
     }
     return m
   }
-  for (const sign of gradeSigns(route)) {
-    const f = frameAt(pts, sign.d)
-    // Left of the heading is (hz, −hx).
+  for (const sign of gradeSigns(route, backwards)) {
+    const road = frameAt(pts, sign.d)
+    const f = { ...road, hx: dir * road.hx, hz: dir * road.hz }
+    // Left of the heading (in the direction of travel) is (hz, −hx).
     const x = f.x + f.hz * (ROAD_HALF_W + 1)
     const z = f.z - f.hx * (ROAD_HALF_W + 1)
     const g = new THREE.Group()

@@ -1,3 +1,4 @@
+import { existsSync, readFileSync } from 'node:fs'
 import { copyFile, mkdir, readFile } from 'node:fs/promises'
 import { basename, join, relative } from 'node:path'
 import {
@@ -6,12 +7,14 @@ import {
   decodeFitActivity,
   localDate,
   powerCurve,
+  rideWork,
   summarizeRide,
   targetHit,
   zoneTimes,
   type DailyLoad,
   type DailyWellness,
   type RideSample,
+  type WorkoutType,
 } from '@cyclotron/core'
 import { BrowserWindow, dialog, ipcMain } from 'electron'
 import {
@@ -36,19 +39,29 @@ const DEFAULT_FTP_W = 200
 /** Rides starting this close together are the same ride (re-import of the same file). */
 const SAME_RIDE_MS = 60_000
 
-/** Power curve and time in zones for one ride, from its stored samples. */
+/** Power curve, time in zones and what the ride was, from its stored samples. */
 export function computeAggregates(rideId: number): void {
   const db = getDb()
   const ride = rideRow(rideId)
   if (!ride) return
+  if (ride.source === 'import') addImportLaps(rideId, ride.fit_path)
   const rows = db
-    .prepare('select power, target, paused from ride_samples where ride_id = ? order by t')
-    .all(rideId) as { power: number | null; target: number | null; paused: number }[]
+    .prepare('select power, target, segment, paused from ride_samples where ride_id = ? order by t')
+    .all(rideId) as {
+    power: number | null
+    target: number | null
+    segment: number | null
+    paused: number
+  }[]
   const power = rows.filter((r) => r.paused !== 1).map((r) => r.power ?? 0)
   const curve = powerCurve(power)
   const zones = zoneTimes(power, ride.ftp_at_ride)
   const hit = targetHit(
     rows.map((r) => ({ power: r.power, target: r.target, paused: r.paused === 1 })),
+    ride.ftp_at_ride,
+  )
+  const work = rideWork(
+    rows.map((r) => ({ powerW: r.power, segment: r.segment, paused: r.paused === 1 })),
     ride.ftp_at_ride,
   )
   transaction(db, () => {
@@ -60,11 +73,33 @@ export function computeAggregates(rideId: number): void {
     for (const p of curve) c.run(rideId, p.durationS, p.watts)
     const z = db.prepare('insert into ride_zone_time (ride_id, zone, seconds) values (?, ?, ?)')
     zones.forEach((s, i) => z.run(rideId, i + 1, s))
-    db.prepare('update rides set aggregates_at = ?, target_hit = ? where id = ?').run(
-      Date.now(),
-      hit ?? null,
-      rideId,
-    )
+    db.prepare(
+      `update rides set aggregates_at = ?, target_hit = ?, work_type = ?, work_difficulty = ?
+        where id = ?`,
+    ).run(Date.now(), hit ?? null, work?.type ?? null, work?.difficulty ?? null, rideId)
+  })
+}
+
+/**
+ * Rides imported before E11-14 were stored without their laps: read them from the kept copy of
+ * the file, so a Zwift workout is scored by its intervals. Once set, segments aren't null again.
+ */
+function addImportLaps(rideId: number, fitPath: string | null): void {
+  const db = getDb()
+  const missing = db
+    .prepare('select 1 from ride_samples where ride_id = ? and segment is null limit 1')
+    .get(rideId)
+  if (!missing || !fitPath || !existsSync(fitPath)) return
+  let activity
+  try {
+    activity = decodeFitActivity(new Uint8Array(readFileSync(fitPath)))
+  } catch (e) {
+    console.error('could not read laps of ride', rideId, e)
+    return
+  }
+  const update = db.prepare('update ride_samples set segment = ? where ride_id = ? and t = ?')
+  transaction(db, () => {
+    for (const s of activity.samples) update.run(s.segment ?? 0, rideId, s.t)
   })
 }
 
@@ -127,7 +162,7 @@ export function registerAnalyticsIpc(): void {
     const rows = db
       .prepare(
         `select id, started_at, utc_offset_min, workout_id, tss, intensity, timer_s, feedback,
-                target_hit
+                target_hit, work_type, work_difficulty
            from rides where status = 'finished' and started_at >= ? order by started_at`,
       )
       .all(since) as {
@@ -140,6 +175,8 @@ export function registerAnalyticsIpc(): void {
       timer_s: number | null
       feedback: RideFeedback | null
       target_hit: number | null
+      work_type: WorkoutType | null
+      work_difficulty: number | null
     }[]
     const zones = new Map<number, number[]>()
     const zoneRows = db
@@ -161,6 +198,8 @@ export function registerAnalyticsIpc(): void {
       timerS: r.timer_s ?? 0,
       feedback: r.feedback ?? undefined,
       targetHit: r.target_hit ?? undefined,
+      workType: r.work_type ?? undefined,
+      workDifficulty: r.work_difficulty ?? undefined,
       zoneS: zones.get(r.id) ?? [0, 0, 0, 0, 0, 0, 0],
     }))
     // Other sports and rides from Garmin (E12-5): load and intensity only.
@@ -331,7 +370,7 @@ function insertSamples(rideId: number, samples: readonly RideSample[]): void {
   const insert = getDb().prepare(
     `insert or replace into ride_samples
        (ride_id, t, power, cadence, speed, hr, target, segment, paused, lat, lon, alt, dist)
-     values (?, ?, ?, ?, ?, ?, null, null, 0, ?, ?, ?, ?)`,
+     values (?, ?, ?, ?, ?, ?, null, ?, 0, ?, ?, ?, ?)`,
   )
   for (const s of samples) {
     insert.run(
@@ -341,6 +380,7 @@ function insertSamples(rideId: number, samples: readonly RideSample[]): void {
       int(s.cadenceRpm),
       s.speedKmh ?? null,
       int(s.heartRateBpm),
+      s.segment ?? 0,
       s.lat ?? null,
       s.lon ?? null,
       s.altitudeM ?? null,

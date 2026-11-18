@@ -28,6 +28,7 @@
     return {
       route: ride.route,
       routeD: rs?.position.d,
+      backwards: rs?.position.backwards,
       speedMps: speedKmh / 3.6,
       cadenceRpm: devices.data?.cadenceRpm ?? 0,
       running: ride.state?.status === 'running',

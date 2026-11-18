@@ -11,11 +11,23 @@
 
 **Fixed**
 
+- A workout on a point-to-point route that outlasts the route no longer jumps you back to the
+  start: you turn round at the end and ride the road back, with the grade reversed. The virtual
+  world's gradient signs show the climbs in the direction you're riding.
 - Zwift Click v2 / Ride controllers no longer disconnect after about a minute without presses
   (the app now keeps them awake, like Zwift does).
 
 **Changed**
 
+- Recommended workouts catch up with you faster: your first few workouts of each type set your
+  level, "felt easy" raises it clearly, and a long break lowers it by at most two levels. Free
+  rides, route rides and imported rides (e.g. Zwift workouts) now count for your levels too,
+  going back a year. Import your old Zwift or MyWhoosh FIT files in History to get picks that
+  match what you rode there. When no library workout is within half a level of yours, a
+  workout is made to measure.
+- Workouts you import or build are typed by their main work: three sweet spot blocks with a few
+  short surges are sweet spot, not anaerobic.
+- Imported rides keep their laps.
 - Settings → Controllers shows each connected controller's Bluetooth address, and the device
   picker hides controllers that are already connected, so the second Click is easier to find.
 

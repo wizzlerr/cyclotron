@@ -36,6 +36,20 @@ describe('decodeFitActivity', () => {
     expect(a.samples.at(-1)!.distanceM).toBeCloseTo(996, 0)
   })
 
+  it('keeps the laps as segments', () => {
+    const samples: RideSample[] = []
+    for (let t = 1; t <= 90; t++)
+      samples.push({ t, powerW: 150, segment: Math.floor((t - 1) / 30) })
+    const bytes = encodeFitActivity({
+      startedAtMs: Date.UTC(2026, 9, 21),
+      utcOffsetMin: 0,
+      samples,
+      ftpW: 200,
+    })
+    const a = decodeFitActivity(bytes)
+    expect(a.samples.map((s) => s.segment)).toEqual(samples.map((s) => s.segment))
+  })
+
   it('rejects files that are not FIT', () => {
     expect(() => decodeFitActivity(Uint8Array.from([104, 101, 108, 108, 111]))).toThrow(
       FitImportError,

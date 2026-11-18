@@ -1,4 +1,10 @@
-import type { DailyLoad, DailyWellness, PowerCurvePoint, RideSample } from '@cyclotron/core'
+import type {
+  DailyLoad,
+  DailyWellness,
+  PowerCurvePoint,
+  RideSample,
+  WorkoutType,
+} from '@cyclotron/core'
 
 export type { DailyLoad, DailyWellness, PowerCurvePoint, RideSample }
 
@@ -78,6 +84,9 @@ export interface RecoRide {
   feedback?: RideFeedback
   /** Share of work seconds on target (E11-8). */
   targetHit?: number
+  /** What the ride was, from its power (E11-14); used when it followed no workout. */
+  workType?: WorkoutType
+  workDifficulty?: number
   /** Seconds in Z1…Z7. */
   zoneS: number[]
   /** Another sport or a ride not recorded here, from Garmin (E12-5). */

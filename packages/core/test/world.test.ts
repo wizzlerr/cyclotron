@@ -212,6 +212,27 @@ describe('gradient signs', () => {
     for (const s of signs) expect(s.d).toBeLessThan(3600)
   })
 
+  it('has signs for riding the route back, on the climbs that way', () => {
+    // Flat, then 2 km at 8 % down when ridden forwards, then flat: a climb only on the way back.
+    const route = buildRoute(
+      { id: 'b', name: 'b', source: 'gpx' },
+      profile([
+        [1000, 0],
+        [2000, -8],
+        [1000, 0],
+      ]),
+    )
+    expect(gradeSigns(route)).toEqual([])
+    const back = gradeSigns(route, true)
+    expect(back.length).toBeGreaterThanOrEqual(2)
+    // Distances are along the route, so the first sign ridden back is the furthest along,
+    // near the foot of the climb at 3 km.
+    expect(back[0]!.d).toBeGreaterThan(2900)
+    expect(back[0]!.d).toBeLessThanOrEqual(3400)
+    for (let i = 1; i < back.length; i++) expect(back[i - 1]!.d - back[i]!.d).toBe(1000)
+    expect(back[1]!.gradePct).toBe(8)
+  })
+
   it('puts nothing on flat or rolling roads', () => {
     const route = buildRoute(
       { id: 'f', name: 'f', source: 'gpx' },

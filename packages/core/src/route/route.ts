@@ -67,6 +67,11 @@ export interface RoutePosition {
   gradePct: number
   /** Distance along the route, clamped to [0, distanceM]. */
   d: number
+  /**
+   * Riding the route back towards its start (a workout longer than a point-to-point route turns
+   * round at each end); `gradePct` is then the grade in the direction of travel.
+   */
+  backwards?: boolean
 }
 
 /** Builds a route from raw points (GPX or built-in data). Throws if it has no length. */
