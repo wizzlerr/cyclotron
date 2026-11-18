@@ -44,8 +44,17 @@ export function decodeFitActivity(bytes: Uint8Array): DecodedActivity {
   }
 
   const startedAtMs = (records[0]!.timestamp as Date).getTime() - 1000
+  // Laps (a Zwift workout writes one per interval) become the samples' segments, so a ride can
+  // be scored by what its intervals were (E11-14).
+  const lapStarts = (messages.lapMesgs ?? [])
+    .map((l) => (l.startTime instanceof Date ? l.startTime.getTime() : NaN))
+    .filter((ms) => Number.isFinite(ms))
+    .sort((a, b) => a - b)
+  let lap = 0
   const samples: RideSample[] = []
   for (const r of records) {
+    const ms = (r.timestamp as Date).getTime()
+    while (lap + 1 < lapStarts.length && lapStarts[lap + 1]! < ms) lap++
     const t = Math.round(((r.timestamp as Date).getTime() - startedAtMs) / 1000)
     // Devices sometimes write two records for one second; keep the first.
     if (samples.length > 0 && t <= samples.at(-1)!.t) continue
@@ -63,6 +72,7 @@ export function decodeFitActivity(bytes: Uint8Array): DecodedActivity {
       altitudeM: altitude,
       lat: lat === undefined ? undefined : lat * SEMICIRCLE_TO_DEG,
       lon: lon === undefined ? undefined : lon * SEMICIRCLE_TO_DEG,
+      segment: lapStarts.length > 0 ? lap : undefined,
     })
   }
 

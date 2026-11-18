@@ -14,6 +14,7 @@
   {#each devices.controllers as ctl (ctl.label)}
     <p>
       <b>{ctl.label}</b>
+      {#if ctl.address}<span class="address">{ctl.address}</span>{/if}
       <button class="small" onclick={() => devices.disconnectController(ctl)}>{c.disconnect}</button
       >
     </p>
@@ -74,6 +75,12 @@
   .small {
     font-size: 0.8rem;
     padding: 0.1rem 0.5rem;
+    margin-left: 0.5rem;
+  }
+  .address {
+    color: var(--muted);
+    font-family: ui-monospace, monospace;
+    font-size: 0.85em;
     margin-left: 0.5rem;
   }
   .tester {

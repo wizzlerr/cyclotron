@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { BluetoothDeviceInfo } from '../../../shared/api'
+  import { devices as connected } from '../devices/devices.svelte'
   import { t } from '../i18n/t'
 
   let { open }: { open: boolean } = $props()
@@ -17,8 +18,12 @@
     if (!open) devices = []
   })
 
+  // Controllers already connected are hidden, so the second Click / Play half is easy to find.
+  const taken = $derived(new Set(connected.controllers.map((c) => c.address).filter(Boolean)))
+
   const visible = $derived(
     devices
+      .filter((d) => !taken.has(d.id))
       .filter((d) => showUnnamed || d.name)
       .toSorted((a, b) => (a.name || '~').localeCompare(b.name || '~')),
   )

@@ -129,6 +129,13 @@ const MIGRATIONS = [
   `
   alter table rides add column intervals_id text;
   `,
+  // E11-14: what each ride was (type and difficulty from its power), so free, route and imported
+  // rides count for the progression levels; recompute aggregates to fill it in.
+  `
+  alter table rides add column work_type text;
+  alter table rides add column work_difficulty real;
+  update rides set aggregates_at = null;
+  `,
 ]
 
 /** Schema version this build creates; a backup from a newer one can't be restored. */

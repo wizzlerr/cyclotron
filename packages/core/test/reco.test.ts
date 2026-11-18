@@ -125,11 +125,46 @@ describe('progression levels', () => {
     expect(l.sweetspot).toBeLessThan(progressionLevels([ss(-5)], TODAY).sweetspot)
   })
 
-  it('decays when a type is not trained for weeks', () => {
+  it('decays when a type is not trained for weeks, by 2 levels at most, not below the start', () => {
     const recent = progressionLevels([ss(-3, { difficulty: 7 })], TODAY).sweetspot
     const old = progressionLevels([ss(-60, { difficulty: 7 })], TODAY).sweetspot
     expect(old).toBeLessThan(recent)
     expect(old).toBeGreaterThanOrEqual(1)
+    const veryOld = progressionLevels([ss(-300, { difficulty: 7 })], TODAY).sweetspot
+    expect(veryOld).toBeCloseTo(recent - 2, 5)
+    // A type ridden once, easier than the start, doesn't decay below the start.
+    expect(progressionLevels([ss(-300, { difficulty: 1 })], TODAY).sweetspot).toBe(
+      startLevel('sweetspot'),
+    )
+  })
+
+  it('calibrates on the first rides of a type, then moves more slowly', () => {
+    // The first ride moves the level all the way to the workout (plus the bonus).
+    expect(progressionLevels([ss(-3, { difficulty: 7, feedback: 'right' })], TODAY).sweetspot).toBe(
+      7.2,
+    )
+    const four = [-9, -7, -5, -3].map((d) => ss(d, { difficulty: 5, feedback: 'right' }))
+    const three = progressionLevels(four.slice(0, 3), TODAY).sweetspot
+    expect(three).toBe(5.2)
+    // The fourth at the same difficulty only nudges it.
+    const after = progressionLevels([...four, ss(-1, { difficulty: 8 })], TODAY).sweetspot
+    expect(after).toBeLessThan(8)
+    expect(after).toBeGreaterThan(5.2)
+  })
+
+  it('keeps rising when workouts at the level feel easy', () => {
+    // Picks sit at the level, so the difficulty follows it; easy rides keep lifting it.
+    const rides = [3.5, 4.5, 5.5].map((difficulty, i) =>
+      ss(-7 + 2 * i, { difficulty, feedback: 'easy' }),
+    )
+    const l = progressionLevels(rides, TODAY).sweetspot
+    expect(l).toBeGreaterThanOrEqual(startLevel('sweetspot') + 3)
+    // Easy on a workout far below the level says nothing new.
+    const low = progressionLevels(
+      [ss(-5, { difficulty: 7 }), ss(-3, { difficulty: 3, feedback: 'easy' })],
+      TODAY,
+    )
+    expect(low.sweetspot).toBe(progressionLevels([ss(-5, { difficulty: 7 })], TODAY).sweetspot)
   })
 })
 

@@ -3,182 +3,42 @@
   import { padmap } from '../lib/padmap.svelte'
   import { padnav } from '../lib/padnav.svelte'
   import { controls, ERG_STEP_W, RESISTANCE_STEP } from '../ride/controls.svelte'
-  import { caloriesKcal, heartRateZone, powerZone } from '@cyclotron/core'
   import LiveChart from '../components/LiveChart.svelte'
   import RideSummary from '../components/RideSummary.svelte'
+  import RideTiles from '../components/RideTiles.svelte'
+  import { rideLayout } from '../ride/layout.svelte'
   import RouteMap from '../components/RouteMap.svelte'
   import RouteProfile from '../components/RouteProfile.svelte'
-  import Tile from '../components/Tile.svelte'
-  import type { ComponentProps } from 'svelte'
   import WorldView from '../components/WorldView.svelte'
   import WorkoutProfile from '../components/WorkoutProfile.svelte'
   import { devices } from '../devices/devices.svelte'
   import { workoutName } from '../i18n/content'
   import { formatNumber } from '../i18n/i18n.svelte'
   import { t } from '../i18n/t'
-  import { balancedColumns, columnsWithWide, shareSpace, type Elastic } from '../lib/fit'
+  import { shareSpace, type Elastic } from '../lib/fit'
   import { describeSegment as describe, formatDuration, formatKm } from '../lib/format'
   import { go } from '../nav.svelte'
   import { profile } from '../profile.svelte'
   import { ride } from '../ride/session.svelte'
-  import { rideTiles, type TileId } from '../ride/tiles.svelte'
   import { worldPrefs } from '../world/prefs.svelte'
 
   // The ride screen fits the window, since nobody scrolls from the bike: tiles and controls take
   // what they need and the charts share the rest (fit() below). Only when even their minimum
   // sizes don't fit (a small window with the 3D world on) does the page scroll.
   let pageEl: HTMLDivElement | undefined = $state()
-  let windowWidth = $state(1280)
-  let tilesWidth = $state(1000)
   let profileHeight = $state(110)
   let routeHeight = $state(110)
   let chartHeight = $state(200)
   let worldHeight = $state(300)
   const s = $derived(ride.state)
   const remaining = $derived(s ? Math.ceil(s.segmentRemainingS) : 0)
-  const pZone = $derived(
-    devices.power3s && devices.power3s > 0 ? powerZone(devices.power3s, profile.ftpW) : undefined,
-  )
-  const hrZone = $derived(
-    devices.bpm && profile.maxHr ? heartRateZone(devices.bpm, profile.maxHr) : undefined,
-  )
   const manualErgOn = $derived(controls.manualErgOn)
 
   // Zwift controller buttons navigation didn't use (lib/padnav.svelte.ts), run as the action
   // they're mapped to (Settings → Controllers).
   $effect(() => padnav.unhandled.on((button) => controls.run(padmap.action(button))))
 
-  type TileProps = ComponentProps<typeof Tile>
-
-  const fixed = (n: number | undefined, digits: number): string | undefined =>
-    n === undefined ? undefined : formatNumber(n, digits)
-
-  /** Props for every tile (E4-1…E4-3); the layout setting picks which are shown (E4-5). */
-  const tiles = $derived.by((): Record<TileId, TileProps> => {
-    const m = ride.metrics
-    const L = t().ride.tiles
-    const target = ride.active ? ride.targetW : manualErgOn ? controls.ergWatts : undefined
-    const powerLabel = pZone ? t().ride.powerZoneTile(pZone) : L.power3s.short
-    const intervalHot = s?.status === 'running' && remaining <= 5 && s.next !== undefined
-    const timed = s !== undefined && !ride.isFreeRide
-    return {
-      powerTarget: {
-        label: powerLabel,
-        parts:
-          target === undefined
-            ? undefined
-            : [
-                { value: devices.power3s, name: powerLabel },
-                { value: target, color: 'var(--muted)', name: L.target.short },
-              ],
-        value: devices.power3s,
-        sep: '/',
-        unit: 'W',
-        accent: pZone ? `var(--z${pZone})` : undefined,
-      },
-      avgNp: {
-        label: L.avgNp.short,
-        parts: [
-          { value: m?.avgPowerW, name: L.avgPower.short },
-          { value: m?.normalizedPowerW, name: L.np.short },
-        ],
-        unit: 'W',
-      },
-      time: {
-        label: L.elapsed.short,
-        parts: timed
-          ? [
-              {
-                value: formatDuration(remaining),
-                color: intervalHot ? 'var(--warn)' : 'var(--series-1)',
-                name: L.time.interval,
-              },
-              { value: formatDuration(s.positionS), name: L.elapsed.short },
-              {
-                value: formatDuration(s.totalS),
-                color: 'var(--muted)',
-                name: L.time.total,
-              },
-            ]
-          : undefined,
-        value: s ? formatDuration(s.positionS) : undefined,
-      },
-      power3s: {
-        label: pZone ? t().ride.powerZoneTile(pZone) : L.power3s.short,
-        value: devices.power3s,
-        unit: 'W',
-        accent: pZone ? `var(--z${pZone})` : undefined,
-      },
-      power: { label: L.power.short, value: devices.data?.powerW, unit: 'W' },
-      power10s: { label: L.power10s.short, value: devices.power10s, unit: 'W' },
-      target: { label: L.target.short, value: target, unit: 'W' },
-      intervalLeft: {
-        label: L.intervalLeft.short,
-        value: s ? formatDuration(remaining) : undefined,
-        highlight: s?.status === 'running' && remaining <= 5 && s.next !== undefined,
-      },
-      intervalAvg: { label: L.intervalAvg.short, value: ride.intervalAvgW, unit: 'W' },
-      elapsed: {
-        label: L.elapsed.short,
-        value: s ? formatDuration(s.positionS) : undefined,
-        unit: s && !ride.isFreeRide ? `/ ${formatDuration(s.totalS)}` : '',
-      },
-      hr: {
-        label: hrZone ? t().ride.hrZoneTile(hrZone) : L.hr.short,
-        value: devices.bpm,
-        unit: 'bpm',
-        accent: hrZone ? `var(--z${hrZone})` : undefined,
-      },
-      cadence: { label: L.cadence.short, value: devices.data?.cadenceRpm, unit: 'rpm' },
-      speed: {
-        label: L.speed.short,
-        value: ride.routeState ? fixed(ride.routeState.speedKmh, 1) : devices.data?.speedKmh,
-        unit: 'km/h',
-      },
-      wkg: {
-        label: profile.weightKg ? L.wkg.short : t().ride.wkgSetWeight,
-        value: profile.weightKg ? fixed((devices.power3s ?? 0) / profile.weightKg, 1) : undefined,
-      },
-      avgPower: { label: L.avgPower.short, value: m?.avgPowerW, unit: 'W' },
-      np: { label: L.np.short, value: m?.normalizedPowerW, unit: 'W' },
-      if: { label: L.if.short, value: fixed(m?.intensity, 2) },
-      tss: { label: L.tss.short, value: m?.tss },
-      kcal: { label: L.kcal.short, value: m && caloriesKcal(m.workKj), unit: 'kcal' },
-    }
-  })
-
-  const RIDE_METRICS = new Set<TileId>([
-    'avgPower',
-    'np',
-    'if',
-    'tss',
-    'kcal',
-    'elapsed',
-    'intervalAvg',
-    'avgNp',
-    'time',
-  ])
-  /** Before a ride: only live readings; ride totals and interval tiles have nothing to show. */
-  const shownIds = $derived(
-    rideTiles.shown.filter((id) => {
-      if (!ride.workout) return !RIDE_METRICS.has(id) && id !== 'intervalLeft'
-      return !(ride.isFreeRide && (id === 'intervalLeft' || id === 'intervalAvg'))
-    }),
-  )
-
   const rem = (): number => parseFloat(getComputedStyle(document.documentElement).fontSize) || 16
-  /** Wider tiles on big windows, to fit the bigger numbers (Tile.svelte); rows come out even. */
-  const tileLayout = $derived.by(() => {
-    void windowWidth
-    const r = rem()
-    const minTile = Math.min(22 * r, Math.max(10 * r, windowWidth * 0.1))
-    const gap = 0.75 * r
-    // The time tile holds three times, so it spans two columns when there are three or more.
-    if (shownIds.includes('time') && !ride.isFreeRide) {
-      return columnsWithWide(shownIds.length, tilesWidth, minTile, gap)
-    }
-    return { columns: balancedColumns(shownIds.length, tilesWidth, minTile, gap), span: 1 }
-  })
 
   type Part = 'profile' | 'route' | 'chart' | 'world'
   const setters: Record<Part, (px: number) => void> = {
@@ -239,8 +99,6 @@
   })
 </script>
 
-<svelte:window bind:innerWidth={windowWidth} />
-
 {#snippet ergControls()}
   {#if manualErgOn}
     <button onclick={() => controls.setErg(controls.ergWatts - ERG_STEP_W)}
@@ -273,22 +131,7 @@
 {/snippet}
 
 {#snippet tileGrid()}
-  <div
-    class="tiles"
-    bind:clientWidth={tilesWidth}
-    style:grid-template-columns="repeat({tileLayout.columns}, minmax(0, 1fr))"
-  >
-    {#each shownIds as id (id)}
-      <div
-        class="cell"
-        style:grid-column={id === 'time' && tileLayout.span > 1
-          ? `span ${tileLayout.span}`
-          : undefined}
-      >
-        <Tile {...tiles[id]} />
-      </div>
-    {/each}
-  </div>
+  <RideTiles />
 {/snippet}
 
 {#snippet deviceWarnings()}
@@ -309,6 +152,11 @@
     <div class="head">
       <h1>{workoutName(ride.workout)}</h1>
       {#if !ride.isFreeRide}<span class="muted">{describe(s.segment)}</span>{/if}
+      {#if s.status !== 'finished' && !rideLayout.editing}
+        <button class="edit-layout" onclick={() => rideLayout.startEditing()}
+          >{t().ride.layout.edit}</button
+        >
+      {/if}
     </div>
 
     {#if s.status === 'finished'}
@@ -423,6 +271,10 @@
       <button onclick={() => go('workouts')}>{t().ride.chooseWorkout}</button>
       <span class="sep"></span>
       {@render ergControls()}
+      {#if !rideLayout.editing}
+        <span class="sep"></span>
+        <button onclick={() => rideLayout.startEditing()}>{t().ride.layout.edit}</button>
+      {/if}
     </section>
     <p class="muted">{t().ride.notRecordedYet}</p>
     {#if devices.error}<p class="error">{devices.error}</p>{/if}
@@ -439,14 +291,10 @@
   .head h1 {
     margin: 0;
   }
-  .tiles {
-    display: grid;
-    grid-auto-flow: row dense;
-    gap: 0.75rem;
-  }
-  .cell {
-    display: grid;
-    min-width: 0;
+  .edit-layout {
+    margin-left: auto;
+    font-size: 0.85rem;
+    padding: 0.15rem 0.6rem;
   }
   .chart {
     margin-top: 0.75rem;

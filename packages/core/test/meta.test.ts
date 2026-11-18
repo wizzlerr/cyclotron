@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   BUILTIN_WORKOUTS,
   classifyProfile,
+  rideWork,
   workoutMeta,
   workoutProfile,
   WORKOUT_TYPES,
@@ -43,6 +44,18 @@ describe('workoutMeta', () => {
     expect(classifyProfile([...at(0.68, 60), ...at(1.5, 1)])).toBe('endurance')
   })
 
+  it('classifies mixed workouts by their main work, not by a few surges', () => {
+    const at = (pct: number, m: number): number[] => Array<number>(minutes(m)).fill(pct)
+    // 3 × (45 s at 160 % + 10 min sweet spot): a Zwift-style sweet spot workout.
+    const block = [...at(1.6, 0.75), ...at(0.9, 10), ...at(0.55, 3)]
+    expect(classifyProfile([...at(0.55, 10), ...block, ...block, ...block])).toBe('sweetspot')
+    // 4 × 2 min at 145 % with long rests is anaerobic even with endurance around it.
+    const burst = [...at(1.45, 2), ...at(0.5, 4)]
+    expect(classifyProfile([...at(0.65, 10), ...burst, ...burst, ...burst, ...burst])).toBe(
+      'anaerobic',
+    )
+  })
+
   it('keeps a known type and classifies unknown ones', () => {
     const steps: WorkoutStep[] = [{ kind: 'steady', durationS: minutes(30), pct: 0.9 }]
     expect(workoutMeta(workout(steps, 'tempo')).type).toBe('tempo')
@@ -70,6 +83,47 @@ describe('workoutMeta', () => {
   it('stays within 1–10', () => {
     const huge = workoutMeta(workout([{ kind: 'steady', durationS: minutes(300), pct: 1.1 }]))
     expect(huge.difficulty).toBe(10)
+  })
+})
+
+describe('rideWork', () => {
+  const FTP = 200
+  const secs = (watts: number, s: number, segment?: number) =>
+    Array.from({ length: s }, () => ({ powerW: watts, segment }))
+
+  it('scores a ride with laps like the workout it followed', () => {
+    let lap = 0
+    const samples = [...secs(110, 600, lap++)]
+    for (let i = 0; i < 5; i++) samples.push(...secs(230, 180, lap++), ...secs(100, 180, lap++))
+    samples.push(...secs(100, 300, lap))
+    const work = rideWork(samples, FTP)!
+    const planned = workoutMeta(
+      workout([
+        { kind: 'steady', durationS: 600, pct: 0.55 },
+        {
+          kind: 'repeat',
+          count: 5,
+          steps: [
+            { kind: 'steady', durationS: 180, pct: 1.15 },
+            { kind: 'steady', durationS: 180, pct: 0.5 },
+          ],
+        },
+        { kind: 'steady', durationS: 300, pct: 0.5 },
+      ]),
+    )
+    expect(work.type).toBe('vo2max')
+    expect(work.difficulty).toBeCloseTo(planned.difficulty, 0)
+  })
+
+  it('smooths rides without laps, skips pauses, and needs power', () => {
+    const steady = rideWork(secs(180, minutes(30)), FTP)!
+    expect(steady.type).toBe('sweetspot')
+    const paused = [
+      ...secs(180, minutes(30)),
+      ...secs(400, 300).map((s) => ({ ...s, paused: true })),
+    ]
+    expect(rideWork(paused, FTP)).toEqual(steady)
+    expect(rideWork(secs(0, 600), FTP)).toBeUndefined()
   })
 })
 

@@ -117,7 +117,9 @@ export const en = {
     cueTest: 'Test',
     cueVolumeHelp:
       'Countdown and step-change beeps during workouts. "Mute" on the Ride screen silences them for one ride.',
-    resetTiles: 'Reset to default',
+    rideTiles: 'Ride screen tiles',
+    tilesHelp:
+      'The tiles on the Ride screen. Also editable there ("Edit layout"), to see them with live numbers.',
     trainer: 'Trainer',
     reconnecting: '· reconnecting…',
     disconnect: 'Disconnect',
@@ -296,7 +298,9 @@ export const pl: typeof en = {
     cueTest: 'Sprawdź',
     cueVolumeHelp:
       'Sygnały odliczania i zmiany kroku w trakcie treningu. „Wycisz” na ekranie jazdy wycisza je na jedną jazdę.',
-    resetTiles: 'Przywróć domyślne',
+    rideTiles: 'Kafelki ekranu jazdy',
+    tilesHelp:
+      'Kafelki ekranu jazdy. Można je też edytować tam („Edytuj układ”), z bieżącymi wartościami.',
     trainer: 'Trenażer',
     reconnecting: '· ponowne łączenie…',
     disconnect: 'Rozłącz',

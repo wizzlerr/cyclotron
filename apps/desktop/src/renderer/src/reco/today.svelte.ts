@@ -23,8 +23,11 @@ import { planned } from '../workouts/planned.svelte'
 // Today's recommendation (E11-6): ride history from main, the engine from core. Recomputed when
 // the profile, the time chosen or the library changes; history is reloaded by `refresh()`.
 
-/** History the engine looks at: levels need a few months, everything else 4 weeks. */
-const HISTORY_DAYS = 120
+/**
+ * History the engine looks at: levels need a year (E11-14: a winter of Zwift workouts still says
+ * something in autumn, with decay capped), everything else 4 weeks.
+ */
+const HISTORY_DAYS = 365
 /** Resting HR needs a couple of weeks of baseline. */
 const WELLNESS_DAYS = 21
 
@@ -149,8 +152,9 @@ function toRecord(r: RecoRide): RideRecord {
   return {
     date: r.date,
     workoutId: r.workoutId,
-    type: meta?.type,
-    difficulty: meta?.difficulty,
+    // A free, route or imported ride counts by what it was (E11-14).
+    type: meta?.type ?? r.workType,
+    difficulty: meta?.difficulty ?? r.workDifficulty,
     tss: r.tss,
     intensity: r.intensity,
     durationS: r.timerS,

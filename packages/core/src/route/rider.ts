@@ -5,7 +5,10 @@ import { stepSpeed, type PhysicsParams } from './physics'
 import { routeAt, type Route, type RoutePosition } from './route'
 
 export interface RouteRiderOptions {
-  /** Start again from the beginning at the end (workouts on a route), instead of stopping. */
+  /**
+   * Keep riding at the end (workouts on a route) instead of stopping: round again on a loop, or
+   * turn round and ride back on a point-to-point route.
+   */
   wrap: boolean
 }
 
@@ -34,10 +37,10 @@ export class RouteRider {
     return !this.options.wrap && this.distanceM >= this.route.distanceM
   }
 
+  /** To the end of the route in the direction of travel (the start when riding back). */
   get remainingM(): number {
-    return this.options.wrap
-      ? this.route.distanceM - this.pos.d
-      : Math.max(0, this.route.distanceM - this.distanceM)
+    if (!this.options.wrap) return Math.max(0, this.route.distanceM - this.distanceM)
+    return this.pos.backwards ? this.pos.d : this.route.distanceM - this.pos.d
   }
 
   /** Puts the rider back where an interrupted ride left off (standing still). */
@@ -46,10 +49,7 @@ export class RouteRider {
     if (!this.options.wrap) this.distanceM = Math.min(this.distanceM, this.route.distanceM)
     this.climbedM = Math.max(0, climbedM)
     this.speedMps = 0
-    this.pos = routeAt(
-      this.route,
-      this.options.wrap ? this.distanceM % this.route.distanceM : this.distanceM,
-    )
+    this.pos = this.positionAt(this.distanceM)
   }
 
   /** Rides `dtS` seconds at `powerW`. */
@@ -57,12 +57,25 @@ export class RouteRider {
     if (this.finished || dtS <= 0) return
     const before = this.speedMps
     this.speedMps = stepSpeed(before, powerW, this.pos.gradePct, dtS, this.physics)
-    this.distanceM += ((before + this.speedMps) / 2) * dtS
+    const moved = ((before + this.speedMps) / 2) * dtS
+    this.distanceM += moved
     if (!this.options.wrap) this.distanceM = Math.min(this.distanceM, this.route.distanceM)
-    const d = this.options.wrap ? this.distanceM % this.route.distanceM : this.distanceM
-    const next = routeAt(this.route, d)
-    if (next.ele > this.pos.ele && next.d > this.pos.d) this.climbedM += next.ele - this.pos.ele
+    const next = this.positionAt(this.distanceM)
+    // Climbing counts along the road, not across the jump from a loop's end to its start.
+    const along = Math.abs(next.d - this.pos.d) <= moved + 1
+    if (along && next.ele > this.pos.ele) this.climbedM += next.ele - this.pos.ele
     this.pos = next
+  }
+
+  /** Where `distanceM` ridden puts the rider: round a loop again, back and forth otherwise. */
+  private positionAt(distanceM: number): RoutePosition {
+    const length = this.route.distanceM
+    if (!this.options.wrap || distanceM <= length) return routeAt(this.route, distanceM)
+    if (this.route.loop) return routeAt(this.route, distanceM % length)
+    const m = distanceM % (2 * length)
+    if (m <= length) return routeAt(this.route, m)
+    const p = routeAt(this.route, 2 * length - m)
+    return { ...p, gradePct: -p.gradePct || 0, backwards: true }
   }
 }
 

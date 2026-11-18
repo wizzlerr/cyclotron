@@ -287,7 +287,8 @@ funded by the European Union.
 
 ## Contributing
 
-Issues and pull requests are welcome; please open pull requests against `development`, and add a
+Issues and pull requests are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md) for what a pull
+request needs and what the review checks. Please open pull requests against `development`, and add a
 line under `## Unreleased` in CHANGELOG.md for anything a rider would notice. Trainer and
 controller compatibility reports (model, firmware, what worked) are especially useful. Before
 sending code:

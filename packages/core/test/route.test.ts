@@ -252,13 +252,41 @@ describe('RouteRider', () => {
     expect(seconds).toBeLessThan(240)
   })
 
-  it('wraps around when asked (workouts on a route)', () => {
-    const route = buildRoute(meta, straight(200, 0))
+  it('turns round at the end of a point-to-point route when asked (workouts on a route)', () => {
+    const route = buildRoute(meta, straight(1000, 5))
+    expect(route.loop).toBe(false)
     const rider = new RouteRider(route, physics, { wrap: true })
-    for (let i = 0; i < 120; i++) rider.step(250, 1)
+    rider.placeAt(990, 0)
+    expect(rider.position.backwards).toBeUndefined()
+    let prevD = rider.position.d
+    for (let i = 0; i < 30; i++) {
+      rider.step(250, 1)
+      // No jump back to the start: the position only moves a few metres per second.
+      expect(Math.abs(rider.position.d - prevD)).toBeLessThan(15)
+      prevD = rider.position.d
+    }
     expect(rider.finished).toBe(false)
     expect(rider.distanceM).toBeGreaterThan(route.distanceM)
+    expect(rider.position.backwards).toBe(true)
     expect(rider.position.d).toBeLessThan(route.distanceM)
+    // Back down the 5 % climb, and the distance left is to the start.
+    expect(rider.position.gradePct).toBeCloseTo(-5, 0)
+    expect(rider.remainingM).toBeCloseTo(rider.position.d)
+    // Riding back down doesn't count as climbing; at the start it turns round again.
+    expect(rider.climbedM).toBeLessThan(1)
+    rider.placeAt(2 * route.distanceM + 10, 0)
+    expect(rider.position.backwards).toBeUndefined()
+    expect(rider.position.d).toBeCloseTo(10)
+  })
+
+  it('goes round a loop again from its start', () => {
+    const out = straight(500, 0)
+    const route = buildRoute(meta, [...out, ...out.slice(0, -1).reverse()])
+    expect(route.loop).toBe(true)
+    const rider = new RouteRider(route, physics, { wrap: true })
+    rider.placeAt(route.distanceM + 20, 0)
+    expect(rider.position.backwards).toBeUndefined()
+    expect(rider.position.d).toBeCloseTo(20)
   })
 })
 
