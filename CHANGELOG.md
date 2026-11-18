@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.7.0 (2026-11-18)
+
 **Added**
 
 - Edit the Ride screen tiles: "Edit layout" on the Ride screen lets you drag tiles around, resize
