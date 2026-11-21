@@ -31,6 +31,21 @@ export function describeSegment(seg: Segment | undefined): string {
   }
 }
 
+/** A step's target alone: "80 %", "50 % → 80 %", or its kind when it has none ("Free ride"). */
+export function segmentTarget(seg: Segment): string {
+  const s = t().common.segments
+  switch (seg.kind) {
+    case 'steady':
+      return formatPct(seg.toPct)
+    case 'ramp':
+      return `${formatPct(seg.fromPct)} → ${formatPct(seg.toPct)}`
+    case 'freeride':
+      return s.freeride
+    case 'maxeffort':
+      return seg.effort ? s.testEffort : s.maxeffort
+  }
+}
+
 /** 12345 → "12.3 km", 850 → "0.85 km". */
 export function formatKm(metres: number): string {
   const km = Math.max(0, metres) / 1000

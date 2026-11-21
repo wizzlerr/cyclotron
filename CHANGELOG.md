@@ -2,6 +2,34 @@
 
 ## Unreleased
 
+**Changed**
+
+- The whole Ride screen is now editable, not just the number tiles: the workout profile, live
+  chart, route profile, route map and virtual world are panels you can move, resize, lock, remove
+  and add back ("Add a chart or panel…"). Your current tiles are kept and the panels are put
+  under them, as before. The screen still fits the window.
+- The layout editor has its own tab, Settings → Ride screen, with the tile settings beside the
+  tiles. Tiles show sample numbers while you edit, so you can see how they will look before a
+  ride.
+- Tiles keep their place on a grid and close up any gaps. Dropping a tile on another swaps them;
+  dragging one down moves the tiles below up into its place.
+
+**Added**
+
+- Lock a tile (the padlock on the tile, or "Locked in place") so nothing moves it while you
+  rearrange the others.
+- A tile can show as many numbers as you like (up to 12), each in its own colour, and the numbers
+  can be reordered.
+- Left, centre or right alignment per tile.
+- Workout step texts as tile values: the step now ("Steady 80 % · 3/8"), its target ("80 %"), the
+  repeat ("3/8") and the next step, each with its own colour and sized by the tile.
+- Chart panels have their own look: background, text colour and size, axes, axis titles, FTP
+  line, legend, and the "Next in …" line under the workout profile (show/hide, colour, size).
+- Optional tile animation: numbers roll to the new value, numbers pulse when they change, or the
+  tile glows in its zone colour (off when the system asks for reduced motion).
+- "Simulate ride" in the layout editor plays a made-up interval workout through your tiles, charts
+  and route (1×, 5× or 20× speed); "As on the bike" hides the editing marks.
+
 ## 0.7.0 (2026-11-18)
 
 **Added**

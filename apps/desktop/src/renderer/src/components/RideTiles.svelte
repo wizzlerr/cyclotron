@@ -1,29 +1,44 @@
 <script lang="ts">
-  // The Ride screen tiles, laid out by the rider (E4-6): a 12-column grid of tiles, each showing
-  // 1–3 numbers in its own size and colours. In edit mode tiles are dragged to move them, dragged
-  // by the corner to resize them and clicked to open the editor.
+  // The Ride screen tiles, laid out by the rider (E4-6): tiles placed on a 12-column grid, each
+  // showing any number of values in its own size, colours, alignment and animation. In edit mode
+  // tiles are dragged to move them (others get pushed or swapped, locked ones never move), dragged
+  // by the corner to resize them and clicked to open the editor. Values nobody can show yet are
+  // sample numbers while editing; "Simulate ride" plays a made-up workout through the tiles.
   import {
-    caloriesKcal,
+    compactTiles,
+    dropEmptyRows,
     GRID_COLUMNS,
     heartRateZone,
+    caloriesKcal,
+    layoutRows,
+    PANEL_IDS,
     powerZone,
+    TEXT_METRIC_IDS,
+    PREVIEW_SAMPLE_S,
+    previewRide,
     type MetricId,
+    type NumericMetricId,
+    type PanelId,
+    type Segment,
+    type TextMetricId,
     type TileSpec,
   } from '@cyclotron/core'
   import type { ComponentProps } from 'svelte'
   import { devices } from '../devices/devices.svelte'
-  import { formatNumber } from '../i18n/i18n.svelte'
   import { t } from '../i18n/t'
-  import { formatDuration } from '../lib/format'
+  import { describeSegment, formatDuration, segmentTarget } from '../lib/format'
   import { profile } from '../profile.svelte'
   import { controls } from '../ride/controls.svelte'
   import { rideLayout } from '../ride/layout.svelte'
   import { ride } from '../ride/session.svelte'
+  import { worldPrefs } from '../world/prefs.svelte'
+  import RidePanel from './RidePanel.svelte'
   import Tile from './Tile.svelte'
   import TileEditor from './TileEditor.svelte'
 
   interface Metric {
     value: number | string | undefined
+    digits?: number
     unit?: string
     /** Shown instead of the short name (e.g. "Power · Z3"). */
     label?: string
@@ -37,125 +52,229 @@
     available: boolean
   }
 
-  /** `editor`: always in edit mode, no "Done" (Settings → Ride screen). */
-  let { editor = false }: { editor?: boolean } = $props()
+  /**
+   * `editor`: always in edit mode, no "Done", editor beside the tiles, preview content (Settings →
+   * Ride tiles). `fit`: the grid fills the height it is given and its rows share it (the Ride
+   * screen during a ride), instead of rows of a fixed height.
+   */
+  let { editor = false, fit = false }: { editor?: boolean; fit?: boolean } = $props()
   const editing = $derived(editor || rideLayout.editing)
 
   // Leaving Settings closes the tile editor.
   $effect(() => () => {
     if (editor) rideLayout.selected = undefined
   })
+
+  // ---- Values -------------------------------------------------------------------------------
+
+  const UNITS: Partial<Record<MetricId, string>> = {
+    power3s: 'W',
+    power: 'W',
+    power10s: 'W',
+    target: 'W',
+    intervalAvg: 'W',
+    avgPower: 'W',
+    maxPower: 'W',
+    np: 'W',
+    kcal: 'kcal',
+    hr: 'bpm',
+    avgHr: 'bpm',
+    maxHr: 'bpm',
+    cadence: 'rpm',
+    avgCadence: 'rpm',
+    speed: 'km/h',
+    grade: '%',
+    distance: 'km',
+    toGo: 'km',
+    elevation: 'm',
+    climbed: 'm',
+  }
+  const DIGITS: Partial<Record<MetricId, number>> = {
+    wkg: 1,
+    if: 2,
+    speed: 1,
+    grade: 1,
+    distance: 1,
+    toGo: 1,
+  }
+  const TIMES = new Set<MetricId>(['intervalLeft', 'elapsed', 'total', 'workoutLeft'])
+  const SECONDARY: Partial<Record<MetricId, string>> = {
+    target: 'var(--muted)',
+    total: 'var(--muted)',
+    intervalLeft: 'var(--series-1)',
+  }
+
+  /** A metric from its raw number (seconds for times). */
+  function metric(
+    id: NumericMetricId,
+    v: number | undefined,
+    available: boolean,
+    hot = false,
+  ): Metric {
+    const m: Metric = {
+      value: TIMES.has(id) && v !== undefined ? formatDuration(Math.max(0, Math.ceil(v))) : v,
+      digits: DIGITS[id],
+      unit: UNITS[id],
+      secondary: SECONDARY[id],
+      available,
+    }
+    if (id === 'intervalLeft') m.hot = hot
+    if ((id === 'power3s' || id === 'power' || id === 'power10s') && v && v > 0) {
+      const z = powerZone(v, profile.ftpW)
+      m.zone = `var(--z${z})`
+      if (id === 'power3s') m.label = t().ride.powerZoneTile(z)
+    }
+    if (id === 'hr' && v && profile.maxHr) {
+      const z = heartRateZone(v, profile.maxHr)
+      m.zone = `var(--z${z})`
+      m.label = t().ride.hrZoneTile(z)
+    }
+    if (id === 'wkg' && !profile.weightKg && v === undefined) m.label = t().ride.wkgSetWeight
+    return m
+  }
+
   const s = $derived(ride.state)
-  const remaining = $derived(s ? Math.ceil(s.segmentRemainingS) : 0)
 
-  const fixed = (n: number | undefined, digits: number): string | undefined =>
-    n === undefined ? undefined : formatNumber(n, digits)
-
-  const metrics = $derived.by((): Record<MetricId, Metric> => {
+  /** What the ride shows now: raw numbers and whether each can show anything. */
+  const live = $derived.by(() => {
     const m = ride.metrics
     const rideOn = ride.workout !== undefined
     const timed = s !== undefined && !ride.isFreeRide
     const route = ride.routeState
     const target = ride.active ? ride.targetW : controls.manualErgOn ? controls.ergWatts : undefined
-    const ftp = profile.ftpW
-    const power = (v: number | undefined, label?: (z: number) => string): Metric => {
-      const z = v && v > 0 ? powerZone(v, ftp) : undefined
-      return {
-        value: v,
-        unit: 'W',
-        zone: z ? `var(--z${z})` : undefined,
-        label: z && label ? label(z) : undefined,
-        available: true,
+    const remaining = s ? Math.ceil(s.segmentRemainingS) : 0
+    const v: Record<NumericMetricId, number | undefined> = {
+      power3s: devices.power3s,
+      power: devices.data?.powerW,
+      power10s: devices.power10s,
+      target,
+      wkg: profile.weightKg ? (devices.power3s ?? 0) / profile.weightKg : undefined,
+      intervalAvg: ride.intervalAvgW,
+      avgPower: m?.avgPowerW,
+      maxPower: m?.maxPowerW,
+      np: m?.normalizedPowerW,
+      if: m?.intensity,
+      tss: m?.tss,
+      kcal: m && caloriesKcal(m.workKj),
+      hr: devices.bpm,
+      avgHr: m?.avgHeartRateBpm,
+      maxHr: m?.maxHeartRateBpm,
+      cadence: devices.data?.cadenceRpm,
+      avgCadence: m?.avgCadenceRpm,
+      speed: route ? route.speedKmh : devices.data?.speedKmh,
+      intervalLeft: timed ? remaining : undefined,
+      elapsed: s?.positionS,
+      total: timed ? s.totalS : undefined,
+      workoutLeft: timed ? Math.max(0, s.totalS - s.positionS) : undefined,
+      grade: route?.position.gradePct,
+      distance: route && route.distanceM / 1000,
+      toGo: route && route.remainingM / 1000,
+      elevation: route?.position.ele,
+      climbed: route?.climbedM,
+    }
+    const always = new Set<MetricId>([
+      'power3s',
+      'power',
+      'power10s',
+      'wkg',
+      'hr',
+      'cadence',
+      'speed',
+    ])
+    const routeIds = new Set<MetricId>(['grade', 'distance', 'toGo', 'elevation', 'climbed'])
+    const available = (id: MetricId): boolean => {
+      if (always.has(id)) return true
+      if (id === 'target') return target !== undefined
+      if (routeIds.has(id)) return !!route
+      if (id === 'elapsed') return rideOn
+      if (id === 'intervalAvg' || TIMES.has(id)) return timed
+      return rideOn
+    }
+    const hot = s?.status === 'running' && remaining <= 5 && s.next !== undefined
+    return { v, available, hot, timed, segment: timed ? s.segment : undefined, next: s?.next }
+  })
+
+  // ---- Simulation ---------------------------------------------------------------------------
+
+  /** Seconds into the simulated ride; undefined = not simulating. */
+  let simT = $state<number | undefined>()
+  let simSpeed = $state(1)
+  /** Hide the editing marks: the tiles exactly as on the bike. */
+  let clean = $state(false)
+  const SIM_START_S = 590
+
+  $effect(() => {
+    if (simT === undefined) return
+    const speed = simSpeed
+    const id = setInterval(() => (simT = (simT ?? 0) + speed), 1000)
+    return () => clearInterval(id)
+  })
+
+  function toggleSim(): void {
+    simT = simT === undefined ? SIM_START_S : undefined
+    if (simT === undefined) clean = false
+  }
+
+  const preview = $derived(
+    previewRide(simT ?? PREVIEW_SAMPLE_S, profile.ftpW, profile.weightKg ?? 75),
+  )
+
+  /** The step texts: words, coloured and sized like any value. */
+  function stepTexts(
+    segment: Segment | undefined,
+    next: Segment | undefined,
+  ): Record<TextMetricId, string | undefined> {
+    return {
+      step: segment && describeSegment(segment),
+      stepTarget: segment && segmentTarget(segment),
+      stepRepeat: segment?.repeat && `${segment.repeat.index}/${segment.repeat.count}`,
+      nextStep: next && describeSegment(next),
+    }
+  }
+
+  const metrics = $derived.by((): Record<MetricId, Metric> => {
+    const out = {} as Record<MetricId, Metric>
+    const sim = simT !== undefined
+    const liveTexts = stepTexts(live.segment, live.next)
+    const sampleTexts = stepTexts(preview.segment, preview.next)
+    for (const id of TEXT_METRIC_IDS) {
+      const value = sim
+        ? sampleTexts[id]
+        : (liveTexts[id] ?? (editing ? sampleTexts[id] : undefined))
+      out[id] = { value, available: sim || live.timed }
+    }
+    for (const id of Object.keys(live.v) as NumericMetricId[]) {
+      if (simT !== undefined) out[id] = metric(id, preview.values[id], true, preview.hot)
+      else {
+        // While editing, numbers that have nothing to show yet show a sample.
+        const v = live.v[id] ?? (editing ? preview.values[id] : undefined)
+        out[id] = metric(id, v, live.available(id), live.hot)
       }
     }
-    const hrZ = devices.bpm && profile.maxHr ? heartRateZone(devices.bpm, profile.maxHr) : undefined
-    return {
-      power3s: power(devices.power3s, (z) => t().ride.powerZoneTile(z)),
-      power: power(devices.data?.powerW),
-      power10s: power(devices.power10s),
-      target: {
-        value: target,
-        unit: 'W',
-        secondary: 'var(--muted)',
-        available: target !== undefined,
-      },
-      wkg: {
-        value: profile.weightKg ? fixed((devices.power3s ?? 0) / profile.weightKg, 1) : undefined,
-        label: profile.weightKg ? undefined : t().ride.wkgSetWeight,
-        available: true,
-      },
-      intervalAvg: { value: ride.intervalAvgW, unit: 'W', available: timed },
-      avgPower: { value: m?.avgPowerW, unit: 'W', available: rideOn },
-      maxPower: { value: m?.maxPowerW, unit: 'W', available: rideOn },
-      np: { value: m?.normalizedPowerW, unit: 'W', available: rideOn },
-      if: { value: fixed(m?.intensity, 2), available: rideOn },
-      tss: { value: m?.tss, available: rideOn },
-      kcal: { value: m && caloriesKcal(m.workKj), unit: 'kcal', available: rideOn },
-      hr: {
-        value: devices.bpm,
-        unit: 'bpm',
-        zone: hrZ ? `var(--z${hrZ})` : undefined,
-        label: hrZ ? t().ride.hrZoneTile(hrZ) : undefined,
-        available: true,
-      },
-      avgHr: { value: m?.avgHeartRateBpm, unit: 'bpm', available: rideOn },
-      maxHr: { value: m?.maxHeartRateBpm, unit: 'bpm', available: rideOn },
-      cadence: { value: devices.data?.cadenceRpm, unit: 'rpm', available: true },
-      avgCadence: { value: m?.avgCadenceRpm, unit: 'rpm', available: rideOn },
-      speed: {
-        value: route ? fixed(route.speedKmh, 1) : devices.data?.speedKmh,
-        unit: 'km/h',
-        available: true,
-      },
-      intervalLeft: {
-        value: timed ? formatDuration(remaining) : undefined,
-        secondary: 'var(--series-1)',
-        hot: s?.status === 'running' && remaining <= 5 && s.next !== undefined,
-        available: timed,
-      },
-      elapsed: { value: s ? formatDuration(s.positionS) : undefined, available: rideOn },
-      total: {
-        value: timed ? formatDuration(s.totalS) : undefined,
-        secondary: 'var(--muted)',
-        available: timed,
-      },
-      workoutLeft: {
-        value: timed ? formatDuration(Math.max(0, s.totalS - s.positionS)) : undefined,
-        available: timed,
-      },
-      grade: { value: fixed(route?.position.gradePct, 1), unit: '%', available: !!route },
-      distance: {
-        value: fixed(route && route.distanceM / 1000, 1),
-        unit: 'km',
-        available: !!route,
-      },
-      toGo: { value: fixed(route && route.remainingM / 1000, 1), unit: 'km', available: !!route },
-      elevation: {
-        value: route && Math.round(route.position.ele),
-        unit: 'm',
-        available: !!route,
-      },
-      climbed: { value: route && Math.round(route.climbedM), unit: 'm', available: !!route },
-    }
+    return out
   })
+
+  // ---- Tiles --------------------------------------------------------------------------------
 
   type TileProps = ComponentProps<typeof Tile>
 
   /** What a tile shows now; undefined hides it (nothing to show yet), except while editing. */
   function tileProps(spec: TileSpec): TileProps | undefined {
-    const all = spec.metrics.map((id) => ({ id, m: metrics[id] }))
-    const shown = editing ? all : all.filter((x) => x.m.available)
+    if (spec.panel) return undefined
+    const all = spec.metrics.map((id, i) => ({ id, m: metrics[id], color: spec.colors?.[i] }))
+    const shown = editing || simT !== undefined ? all : all.filter((x) => x.m.available)
     if (shown.length === 0) return undefined
     const names = t().ride.metrics
     // In a tile of several numbers the first keeps the tile's colour, the others theirs (target
     // and total muted); the interval countdown is always coloured. A chosen colour wins.
     const own = (id: MetricId, i: number): boolean =>
       shown.length > 1 && !spec.fg && (i > 0 || id === 'intervalLeft')
-    const parts = shown.map(({ id, m }, i) => ({
+    const parts = shown.map(({ id, m, color }, i) => ({
       value: m.value,
+      digits: m.digits,
       unit: m.unit,
       name: m.label ?? names[id].short,
-      color: m.hot ? 'var(--warn)' : own(id, i) ? m.secondary : undefined,
+      color: m.hot ? 'var(--warn)' : (color ?? (own(id, i) ? m.secondary : undefined)),
     }))
     return {
       label: parts[0]!.name,
@@ -165,10 +284,61 @@
       bg: spec.bg,
       fg: spec.fg,
       fill: true,
+      align: spec.align,
+      animation: spec.animation,
     }
   }
 
-  // Dragging: pointer events on the grid (one listener for every tile).
+  const marks = $derived(editing && !clean)
+
+  /** Whether this ride has anything to show in a panel. */
+  function panelLive(panel: PanelId): boolean {
+    const riding = ride.workout !== undefined
+    switch (panel) {
+      case 'workout':
+        return riding && !ride.isFreeRide && ride.player !== undefined && s !== undefined
+      case 'chart':
+        return riding
+      case 'route':
+      case 'map':
+        return !!(ride.route && ride.routeState)
+      case 'world':
+        return riding && worldPrefs.enabled
+    }
+  }
+
+  type PanelMode = 'live' | 'preview' | 'placeholder'
+  type Cell = { spec: TileSpec; props?: TileProps; panel?: PanelId; mode?: PanelMode }
+
+  function cellFor(spec: TileSpec): Cell | undefined {
+    if (!spec.panel) {
+      const props = tileProps(spec)
+      return props && { spec, props }
+    }
+    const mode: PanelMode | undefined = editor
+      ? 'preview'
+      : panelLive(spec.panel)
+        ? 'live'
+        : editing
+          ? 'placeholder'
+          : undefined
+    return mode && { spec, panel: spec.panel, mode }
+  }
+
+  /** Tiles with their props; outside editing hidden tiles go and the rest close up. */
+  const cells = $derived.by(() => {
+    const list = rideLayout.tiles.map(cellFor).filter((c): c is Cell => c !== undefined)
+    if (marks) return list.map((c) => ({ ...c, place: c.spec }))
+    const places = dropEmptyRows(compactTiles(list.map((c) => c.spec)))
+    return list.map((c, i) => ({ ...c, place: places[i]! }))
+  })
+  /** Rows on screen; while editing one more to drop tiles into. */
+  const rows = $derived(Math.max(1, layoutRows(cells.map((c) => c.place)) + (marks ? 1 : 0)))
+  /** Dashed grid cells behind the tiles while editing. */
+  const guides = $derived(marks ? Array.from({ length: rows * GRID_COLUMNS }, (_, i) => i) : [])
+
+  // ---- Dragging: pointer events on the grid (one listener for every tile) ----------------------
+
   let grid: HTMLDivElement | undefined = $state()
   let dragging = $state<string | undefined>()
   interface Drag {
@@ -176,11 +346,12 @@
     mode: 'move' | 'resize'
     x: number
     y: number
-    w: number
-    h: number
+    /** Layout and the tile's place when the drag started. */
+    start: TileSpec[]
+    from: TileSpec
+    column: number
+    row: number
     moved: boolean
-    /** Tile last swapped with, so a big and a small tile don't swap back and forth. */
-    last?: string
   }
   let drag: Drag | undefined
 
@@ -188,18 +359,26 @@
     (el instanceof Element ? el.closest<HTMLElement>('[data-key]') : null)?.dataset.key
 
   function down(e: PointerEvent): void {
-    if (!editing || e.button !== 0 || !grid) return
+    if (!marks || e.button !== 0 || !grid) return
+    if (e.target instanceof Element && e.target.closest('[data-lock]')) return
     const key = keyAt(e.target)
     const spec = rideLayout.tiles.find((x) => x.key === key)
     if (!key || !spec) return
     const resize = e.target instanceof Element && e.target.closest('[data-resize]') !== null
+    const cs = getComputedStyle(grid)
+    const gap = parseFloat(cs.columnGap) || 0
+    const rowGap = parseFloat(cs.rowGap) || 0
+    const padX = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0)
+    const padY = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0)
     drag = {
       key,
       mode: resize ? 'resize' : 'move',
       x: e.clientX,
       y: e.clientY,
-      w: spec.w,
-      h: spec.h,
+      start: rideLayout.tiles,
+      from: spec,
+      column: (grid.clientWidth - padX + gap) / GRID_COLUMNS,
+      row: (grid.clientHeight - padY + rowGap) / rows,
       moved: false,
     }
     grid.setPointerCapture(e.pointerId)
@@ -212,25 +391,17 @@
     const dx = e.clientX - d.x
     const dy = e.clientY - d.y
     if (!d.moved && Math.hypot(dx, dy) < 5) return
+    if (d.from.locked) return
     d.moved = true
     dragging = d.key
-    if (d.mode === 'move') {
-      const over = keyAt(document.elementFromPoint(e.clientX, e.clientY))
-      if (!over) d.last = undefined
-      else if (over !== d.key && over !== d.last) {
-        rideLayout.move(d.key, over)
-        d.last = over
-      }
-      return
-    }
-    const cs = getComputedStyle(grid)
-    const gap = parseFloat(cs.columnGap) || 0
-    const column = (grid.clientWidth + gap) / GRID_COLUMNS
-    const row = (parseFloat(cs.gridAutoRows) || 80) + (parseFloat(cs.rowGap) || 0)
-    rideLayout.update(
+    const dc = Math.round(dx / d.column)
+    const dr = Math.round(dy / d.row)
+    rideLayout.place(
       d.key,
-      { w: d.w + Math.round(dx / column), h: d.h + Math.round(dy / row) },
-      false,
+      d.mode === 'move'
+        ? { x: d.from.x + dc, y: d.from.y + dr }
+        : { w: d.from.w + dc, h: d.from.h + dr },
+      d.start,
     )
   }
 
@@ -251,6 +422,10 @@
     rideLayout.selected = rideLayout.selected === key ? undefined : key
   }
 
+  function toggleLock(spec: TileSpec): void {
+    rideLayout.update(spec.key, { locked: spec.locked ? undefined : true })
+  }
+
   $effect(() => {
     const g = grid
     if (!g) return
@@ -267,60 +442,206 @@
   })
 
   const L = $derived(t().ride.layout)
+  const missingPanels = $derived(
+    PANEL_IDS.filter((p) => !rideLayout.tiles.some((t) => t.panel === p)),
+  )
+  const SPEEDS = [1, 5, 20]
 </script>
 
-{#if editing}
-  <div class="toolbar">
-    <span class="muted">{L.hint}</span>
-    <span class="spacer"></span>
-    <button onclick={() => rideLayout.add()}>{L.add}</button>
-    <button onclick={() => confirm(L.confirmReset) && rideLayout.reset()}>{L.reset}</button>
-    {#if !editor}
-      <button class="primary" onclick={() => rideLayout.stopEditing()}>{L.done}</button>
+{#snippet lockIcon(locked: boolean)}
+  <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+    <rect x="3" y="7" width="10" height="7" rx="1.5" fill="currentColor" />
+    <path
+      d={locked ? 'M5 7V5a3 3 0 0 1 6 0v2' : 'M5 7V5a3 3 0 0 1 5.8-1'}
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.6"
+    />
+  </svg>
+{/snippet}
+
+<div class="ride-tiles" class:fit>
+  {#if editing}
+    <div class="toolbar">
+      {#if marks}<span class="muted">{L.hint}</span>{/if}
+      <span class="spacer"></span>
+      {#if editor}
+        <button class:primary={simT === undefined} onclick={toggleSim}
+          >{simT === undefined ? L.simulate : L.stopSim}</button
+        >
+        {#if simT !== undefined}
+          <span class="speeds" role="group" aria-label={L.speed}>
+            {#each SPEEDS as sp (sp)}
+              <button class="small" class:sel={simSpeed === sp} onclick={() => (simSpeed = sp)}
+                >{sp}×</button
+              >
+            {/each}
+          </span>
+          <span class="muted">{formatDuration(simT)}</span>
+        {/if}
+        <label class="check"
+          ><input type="checkbox" bind:checked={clean} />
+          {L.cleanView}</label
+        >
+      {/if}
+      {#if marks}
+        <button onclick={() => rideLayout.add()}>{L.add}</button>
+        {#if missingPanels.length > 0}
+          <select
+            aria-label={L.addPanel}
+            value=""
+            onchange={(e) => {
+              const v = e.currentTarget.value as PanelId
+              e.currentTarget.value = ''
+              if (v) rideLayout.addPanel(v)
+            }}
+          >
+            <option value="">{L.addPanel}</option>
+            {#each missingPanels as p (p)}<option value={p}>{L.panels[p].name}</option>{/each}
+          </select>
+        {/if}
+        <button onclick={() => confirm(L.confirmReset) && rideLayout.reset()}>{L.reset}</button>
+      {/if}
+      {#if !editor}
+        <button class="primary" onclick={() => rideLayout.stopEditing()}>{L.done}</button>
+      {/if}
+    </div>
+    {#if !editor && rideLayout.selectedTile}
+      <TileEditor tile={rideLayout.selectedTile} />
+    {/if}
+    {#if rideLayout.tiles.length === 0}<p class="muted">{L.empty}</p>{/if}
+    {#if marks && simT === undefined}<p class="muted sample">{L.sampleNote}</p>{/if}
+  {/if}
+
+  <div class="workspace" class:side={editor && !clean} class:fit={fit || editor}>
+    <div
+      class="grid"
+      class:stage={editor}
+      class:editing={marks}
+      bind:this={grid}
+      style:grid-template-rows={fit || editor
+        ? `repeat(${rows}, minmax(var(--row-min), 1fr))`
+        : `repeat(${rows}, var(--row-h))`}
+    >
+      {#if marks}
+        {#each guides as i (i)}
+          <span
+            class="guide"
+            style:grid-column={(i % GRID_COLUMNS) + 1}
+            style:grid-row={Math.floor(i / GRID_COLUMNS) + 1}
+          ></span>
+        {/each}
+      {/if}
+      {#each cells as { spec, props, panel, mode, place } (spec.key)}
+        <div
+          class="cell"
+          class:selected={marks && rideLayout.selected === spec.key}
+          class:dragging={dragging === spec.key}
+          class:locked={marks && spec.locked}
+          data-key={spec.key}
+          style:grid-column="{place.x + 1} / span {place.w}"
+          style:grid-row="{place.y + 1} / span {place.h}"
+        >
+          {#if panel && mode}
+            <RidePanel {panel} {mode} {simT} style={spec.style} />
+          {:else if props}
+            <Tile {...props} />
+          {/if}
+          {#if marks}
+            <button
+              class="pick"
+              aria-label={panel ? L.panels[panel].name : props?.label}
+              onclick={(e) => pick(e, spec.key)}
+            ></button>
+            <button
+              class="lock"
+              class:on={spec.locked}
+              data-lock
+              title={spec.locked ? L.unlock : L.lock}
+              aria-label={spec.locked ? L.unlock : L.lock}
+              aria-pressed={!!spec.locked}
+              onclick={() => toggleLock(spec)}>{@render lockIcon(!!spec.locked)}</button
+            >
+            {#if !spec.locked}<span class="resize" data-resize title={L.resize}></span>{/if}
+          {/if}
+        </div>
+      {/each}
+    </div>
+    {#if editor && !clean}
+      <aside class="panel">
+        {#if rideLayout.selectedTile}
+          <TileEditor tile={rideLayout.selectedTile} />
+        {:else}
+          <p class="muted">{L.pickTile}</p>
+        {/if}
+      </aside>
     {/if}
   </div>
-  {#if rideLayout.selectedTile}
-    <TileEditor tile={rideLayout.selectedTile} />
-  {/if}
-  {#if rideLayout.tiles.length === 0}<p class="muted">{L.empty}</p>{/if}
-{/if}
-
-<div class="grid" class:editing bind:this={grid}>
-  {#each rideLayout.tiles as spec (spec.key)}
-    {@const props = tileProps(spec)}
-    {#if props}
-      <div
-        class="cell"
-        class:selected={editing && rideLayout.selected === spec.key}
-        class:dragging={dragging === spec.key}
-        data-key={spec.key}
-        style:grid-column="span {spec.w}"
-        style:grid-row="span {spec.h}"
-      >
-        <Tile {...props} />
-        {#if editing}
-          <button class="pick" aria-label={props.label} onclick={(e) => pick(e, spec.key)}></button>
-          <span class="resize" data-resize title={L.resize}></span>
-        {/if}
-      </div>
-    {/if}
-  {/each}
 </div>
 
 <style>
-  .grid {
+  .ride-tiles.fit {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  /* Fills the height the page gives it (the Ride screen is a column as tall as the window). */
+  .workspace.fit {
+    flex: 1;
+    min-height: 0;
     display: grid;
-    grid-template-columns: repeat(12, minmax(0, 1fr));
+    /* A definite height for the grid, so its rows share it instead of growing with content. */
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .workspace.side {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(18rem, 24rem);
+    gap: 1rem;
+    align-items: start;
+  }
+  @media (max-width: 1100px) {
+    .workspace.side {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  .panel {
+    position: sticky;
+    top: 0.5rem;
+  }
+  .grid {
     /* One row: tall enough to read from the bike, shorter on a short window to leave the charts
        room (the Ride screen fits the window). */
-    grid-auto-rows: clamp(5.5rem, 11vh, 9rem);
-    grid-auto-flow: row dense;
+    --row-h: clamp(5.5rem, 11vh, 9rem);
+    /* With fit, rows share the height but never get smaller than this (then the page scrolls). */
+    --row-min: 3.5rem;
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
     gap: 0.75rem;
+  }
+  /* In Settings the tiles sit on the Ride screen's background, as they will on the bike. */
+  /* The editor's stage is about as tall as the Ride screen's grid would be. */
+  .grid.stage {
+    min-height: max(28rem, calc(100vh - 16rem));
+    box-sizing: border-box;
+    background: var(--bg);
+    padding: 0.75rem;
+    border-radius: 10px;
+  }
+  .guide {
+    border: 1px dashed color-mix(in srgb, var(--muted) 35%, transparent);
+    border-radius: 6px;
+    pointer-events: none;
   }
   .cell {
     position: relative;
     min-width: 0;
     min-height: 0;
+    /* Sized by the grid only: a chart or the 3D canvas inside must never grow its row. */
+    contain: size;
+    transition:
+      transform 0.15s,
+      opacity 0.15s;
   }
   .editing .cell {
     cursor: grab;
@@ -330,12 +651,17 @@
     touch-action: none;
     user-select: none;
   }
+  .editing .cell.locked {
+    cursor: pointer;
+    outline-style: solid;
+  }
   .editing .cell.selected {
     outline: 2px solid var(--series-1);
   }
   .cell.dragging {
-    opacity: 0.6;
+    opacity: 0.7;
     cursor: grabbing;
+    z-index: 2;
   }
   .pick {
     position: absolute;
@@ -344,6 +670,25 @@
     border: none;
     padding: 0;
     cursor: inherit;
+  }
+  .lock {
+    position: absolute;
+    top: 0.25rem;
+    right: 0.25rem;
+    padding: 0.15rem 0.25rem;
+    line-height: 0;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--bg, #000) 55%, transparent);
+    color: var(--muted);
+    border: none;
+    opacity: 0.6;
+  }
+  .cell:hover .lock,
+  .lock.on {
+    opacity: 1;
+  }
+  .lock.on {
+    color: var(--warn);
   }
   .resize {
     position: absolute;
@@ -363,6 +708,20 @@
     align-items: center;
     gap: 0.5rem;
   }
+  .speeds {
+    display: inline-flex;
+    gap: 0.25rem;
+  }
+  .small {
+    font-size: 0.85rem;
+    padding: 0.1rem 0.5rem;
+  }
+  .sel {
+    outline: 2px solid var(--series-1);
+  }
+  .check {
+    margin-left: 0;
+  }
   .spacer {
     flex: 1;
   }
@@ -371,5 +730,14 @@
   }
   .muted {
     color: var(--muted);
+  }
+  .sample {
+    margin: 0 0 0.5rem;
+    font-size: 0.85rem;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cell {
+      transition: none;
+    }
   }
 </style>

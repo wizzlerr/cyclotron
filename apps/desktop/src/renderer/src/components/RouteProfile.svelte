@@ -10,12 +10,20 @@
     positionM = undefined,
     height = 120,
     axes = false,
+    titles = true,
+    textScale = 1,
+    textColor = undefined,
     onhover = undefined,
   }: {
     route: Route
     positionM?: number
     height?: number
     axes?: boolean
+    /** Axis titles ("Power (W)", "Time"); with `axes`. */
+    titles?: boolean
+    /** Size of the axis texts (× normal) and their colour (the rider's Ride screen layout). */
+    textScale?: number
+    textColor?: string
     /** The distance under the cursor, or `undefined` when it leaves. */
     onhover?: (d: number | undefined) => void
   } = $props()
@@ -94,9 +102,15 @@
   const tip = $derived(hover && routeAt(route, hover.d))
 </script>
 
-<div class="profile" class:axes>
+<div
+  class="profile"
+  class:axes
+  class:notitles={!titles}
+  style:--ts={textScale}
+  style:--tc={textColor}
+>
   {#if axes}
-    <span class="axis-title y-title">{t().ride.profile.elevationAxis}</span>
+    {#if titles}<span class="axis-title y-title">{t().ride.profile.elevationAxis}</span>{/if}
     <div class="y-ticks" style:height="{height}px">
       {#each yTicks as tick (tick)}
         <span style:top="{(y(tick) / height) * 100}%">{tick}</span>
@@ -149,7 +163,7 @@
         <span style:left="{(tick / route.distanceM) * 100}%">{formatNumber(tick / 1000)}</span>
       {/each}
     </div>
-    <span class="axis-title x-title">{t().ride.profile.distanceAxis}</span>
+    {#if titles}<span class="axis-title x-title">{t().ride.profile.distanceAxis}</span>{/if}
   {/if}
 </div>
 
@@ -159,9 +173,12 @@
   }
   .profile.axes {
     display: grid;
-    grid-template-columns: 1rem 2.5rem 1fr;
-    grid-template-rows: auto 1.25rem auto;
+    grid-template-columns: calc(1rem * var(--ts, 1)) calc(2.5rem * var(--ts, 1)) 1fr;
+    grid-template-rows: auto calc(1.25rem * var(--ts, 1)) auto;
     column-gap: 0.25rem;
+  }
+  .profile.axes.notitles {
+    grid-template-columns: 0 calc(2.5rem * var(--ts, 1)) 1fr;
   }
   .plot {
     position: relative;
@@ -200,8 +217,8 @@
     opacity: 0.7;
   }
   .axis-title {
-    color: var(--muted);
-    font-size: 0.75rem;
+    color: var(--tc, var(--muted));
+    font-size: calc(0.75rem * var(--ts, 1));
   }
   .y-title {
     grid-column: 1;
@@ -220,8 +237,8 @@
     position: absolute;
     right: 0;
     transform: translateY(-50%);
-    font-size: 0.7rem;
-    color: var(--muted);
+    font-size: calc(0.7rem * var(--ts, 1));
+    color: var(--tc, var(--muted));
   }
   .x-ticks {
     grid-column: 3;
@@ -232,8 +249,8 @@
     position: absolute;
     top: 0.1rem;
     transform: translateX(-50%);
-    font-size: 0.7rem;
-    color: var(--muted);
+    font-size: calc(0.7rem * var(--ts, 1));
+    color: var(--tc, var(--muted));
   }
   .x-ticks span:first-child {
     transform: none;

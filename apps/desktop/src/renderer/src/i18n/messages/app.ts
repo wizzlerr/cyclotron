@@ -81,6 +81,7 @@ export const en = {
       devices: 'Devices',
       profile: 'Profile',
       ride: 'Ride',
+      tiles: 'Ride screen',
       connections: 'Connections',
       app: 'App',
     } satisfies Record<SettingsTab, string>,
@@ -117,9 +118,9 @@ export const en = {
     cueTest: 'Test',
     cueVolumeHelp:
       'Countdown and step-change beeps during workouts. "Mute" on the Ride screen silences them for one ride.',
-    rideTiles: 'Ride screen tiles',
+    rideTiles: 'Ride screen layout',
     tilesHelp:
-      'The tiles on the Ride screen. Also editable there ("Edit layout"), to see them with live numbers.',
+      'Everything on the Ride screen: number tiles, charts, route and the virtual world. Also editable there ("Edit layout"), to see it with live numbers.',
     trainer: 'Trainer',
     reconnecting: '· reconnecting…',
     disconnect: 'Disconnect',
@@ -262,6 +263,7 @@ export const pl: typeof en = {
       devices: 'Urządzenia',
       profile: 'Profil',
       ride: 'Jazda',
+      tiles: 'Ekran jazdy',
       connections: 'Połączenia',
       app: 'Aplikacja',
     },
@@ -298,9 +300,9 @@ export const pl: typeof en = {
     cueTest: 'Sprawdź',
     cueVolumeHelp:
       'Sygnały odliczania i zmiany kroku w trakcie treningu. „Wycisz” na ekranie jazdy wycisza je na jedną jazdę.',
-    rideTiles: 'Kafelki ekranu jazdy',
+    rideTiles: 'Układ ekranu jazdy',
     tilesHelp:
-      'Kafelki ekranu jazdy. Można je też edytować tam („Edytuj układ”), z bieżącymi wartościami.',
+      'Wszystko na ekranie jazdy: kafelki z wartościami, wykresy, trasa i wirtualny świat. Można to też edytować tam („Edytuj układ”), z bieżącymi wartościami.',
     trainer: 'Trenażer',
     reconnecting: '· ponowne łączenie…',
     disconnect: 'Rozłącz',

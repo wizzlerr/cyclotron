@@ -2,12 +2,15 @@
 // live in core (ride/layout.ts); this keeps it in settings and lets the screen edit it.
 
 import {
-  clampSize,
+  addPanel,
+  addTile,
   cleanLayout,
   defaultLayout,
   legacyLayout,
-  moveTile,
-  newTileKey,
+  placeTile,
+  withPanels,
+  type PanelId,
+  type TilePlace,
   type TileSpec,
 } from '@cyclotron/core'
 import { loadPref, savePref } from '../lib/prefs'
@@ -15,13 +18,22 @@ import { loadPref, savePref } from '../lib/prefs'
 const KEY = 'cyclotron.rideLayout'
 /** The fixed tiles before E4-6 (a list of tile ids), moved over once. */
 const LEGACY_KEY = 'cyclotron.rideTiles.v2'
+/** Set once the charts became part of the layout (D37), so removing them all is respected. */
+const PANELS_KEY = 'cyclotron.rideLayout.panels'
 
 function load(): TileSpec[] {
   const saved = cleanLayout(loadPref<unknown>(KEY))
-  if (saved) return saved
+  if (saved) {
+    if (loadPref<boolean>(PANELS_KEY)) return saved
+    const moved = withPanels(saved)
+    savePref(KEY, moved)
+    savePref(PANELS_KEY, true)
+    return moved
+  }
+  savePref(PANELS_KEY, true)
   const legacy = loadPref<unknown>(LEGACY_KEY)
   if (Array.isArray(legacy)) {
-    const moved = legacyLayout(legacy.filter((x): x is string => typeof x === 'string'))
+    const moved = withPanels(legacyLayout(legacy.filter((x): x is string => typeof x === 'string')))
     if (moved.length > 0) {
       savePref(KEY, moved)
       return moved
@@ -51,24 +63,29 @@ class RideLayout {
     this.save()
   }
 
-  update(key: string, patch: Partial<Omit<TileSpec, 'key'>>, save = true): void {
-    this.tiles = this.tiles.map((t) => {
-      if (t.key !== key) return t
-      const next = { ...t, ...patch }
-      return { ...next, ...clampSize(next.w, next.h) }
-    })
+  /** Anything but the place (numbers, colours, lock…). Size and place go through `place`. */
+  update(key: string, patch: Partial<Omit<TileSpec, 'key' | keyof TilePlace>>, save = true): void {
+    this.tiles = this.tiles.map((t) => (t.key === key ? { ...t, ...patch } : t))
     if (save) this.save()
   }
 
-  /** Live while dragging; saved on drop (`save()`). */
-  move(key: string, toKey: string): void {
-    this.tiles = moveTile(this.tiles, key, toKey)
+  /**
+   * Moves/resizes a tile, pushing others out of the way. `from` is the layout when the drag
+   * started, so a drag back and forth doesn't pile up pushes. Saved on drop (`save()`).
+   */
+  place(key: string, to: Partial<TilePlace>, from: readonly TileSpec[] = this.tiles): void {
+    this.tiles = placeTile(from, key, to)
   }
 
   add(): void {
-    const key = newTileKey(this.tiles)
-    this.tiles = [...this.tiles, { key, metrics: ['power3s'], w: 3, h: 1 }]
-    this.selected = key
+    this.tiles = addTile(this.tiles)
+    this.selected = this.tiles.at(-1)?.key
+    this.save()
+  }
+
+  addPanel(panel: PanelId): void {
+    this.tiles = addPanel(this.tiles, panel)
+    this.selected = this.tiles.find((t) => t.panel === panel)?.key
     this.save()
   }
 

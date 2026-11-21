@@ -11,6 +11,10 @@
     height = 120,
     ftpW = undefined,
     axes = false,
+    titles = true,
+    textScale = 1,
+    textColor = undefined,
+    ftpLine = true,
   }: {
     timeline: readonly Segment[]
     positionS?: number
@@ -18,6 +22,13 @@
     /** Watts for 100 % (FTP × intensity). Without it, targets are shown as % FTP. */
     ftpW?: number
     axes?: boolean
+    /** Axis titles ("Power (W)", "Time"); with `axes`. */
+    titles?: boolean
+    /** Size of the axis texts (× normal) and their colour (the rider's Ride screen layout). */
+    textScale?: number
+    textColor?: string
+    /** The dashed FTP line and its label. */
+    ftpLine?: boolean
   } = $props()
 
   const W = 1000
@@ -101,9 +112,16 @@
   })
 </script>
 
-<div class="profile" class:axes>
+<div
+  class="profile"
+  class:axes
+  class:notitles={!titles}
+  style:--ts={textScale}
+  style:--tc={textColor}
+>
   {#if axes}
-    <span class="axis-title y-title">{ftpW ? t().ride.profile.powerAxis : '% FTP'}</span>
+    {#if titles}<span class="axis-title y-title">{ftpW ? t().ride.profile.powerAxis : '% FTP'}</span
+      >{/if}
     <div class="y-ticks" style:height="{height}px">
       {#each yTicks as tick (tick.pct)}
         <span style:top="{(y(tick.pct) / height) * 100}%">{tick.label}</span>
@@ -133,13 +151,13 @@
       {#each blocks as b, i (i)}
         <polygon points={b.points} fill={b.fill} class:hovered={hovered === i} />
       {/each}
-      <line class="ftp" x1="0" x2={W} y1={ftpY} y2={ftpY} />
+      {#if ftpLine}<line class="ftp" x1="0" x2={W} y1={ftpY} y2={ftpY} />{/if}
       {#if positionS !== undefined && totalS > 0}
         <rect class="done" x="0" y="0" width={x(positionS)} {height} />
         <line class="now" x1={x(positionS)} x2={x(positionS)} y1="0" y2={height} />
       {/if}
     </svg>
-    {#if axes}
+    {#if axes && ftpLine}
       <span class="ftp-label" style:top="{(ftpY / height) * 100}%">FTP</span>
     {/if}
     {#if tip}
@@ -157,7 +175,7 @@
         <span style:left="{(tick / totalS) * 100}%">{formatDuration(tick)}</span>
       {/each}
     </div>
-    <span class="axis-title x-title">{t().ride.profile.time}</span>
+    {#if titles}<span class="axis-title x-title">{t().ride.profile.time}</span>{/if}
   {/if}
 </div>
 
@@ -167,9 +185,12 @@
   }
   .profile.axes {
     display: grid;
-    grid-template-columns: 1rem 2.5rem 1fr;
-    grid-template-rows: auto 1.25rem auto;
+    grid-template-columns: calc(1rem * var(--ts, 1)) calc(2.5rem * var(--ts, 1)) 1fr;
+    grid-template-rows: auto calc(1.25rem * var(--ts, 1)) auto;
     column-gap: 0.25rem;
+  }
+  .profile.axes.notitles {
+    grid-template-columns: 0 calc(2.5rem * var(--ts, 1)) 1fr;
   }
   .plot {
     position: relative;
@@ -212,8 +233,8 @@
     pointer-events: none;
   }
   .axis-title {
-    color: var(--muted);
-    font-size: 0.75rem;
+    color: var(--tc, var(--muted));
+    font-size: calc(0.75rem * var(--ts, 1));
   }
   .y-title {
     grid-column: 1;
@@ -232,8 +253,8 @@
     position: absolute;
     right: 0;
     transform: translateY(-50%);
-    font-size: 0.7rem;
-    color: var(--muted);
+    font-size: calc(0.7rem * var(--ts, 1));
+    color: var(--tc, var(--muted));
   }
   .x-ticks {
     grid-column: 3;
@@ -244,8 +265,8 @@
     position: absolute;
     top: 0.1rem;
     transform: translateX(-50%);
-    font-size: 0.7rem;
-    color: var(--muted);
+    font-size: calc(0.7rem * var(--ts, 1));
+    color: var(--tc, var(--muted));
     white-space: nowrap;
   }
   .x-ticks span:first-child {
@@ -260,8 +281,8 @@
     position: absolute;
     right: 0.25rem;
     transform: translateY(-110%);
-    font-size: 0.65rem;
-    color: var(--muted);
+    font-size: calc(0.65rem * var(--ts, 1));
+    color: var(--tc, var(--muted));
     pointer-events: none;
   }
   .tip {
