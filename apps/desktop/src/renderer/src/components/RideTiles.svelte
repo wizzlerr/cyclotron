@@ -13,7 +13,9 @@
     layoutRows,
     PANEL_IDS,
     powerZone,
+    targetFit,
     TEXT_METRIC_IDS,
+    tileTarget,
     PREVIEW_SAMPLE_S,
     previewRide,
     type MetricId,
@@ -21,6 +23,7 @@
     type PanelId,
     type Segment,
     type TextMetricId,
+    type TargetFit,
     type TileSpec,
   } from '@cyclotron/core'
   import type { ComponentProps } from 'svelte'
@@ -50,6 +53,8 @@
     hot?: boolean
     /** Has something to show here (before a ride, ride totals don't). */
     available: boolean
+    /** Usual widest text, so the value keeps its place as digits come and go. */
+    template?: string
   }
 
   /**
@@ -81,6 +86,7 @@
     avgHr: 'bpm',
     maxHr: 'bpm',
     cadence: 'rpm',
+    cadenceTarget: 'rpm',
     avgCadence: 'rpm',
     speed: 'km/h',
     grade: '%',
@@ -98,8 +104,50 @@
     toGo: 1,
   }
   const TIMES = new Set<MetricId>(['intervalLeft', 'elapsed', 'total', 'workoutLeft'])
+  /**
+   * The width each number usually needs (watts and heart rate three digits, a ride time
+   * H:MM:SS): reserved on the tile, so numbers don't jump left and right as their digits change.
+   * Longer values still get their room.
+   */
+  const TEMPLATES: Partial<Record<NumericMetricId, string>> = {
+    power3s: '000',
+    power: '000',
+    power10s: '000',
+    target: '000',
+    wkg: '0.0',
+    intervalAvg: '000',
+    avgPower: '000',
+    maxPower: '000',
+    np: '000',
+    if: '0.00',
+    tss: '000',
+    kcal: '000',
+    hr: '000',
+    avgHr: '000',
+    maxHr: '000',
+    cadence: '000',
+    cadenceTarget: '000',
+    avgCadence: '000',
+    speed: '00.0',
+    intervalLeft: '00:00',
+    elapsed: '0:00:00',
+    total: '0:00:00',
+    workoutLeft: '0:00:00',
+    grade: '00.0',
+    distance: '00.0',
+    toGo: '00.0',
+    elevation: '000',
+    climbed: '000',
+  }
+  /** Tile tints for how close the rider is to the target. */
+  const FIT_COLOURS: Record<TargetFit, string> = {
+    on: 'var(--ok)',
+    near: 'var(--warn)',
+    off: 'var(--error)',
+  }
   const SECONDARY: Partial<Record<MetricId, string>> = {
     target: 'var(--muted)',
+    cadenceTarget: 'var(--muted)',
     total: 'var(--muted)',
     intervalLeft: 'var(--series-1)',
   }
@@ -117,6 +165,7 @@
       unit: UNITS[id],
       secondary: SECONDARY[id],
       available,
+      template: TEMPLATES[id],
     }
     if (id === 'intervalLeft') m.hot = hot
     if ((id === 'power3s' || id === 'power' || id === 'power10s') && v && v > 0) {
@@ -160,6 +209,7 @@
       avgHr: m?.avgHeartRateBpm,
       maxHr: m?.maxHeartRateBpm,
       cadence: devices.data?.cadenceRpm,
+      cadenceTarget: timed ? s.segment?.cadence : undefined,
       avgCadence: m?.avgCadenceRpm,
       speed: route ? route.speedKmh : devices.data?.speedKmh,
       intervalLeft: timed ? remaining : undefined,
@@ -185,13 +235,24 @@
     const available = (id: MetricId): boolean => {
       if (always.has(id)) return true
       if (id === 'target') return target !== undefined
+      if (id === 'cadenceTarget') return v.cadenceTarget !== undefined
       if (routeIds.has(id)) return !!route
       if (id === 'elapsed') return rideOn
       if (id === 'intervalAvg' || TIMES.has(id)) return timed
       return rideOn
     }
     const hot = s?.status === 'running' && remaining <= 5 && s.next !== undefined
-    return { v, available, hot, timed, segment: timed ? s.segment : undefined, next: s?.next }
+    // A paused or finished ride (zero power) isn't "off target".
+    const going = s?.status === 'running' || (s === undefined && target !== undefined)
+    return {
+      v,
+      available,
+      hot,
+      going,
+      timed,
+      segment: timed ? s.segment : undefined,
+      next: s?.next,
+    }
   })
 
   // ---- Simulation ---------------------------------------------------------------------------
@@ -275,18 +336,34 @@
       unit: m.unit,
       name: m.label ?? names[id].short,
       color: m.hot ? 'var(--warn)' : (color ?? (own(id, i) ? m.secondary : undefined)),
+      template: m.template,
     }))
+    const second = shown[1]?.id
     return {
       label: parts[0]!.name,
       parts,
-      sep: shown.length === 2 && shown[1]!.id === 'target' ? '/' : '|',
+      sep: shown.length === 2 && (second === 'target' || second === 'cadenceTarget') ? '/' : '|',
       accent: spec.zoneBar === false ? undefined : shown.find((x) => x.m.zone)?.m.zone,
       bg: spec.bg,
       fg: spec.fg,
+      tint: spec.targetTint ? tintFor(spec) : undefined,
       fill: true,
       align: spec.align,
       animation: spec.animation,
     }
+  }
+
+  /** The tile's tint for how close the rider is to the target (power or cadence). */
+  function tintFor(spec: TileSpec): string | undefined {
+    if (simT === undefined && !editing && !live.going) return undefined
+    const pair = tileTarget(spec.metrics)
+    if (!pair) return undefined
+    const num = (id: MetricId): number | undefined => {
+      const v = metrics[id].value
+      return typeof v === 'number' ? v : undefined
+    }
+    const fit = targetFit(pair.kind, num(pair.actual), num(pair.target))
+    return fit && FIT_COLOURS[fit]
   }
 
   const marks = $derived(editing && !clean)

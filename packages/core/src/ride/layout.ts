@@ -23,6 +23,7 @@ export const METRIC_IDS = [
   'avgHr',
   'maxHr',
   'cadence',
+  'cadenceTarget',
   'avgCadence',
   'speed',
   // Time
@@ -96,6 +97,11 @@ export interface TileSpec {
   colors?: (string | null)[]
   /** Colour bar of the power / heart-rate zone; on unless turned off. */
   zoneBar?: boolean
+  /**
+   * Background tinted by how close the rider is to the target: power vs target power, or cadence
+   * vs the step's cadence (`targetFit`). Off unless set.
+   */
+  targetTint?: boolean
   /** Left unless set. */
   align?: TileAlign
   animation?: TileAnimation
@@ -378,6 +384,7 @@ export function cleanLayout(raw: unknown): TileSpec[] | undefined {
     const colors = kept.map(({ c }) => (typeof c === 'string' && HEX.test(c) ? c : null))
     if (colors.some((c) => c !== null)) tile.colors = colors
     if (t.zoneBar === false) tile.zoneBar = false
+    if (t.targetTint === true) tile.targetTint = true
     if (t.align === 'center' || t.align === 'right') tile.align = t.align
     if ((TILE_ANIMATIONS as readonly unknown[]).includes(t.animation))
       tile.animation = t.animation as TileAnimation
@@ -465,11 +472,17 @@ export function defaultLayout(): TileSpec[] {
     [['hr'], 3],
     [['avgPower', 'np'], 3],
     [['intervalAvg'], 3],
-    [['cadence'], 2],
+    [['cadence', 'cadenceTarget'], 2],
     [['tss'], 2],
     [['kcal'], 2],
   ]
-  const top = packTiles(tiles.map(([metrics, w], i) => tileAt(`t${i}`, metrics, 0, 0, w)))
+  const top = packTiles(
+    tiles.map(([metrics, w], i) => ({
+      ...tileAt(`t${i}`, metrics, 0, 0, w),
+      // The cadence tile shows how close the legs are to the step's cadence (when it has one).
+      ...(metrics.includes('cadenceTarget') ? { targetTint: true } : {}),
+    })),
+  )
   return withPanels(top)
 }
 

@@ -21,6 +21,7 @@ export const en = {
     avgHr: { long: 'Average heart rate', short: 'Avg HR' },
     maxHr: { long: 'Max heart rate', short: 'Max HR' },
     cadence: { long: 'Cadence', short: 'Cadence' },
+    cadenceTarget: { long: 'Target cadence (workout steps)', short: 'Target' },
     avgCadence: { long: 'Average cadence', short: 'Avg cadence' },
     speed: { long: 'Speed', short: 'Speed' },
     intervalLeft: { long: 'Interval time left', short: 'Interval' },
@@ -62,6 +63,8 @@ export const en = {
     text: 'Number colour',
     themeColour: 'Default',
     zoneBar: 'Zone colour bar (power, heart rate)',
+    targetTint:
+      'Colour by how close you are to the target (power or cadence): green on, amber near, red off',
     remove: 'Remove tile',
     close: 'Close',
     resize: 'Resize',
@@ -243,6 +246,7 @@ export const pl: typeof en = {
     avgHr: { long: 'Średnie tętno', short: 'Śr. tętno' },
     maxHr: { long: 'Tętno maksymalne', short: 'Maks. tętno' },
     cadence: { long: 'Kadencja', short: 'Kadencja' },
+    cadenceTarget: { long: 'Kadencja docelowa (kroki treningu)', short: 'Cel' },
     avgCadence: { long: 'Średnia kadencja', short: 'Śr. kadencja' },
     speed: { long: 'Prędkość', short: 'Prędkość' },
     intervalLeft: { long: 'Czas do końca interwału', short: 'Interwał' },
@@ -283,6 +287,8 @@ export const pl: typeof en = {
     text: 'Kolor liczb',
     themeColour: 'Domyślny',
     zoneBar: 'Pasek koloru strefy (moc, tętno)',
+    targetTint:
+      'Kolor według odległości od celu (moc lub kadencja): zielony w celu, żółty blisko, czerwony daleko',
     remove: 'Usuń kafelek',
     close: 'Zamknij',
     resize: 'Zmień rozmiar',

@@ -87,6 +87,7 @@ cyclotron/                (pnpm monorepo, TypeScript everywhere)
 | ~~E4-7~~ | ✅ (2026-11-21, user request, D36) Tile editor v2: own Settings tab, sample numbers, simulate ride, tile places + gravity, lock, any number of values with own colours, alignment, animations | M |
 | ~~E4-8~~ | ✅ (2026-11-21, user request, D37) Whole Ride screen editable: workout profile, live chart, route profile, route map and world as grid panels; the grid fills the window | M |
 | ~~E4-9~~ | ✅ (2026-11-21, user request, D38) Step texts as tile values (step, target, repeat, next) and panel styles (background, text colour/size, axes, titles, FTP line, legend, next line) | S |
+| ~~E4-10~~ | ✅ (2026-11-24, user request) Target cadence value, target tint (green/amber/red by closeness; `core/ride/target.ts`), names centred under values, fixed value widths | S |
 
 ## E5 — Ride recording and export
 

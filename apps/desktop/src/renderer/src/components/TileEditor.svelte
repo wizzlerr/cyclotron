@@ -37,7 +37,10 @@
         'kcal',
       ],
     },
-    { id: 'body', metrics: ['hr', 'avgHr', 'maxHr', 'cadence', 'avgCadence', 'speed'] },
+    {
+      id: 'body',
+      metrics: ['hr', 'avgHr', 'maxHr', 'cadence', 'cadenceTarget', 'avgCadence', 'speed'],
+    },
     { id: 'time', metrics: ['intervalLeft', 'elapsed', 'total', 'workoutLeft'] },
     { id: 'step', metrics: ['step', 'stepTarget', 'stepRepeat', 'nextStep'] },
     { id: 'route', metrics: ['grade', 'distance', 'toGo', 'elevation', 'climbed'] },
@@ -321,6 +324,14 @@
         onchange={(e) => set({ zoneBar: e.currentTarget.checked ? undefined : false })}
       />
       {L.zoneBar}
+    </label>
+    <label class="check">
+      <input
+        type="checkbox"
+        checked={!!tile.targetTint}
+        onchange={(e) => set({ targetTint: e.currentTarget.checked ? true : undefined })}
+      />
+      {L.targetTint}
     </label>
   {/if}
 

@@ -16,6 +16,14 @@
 
 **Added**
 
+- Target cadence as a tile value: the cadence of the current workout step (when the step has
+  one), e.g. "88 / 95 rpm". The default cadence tile shows it.
+- "Colour by how close you are to the target": a tile showing power or cadence tints green on
+  target, amber when near and red when off, fading between them (on by default for the cadence
+  tile).
+- Tile names are centred under their numbers, and numbers keep a fixed width (three digits for
+  watts, H:MM:SS for ride times), so they no longer jump left and right or change size as digits
+  come and go.
 - Lock a tile (the padlock on the tile, or "Locked in place") so nothing moves it while you
   rearrange the others.
 - A tile can show as many numbers as you like (up to 12), each in its own colour, and the numbers

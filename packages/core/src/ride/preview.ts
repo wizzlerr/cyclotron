@@ -29,17 +29,18 @@ const STEPS: Step[] = [
   { s: 300, pct: 0.45 },
 ]
 
+// Every step has a cadence target, so the cadence target tile has something to show.
 const TIMELINE = buildTimeline([
-  { kind: 'steady', durationS: 600, pct: 0.55 },
+  { kind: 'steady', durationS: 600, pct: 0.55, cadence: 85 },
   {
     kind: 'repeat',
     count: 5,
     steps: [
-      { kind: 'steady', durationS: 180, pct: 1.05 },
-      { kind: 'steady', durationS: 120, pct: 0.5 },
+      { kind: 'steady', durationS: 180, pct: 1.05, cadence: 95 },
+      { kind: 'steady', durationS: 120, pct: 0.5, cadence: 85 },
     ],
   },
-  { kind: 'steady', durationS: 300, pct: 0.45 },
+  { kind: 'steady', durationS: 300, pct: 0.45, cadence: 85 },
 ] satisfies WorkoutStep[])
 
 /** The preview workout, for the workout profile panel. */
@@ -100,7 +101,9 @@ export function previewRide(tS: number, ftpW: number, weightKg = 75): PreviewRid
   // HR follows the effort with a lag: 100 bpm easy, ~175 at threshold.
   const effort = Math.min(1.1, (step.pct * Math.min(1, (t - start + 30) / 90) + 0.5) / 1.5)
   const hr = Math.round(95 + 80 * effort + 2 * wobble(t, 3))
-  const cadence = Math.round((step.pct > 0.9 ? 94 : 86) + 3 * wobble(t, 5))
+  // Wobbles enough around the step's cadence to show every target tint.
+  const cadenceTarget = step.pct > 0.9 ? 95 : 85
+  const cadence = Math.round(cadenceTarget - 1 + 8 * wobble(t / 3, 5))
   const grade = 2.5 * Math.sin(t / 240) + 0.6 * wobble(t / 20, 7)
   const speed = Math.max(8, 34 - 3.2 * grade + 2 * (step.pct - 0.7) * 10 * 0.3)
   // Ride totals from the elapsed time: close enough for a preview.
@@ -131,6 +134,7 @@ export function previewRide(tS: number, ftpW: number, weightKg = 75): PreviewRid
       avgHr: Math.round(118 + 20 * Math.min(1, t / 1500)),
       maxHr: Math.round(t > 700 ? 176 : 128),
       cadence,
+      cadenceTarget,
       avgCadence: 88,
       speed,
       intervalLeft: left,
