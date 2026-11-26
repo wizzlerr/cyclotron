@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+**Fixed**
+
+- Zwift Click connections are back to how they were up to v0.6.1: the keep-alive added in
+  v0.7.0 (RideOn re-sent every 3 s) is removed, since it made the connection worse. A Click that
+  sleeps still reconnects when you press a button.
+
 **Changed**
 
 - The whole Ride screen is now editable, not just the number tiles: the workout profile, live
