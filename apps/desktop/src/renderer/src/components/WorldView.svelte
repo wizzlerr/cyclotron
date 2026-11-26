@@ -8,8 +8,11 @@
   import { worldPrefs } from '../world/prefs.svelte'
   import type { WorldFeed, WorldView } from '../world/scene'
 
-  /** Tallest the panel may get (a share of the window height). */
-  let { maxHeight }: { maxHeight: number } = $props()
+  /**
+   * `maxHeight`: tallest the panel may get (its height follows its width). `fill`: as big as its
+   * grid cell instead (the rider's Ride screen layout).
+   */
+  let { maxHeight = 600, fill = false }: { maxHeight?: number; fill?: boolean } = $props()
 
   /** Width of the panel; its height follows (a wide, cinema-like view). */
   let width = $state(0)
@@ -63,7 +66,12 @@
   const grade = $derived(ride.routeState?.position.gradePct)
 </script>
 
-<div class="world card" style:height="{height}px" bind:clientWidth={width}>
+<div
+  class="world card"
+  class:fill
+  style:height={fill ? undefined : `${height}px`}
+  bind:clientWidth={width}
+>
   <canvas bind:this={canvas} aria-label={t().world.label}></canvas>
   {#if grade !== undefined}
     <span class="hud">{formatNumber(grade, 1)} %</span>
@@ -78,6 +86,12 @@
     margin-top: 0.75rem;
     padding: 0;
     overflow: hidden;
+  }
+  .world.fill {
+    margin: 0;
+    flex: 1;
+    min-height: 0;
+    border-radius: 8px;
   }
   canvas {
     display: block;

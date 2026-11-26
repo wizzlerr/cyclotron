@@ -6,9 +6,29 @@
   import { formatNumber } from '../i18n/i18n.svelte'
   import { t } from '../i18n/t'
   import { formatDuration } from '../lib/format'
-  import { ride } from '../ride/session.svelte'
+  import { ride, type ChartData } from '../ride/session.svelte'
 
-  let { height = 220 }: { height?: number } = $props()
+  let {
+    height = 220,
+    data = undefined,
+    version = undefined,
+    axes = true,
+    titles = true,
+    legend = true,
+    textScale = 1,
+    textColor = undefined,
+  }: {
+    height?: number
+    /** Series to show instead of the ride's (the tile editor's preview); `version` changes with it. */
+    data?: ChartData
+    version?: number
+    /** Parts and texts the rider can turn off or restyle (Ride screen layout). */
+    axes?: boolean
+    titles?: boolean
+    legend?: boolean
+    textScale?: number
+    textColor?: string
+  } = $props()
 
   let el: HTMLDivElement
   let plot: uPlot | undefined
@@ -19,7 +39,18 @@
     const localeTicks = (_u: uPlot, splits: number[]): string[] =>
       splits.map((v) => (v == null ? '' : formatNumber(v)))
     const grid = { stroke: '#262d36', width: 1 }
-    const axis = { stroke: color('--muted'), grid, ticks: grid }
+    const family = getComputedStyle(el).fontFamily || 'system-ui'
+    const px = (n: number): string => `${Math.round(n * textScale)}px ${family}`
+    const axis = {
+      show: axes,
+      stroke: textColor ?? color('--muted'),
+      grid,
+      ticks: grid,
+      font: px(12),
+      labelFont: px(12),
+      labelSize: titles ? Math.round(24 * textScale) : 0,
+      size: Math.round(50 * textScale),
+    }
     // Lines read better than dots at 1 Hz.
     const line = { points: { show: false } }
     // Reading t() here rebuilds the chart when the language changes.
@@ -31,6 +62,7 @@
         // Created once; height changes resize it below instead of rebuilding.
         height: untrack(() => height),
         cursor: { drag: { x: false, y: false } },
+        legend: { show: legend },
         scales: {
           x: { time: false },
           W: { range: (_u, _min, max) => [0, Math.max(100, max * 1.1)] },
@@ -38,18 +70,22 @@
         axes: [
           {
             ...axis,
-            label: L.time,
+            label: titles ? L.time : undefined,
             // Whole seconds and round minutes, so early in a ride labels don't repeat (0:01 0:01 …).
             incrs: [1, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600],
             values: (_u, splits) => splits.map((s) => formatDuration(s)),
           },
-          { ...axis, scale: 'W', label: L.powerAxis, size: 50, values: localeTicks },
+          {
+            ...axis,
+            scale: 'W',
+            label: titles ? L.powerAxis : undefined,
+            values: localeTicks,
+          },
           {
             ...axis,
             scale: 'bpm',
             side: 1,
-            label: L.hrAxis,
-            size: 50,
+            label: titles ? L.hrAxis : undefined,
             values: localeTicks,
             grid: { show: false },
           },
@@ -93,7 +129,7 @@
           },
         ],
       },
-      ride.chart,
+      untrack(() => data ?? ride.chart),
       el,
     )
     plot = p
@@ -114,8 +150,8 @@
   })
 
   $effect(() => {
-    void ride.chartVersion
-    plot?.setData(ride.chart)
+    void (version ?? ride.chartVersion)
+    plot?.setData(data ?? ride.chart)
   })
 
   function unit(u: string) {
@@ -123,7 +159,7 @@
   }
 </script>
 
-<div class="chart" bind:this={el}></div>
+<div class="chart" bind:this={el} style:--ts={textScale} style:--tc={textColor}></div>
 
 <style>
   .chart {
@@ -131,7 +167,7 @@
     min-width: 0;
   }
   .chart :global(.u-legend) {
-    color: var(--fg);
-    font-size: 0.85rem;
+    color: var(--tc, var(--fg));
+    font-size: calc(0.85rem * var(--ts, 1));
   }
 </style>

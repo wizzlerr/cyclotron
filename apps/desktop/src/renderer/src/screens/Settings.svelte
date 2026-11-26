@@ -273,12 +273,13 @@
         <p class="muted">{s.rideFilesHelp}</p>
       </section>
       <DataCard />
-    {:else if nav.settingsTab === 'ride'}
+    {:else if nav.settingsTab === 'tiles'}
       <section class="card wide">
         <h2>{s.rideTiles}</h2>
         <p class="muted">{s.tilesHelp}</p>
         <RideTiles editor />
       </section>
+    {:else if nav.settingsTab === 'ride'}
       <section class="card">
         <h2>{s.rideScreen}</h2>
         <h3>{s.cueVolume}</h3>
