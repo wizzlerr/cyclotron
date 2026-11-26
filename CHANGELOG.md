@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.8.0 (2026-11-26)
+
 **Fixed**
 
 - Zwift Click connections are back to how they were up to v0.6.1: the keep-alive added in
